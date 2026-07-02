@@ -53,15 +53,15 @@
 
    ```bash
    git add -A
-   git commit -m "archive: {title} ({change-id})"
-   git push origin archive/{change-id}
+   git commit -m "archive: {title}"
+   git push origin archive/{id}-{slug}
 
    gh pr create \
       --repo {owner}/{repo} \
-      --base "$DEFAULT_BRANCH" \
-      --head archive/{change-id} \
-      --title "archive: {title} ({change-id})" \
-      --body "Archive SDD artifacts for {change-id} after merge."
+      --base main \
+      --head archive/{id}-{slug} \
+      --title "archive: {title}" \
+      --body "Archive SDD artifacts for {id} after merge."
    ```
 
    If work was stashed in step 1, restore it after the PR is created unless the user opts out.
