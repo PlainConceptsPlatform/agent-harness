@@ -1,6 +1,7 @@
 2. **Find the oldest change with a completed PR**
 
    List unarchived changes (top-level only, excludes `archive/`):
+   `{change-dir}` is the directory basename (e.g. `us-{id}-{slug}` for changes derived from user stories or `{slug}` for explorations).
 
    ```bash
    find "$REPO_ROOT/openspec/changes" -mindepth 1 -maxdepth 1 -type d -not -name 'archive' | sort
@@ -14,7 +15,7 @@
    gh pr list --repo {owner}/{repo} --state merged --json title,headRefName,mergedAt,number --jq 'sort_by(.mergedAt) | .[] | {name: .title, sourceRefName: .headRefName, mergedAt: .mergedAt, pullRequestId: .number}'
    ```
 
-   Match each change to a completed PR using its ID and slug as search hints:
+   Match each change to a completed PR using its title as search hints:
    - No match → skip (record as blocked: `no merged PR found`).
    - One match → eligible.
    - Multiple matches → ask the user which PR belongs to that change.
@@ -27,7 +28,7 @@
 
    ```text
    Oldest unarchived merged change found:
-     ID: {change-id}
+     ID: {change-dir}
      Title: {title from resolved PR}
      PR ID: {pullRequestId}
      Merged: {mergedAt}
@@ -40,7 +41,7 @@
 4. **Archive the change**
 
    ```bash
-   git checkout -b archive/{change-id}
+   git checkout -b archive/{change-dir}
    ```
 
    Load `@openspec-archive-change` skill and follow it to archive the change.
@@ -54,14 +55,14 @@
    ```bash
    git add -A
    git commit -m "archive: {title}"
-   git push origin archive/{id}-{slug}
+   git push origin archive/{change-dir}
 
    gh pr create \
       --repo {owner}/{repo} \
       --base main \
-      --head archive/{id}-{slug} \
+      --head archive/{change-dir} \
       --title "archive: {title}" \
-      --body "Archive SDD artifacts for {id} after merge."
+      --body "Archive SDD artifacts for {change-dir} after merge."
    ```
 
    If work was stashed in step 1, restore it after the PR is created unless the user opts out.
@@ -73,7 +74,7 @@
    ```text
    Archive complete
 
-     Change ID: {change-id}
+     Change ID: {change-dir}
      Title: {title}
      Original PR: {original-pr-link}
      Archive PR: {archive-pr-link}
