@@ -4,7 +4,6 @@ import path from 'node:path'
 import { fileURLToPath } from 'url'
 import { readOnboardConfig } from './shared.js'
 import { copyContentStep } from '../steps/copy/index.js'
-import { stampAgentModels } from '../steps/copy/agent-models.js'
 import { writeModelsToConfigs } from '../steps/models/write.js'
 import { patchGuardrails } from '../steps/optimization/patch-guardrails.js'
 import { writeOnboardConfig } from '../steps/metadata/index.js'
@@ -49,7 +48,6 @@ export async function runUpdate() {
   await copyContentStep({ backlogPlatform, repoPlatform }, ctx)
 
   if (saved.models) {
-    await stampAgentModels({ models: saved.models })
     await writeModelsToConfigs({ buildModel: saved.models.build })
   }
 

@@ -4,9 +4,10 @@ import { fileURLToPath } from "node:url"
 import { describe, expect, it } from "vitest"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const CONTENT_DIR = path.join(__dirname, "content")
 
 function skill(name, file = "SKILL.md") {
-  return fs.readFileSync(path.join(__dirname, ".agents", "skills", name, file), "utf-8")
+  return fs.readFileSync(path.join(CONTENT_DIR, ".agents", "skills", name, file), "utf-8")
 }
 
 describe("planning skill templates", () => {

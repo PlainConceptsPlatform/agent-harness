@@ -61,21 +61,30 @@ export const ObSubagentTiers = async ({ directory }) => {
     return `---\n${fm}\n---${templateContent.slice(fmMatch[0].length)}`
   }
 
-  // Ensure template files have mode: primary. If a template was created with
-  // mode: all or mode: subagent, fix it in-place so the base agent is always
-  // a primary (user-facing) agent. Variants get mode: subagent via buildVariant.
-  function enforcePrimaryMode(templateContent) {
+  // Ensure template files have mode: primary and no stale model: line. Base
+  // engineer templates must never declare a model: models are resolved at
+  // startup per-tier and injected into variant files only. A stale model:
+  // (e.g. from a prior `stampAgentModels` run) is stripped here so the base
+  // agent falls back to the session-level model in opencode.json.
+  function normalizeTemplate(templateContent) {
     const fmMatch = templateContent.match(/^---\r?\n([\s\S]*?)\r?\n---/)
     if (!fmMatch) return templateContent
 
-    const fm = fmMatch[1]
-    if (/^mode:\s*primary/m.test(fm)) return templateContent
+    let fm = fmMatch[1]
+    let changed = false
 
-    const newFm = /^mode:/m.test(fm)
-      ? fm.replace(/^mode:.*$/m, 'mode: primary')
-      : `mode: primary\n${fm}`
+    if (!/^mode:\s*primary/m.test(fm)) {
+      fm = /^mode:/m.test(fm) ? fm.replace(/^mode:.*$/m, 'mode: primary') : `mode: primary\n${fm}`
+      changed = true
+    }
+    if (/^model:/m.test(fm)) {
+      // Remove the model: line and its trailing newline without leaving a
+      // leading blank line (model: can be the first frontmatter entry).
+      fm = fm.replace(/^model:[^\n]*\r?\n?/m, '').replace(/^\r?\n/, '').replace(/\n$/, '')
+      changed = true
+    }
 
-    return `---\n${newFm}\n---${templateContent.slice(fmMatch[0].length)}`
+    return changed ? `---\n${fm}\n---${templateContent.slice(fmMatch[0].length)}` : templateContent
   }
 
   function descriptionOf(templateContent) {
@@ -104,11 +113,11 @@ export const ObSubagentTiers = async ({ directory }) => {
         const templateContents = await Promise.all(
           templates.map(async name => {
             const rawContent = await fs.readFile(path.join(agentsDir, `${name}.md`), "utf-8")
-            const content = enforcePrimaryMode(rawContent)
-            // If the template had the wrong mode, persist the fix to disk
+            const content = normalizeTemplate(rawContent)
+            // If the template had the wrong mode or a stale model:, persist the fix to disk
             if (content !== rawContent) {
               await writeIfChanged(path.join(agentsDir, `${name}.md`), content)
-              console.error(`[ob-subagent-tiers] Fixed ${name}.md: mode set to primary`)
+              console.error(`[ob-subagent-tiers] Normalized ${name}.md (mode: primary, model: removed)`)
             }
             return { name, content }
           })

@@ -39,7 +39,7 @@ describe('generateFullstackEngineer()', () => {
     expect(content).not.toContain('@browser-automation')
   })
 
-  it('preserves existing model field when regenerating', async () => {
+  it('strips a stale model: line when regenerating (models belong in variants only)', async () => {
     const agentsDir = path.join(tmpDir, '.opencode', 'agents')
     fs.mkdirSync(agentsDir, { recursive: true })
     fs.writeFileSync(
@@ -51,7 +51,8 @@ describe('generateFullstackEngineer()', () => {
     await generateFullstackEngineer({ cwd: tmpDir })
 
     const content = fs.readFileSync(path.join(agentsDir, 'fullstack-engineer.md'), 'utf-8')
-    expect(content).toContain('model: custom/model')
+    expect(content).not.toContain('model:')
+    expect(content).not.toContain('custom/model')
   })
 
   it('preserves existing identity paragraph when regenerating', async () => {
@@ -114,6 +115,7 @@ describe('generateFullstackEngineer()', () => {
     expect(content).toContain('@react19-concurrent-patterns')
     expect(content).toContain('@dotnet-best-practices')
     expect(content).toContain('@react19-test-patterns')
-    expect(content).toContain('model: custom/model')
+    expect(content).not.toContain('model:')
+    expect(content).not.toContain('custom/model')
   })
 })

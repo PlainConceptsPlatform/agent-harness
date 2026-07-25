@@ -27,13 +27,10 @@ export async function generateFullstackEngineer({ cwd = process.cwd() } = {}) {
   await fse.ensureDir(agentsDir)
   const filePath = path.join(agentsDir, FULLSTACK_FILE)
 
-  let existingModel = null
   let existingAbilities = null
   let existingIdentity = null
   if (await fse.pathExists(filePath)) {
     const content = await fse.readFile(filePath, 'utf-8')
-    const modelMatch = content.match(/^model:\s*(.+)$/m)
-    if (modelMatch) existingModel = modelMatch[1].trim()
     const abilitiesMatch = content.match(/## Abilities\n([\s\S]*?)$/)
     if (abilitiesMatch) existingAbilities = abilitiesMatch[1].trim()
     const identityMatch = content.match(/^---\n[\s\S]*?\n---\n\n(.*?)(?:\n\n## Abilities)/s)
@@ -53,9 +50,8 @@ export async function generateFullstackEngineer({ cwd = process.cwd() } = {}) {
     '  grep: allow',
     '  question: allow',
     '  todowrite: allow',
+    '---',
   ]
-  if (existingModel) frontmatter.push(`model: ${existingModel}`)
-  frontmatter.push('---')
 
   const identity = existingIdentity ?? FULLSTACK_IDENTITY
 

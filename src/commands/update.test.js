@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('./shared.js', () => ({ readOnboardConfig: vi.fn() }))
 vi.mock('../steps/copy/index.js', () => ({ copyContentStep: vi.fn() }))
-vi.mock('../steps/copy/agent-models.js', () => ({ stampAgentModels: vi.fn() }))
 vi.mock('../steps/models/write.js', () => ({ writeModelsToConfigs: vi.fn() }))
 vi.mock('../steps/optimization/patch-guardrails.js', () => ({ patchGuardrails: vi.fn() }))
 vi.mock('../steps/metadata/index.js', () => ({ writeOnboardConfig: vi.fn() }))
