@@ -44,7 +44,7 @@ export async function generateFullstackEngineer({ cwd = process.cwd() } = {}) {
     '---',
     `description: ${FULLSTACK_DESCRIPTION}`,
     'mode: primary',
-    'color: success',
+    'color: warning',
     'permission:',
     '  edit: allow',
     '  bash: allow',

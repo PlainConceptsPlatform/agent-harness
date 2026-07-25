@@ -6,7 +6,7 @@ license: MIT
 
 # Plan Propose
 
-This skill generates the full proposal (proposal.md, specs, tasks.md) in memory first, before the confirmation checkpoint in Step 3 resolves. Write files to disk only after Step 3 resolves to `yes`.
+**READ-ONLY UNTIL CONFIRMED.** Until the Step 3 checkpoint resolves to `yes`, this entire skill is read-only. You MUST NOT write, edit, or create any file. Build everything in context. Files hit disk only in Step 4. After Step 5, the skill ends; if the user keeps chatting without invoking a new command, remain read-only. Writing requires either an explicit user command (e.g. `/plan-apply`) or the Step 3 `yes` confirmation.
 
 ## Input
 

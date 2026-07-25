@@ -6,7 +6,7 @@ The agent file is exactly this structure: frontmatter plus one identity paragrap
 ---
 description: <one sentence naming the persona + top 3-5 detected technologies>
 mode: primary
-color: <pick: primary|secondary|accent|warning|error|info: avoid colors used by existing agents>
+color: <pick: primary|secondary|accent|error|info: avoid colors used by existing agents; warning is reserved for the lead engineer>
 permission:
   edit: allow
   bash: allow
@@ -59,6 +59,7 @@ Rules:
 - Only include ability categories that have at least one real skill (besides Guardrails which is always present).
 - Name follows `{persona}-engineer` pattern (e.g. `frontend-engineer`, `backend-engineer`).
 - Read existing agents' `color:` frontmatter first: pick a color not already used.
+- `warning` is reserved for the lead (fullstack) engineer, the planning agent. Never assign it to a spawned specialist.
 
 ## Structural validation checklist
 

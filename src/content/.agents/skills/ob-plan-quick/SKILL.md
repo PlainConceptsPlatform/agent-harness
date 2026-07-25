@@ -4,7 +4,7 @@ description: Quick plan: analyze the codebase and create a task checklist using 
 license: MIT
 ---
 
-This command is read-only. You may read files, search code, and use `todowrite` to create Todo pane items. The only output of this command is the Todo pane checklist and a question to the user.
+This command is strictly read-only. You may read files, search code, and use `todowrite` to create Todo pane items. You MUST NOT write, edit, or create any file. After completing the checklist and asking the user what's next, if the user continues chatting without invoking a new command (e.g. `/plan-apply`) or explicitly requesting implementation, remain read-only. The only output of this command is the Todo pane checklist and a question to the user.
 
 Lightweight planning for focused changes. Reads the codebase, creates a task checklist in the Todo pane using `todowrite`, and stops. This is a thinking tool, not a file writer.
 

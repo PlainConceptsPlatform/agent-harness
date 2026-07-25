@@ -28,7 +28,7 @@ describe('generateFullstackEngineer()', () => {
 
     const content = fs.readFileSync(path.join(tmpDir, '.opencode', 'agents', 'fullstack-engineer.md'), 'utf-8')
     expect(content).toContain('mode: primary')
-    expect(content).toContain('color: success')
+    expect(content).toContain('color: warning')
     expect(content).toContain('  question: allow')
     expect(content).toContain('  todowrite: allow')
     expect(content).toContain('**Startup — before doing anything else:**')
