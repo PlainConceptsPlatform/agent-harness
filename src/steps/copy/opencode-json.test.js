@@ -36,6 +36,7 @@ describe('patchOpencodeJson()', () => {
     expect(config.$schema).toBe('https://opencode.ai/config.json')
     expect(config.permission.question).toBe('allow')
     expect(config.permission.todowrite).toBe('allow')
+    expect(config.skills.paths).toEqual(['.agents/skills'])
   })
 
   it('adds agent block to existing config without touching other keys', async () => {
@@ -57,6 +58,7 @@ describe('patchOpencodeJson()', () => {
     expect(config.agent.plan.disable).toBe(true)
     expect(config.model).toBe('anthropic/claude-sonnet-4-5')
     expect(config.plugin).toEqual(['some-plugin'])
+    expect(config.skills.paths).toEqual(['.agents/skills'])
   })
 
   it('does not write when agents are disabled and skill permissions are present', async () => {
@@ -72,6 +74,7 @@ describe('patchOpencodeJson()', () => {
           todowrite: 'allow',
           skill: { 'ob-*': 'allow', 'openspec-*': 'allow' },
         },
+        skills: { paths: ['.agents/skills'] },
       }, null, 2),
     )
 
@@ -108,6 +111,7 @@ describe('patchOpencodeJson()', () => {
     expect(config.permission.skill['openspec-*']).toBe('allow')
     expect(config.permission.question).toBe('allow')
     expect(config.permission.todowrite).toBe('allow')
+    expect(config.skills.paths).toEqual(['.agents/skills'])
   })
 
   it('preserves comments in JSONC files', async () => {
@@ -136,5 +140,52 @@ describe('patchOpencodeJson()', () => {
     const result = await patchOpencodeJson()
     expect(result.patched).toBe(false)
     expect(result.reason).toBe('parse error')
+  })
+
+  it('adds .agents/skills to skills.paths when missing', async () => {
+    const opencodeDir = path.join(tmpDir, '.opencode')
+    fs.mkdirSync(opencodeDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(opencodeDir, 'opencode.json'),
+      JSON.stringify({
+        $schema: 'https://opencode.ai/config.json',
+        agent: { build: { disable: true }, plan: { disable: true } },
+        permission: {
+          question: 'allow',
+          todowrite: 'allow',
+          skill: { 'ob-*': 'allow', 'openspec-*': 'allow' },
+        },
+      }, null, 2),
+    )
+
+    const result = await patchOpencodeJson()
+    expect(result.patched).toBe(true)
+
+    const config = readConfig()
+    expect(config.skills.paths).toEqual(['.agents/skills'])
+  })
+
+  it('appends .agents/skills to existing skills.paths without removing other paths', async () => {
+    const opencodeDir = path.join(tmpDir, '.opencode')
+    fs.mkdirSync(opencodeDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(opencodeDir, 'opencode.json'),
+      JSON.stringify({
+        $schema: 'https://opencode.ai/config.json',
+        agent: { build: { disable: true }, plan: { disable: true } },
+        permission: {
+          question: 'allow',
+          todowrite: 'allow',
+          skill: { 'ob-*': 'allow', 'openspec-*': 'allow' },
+        },
+        skills: { paths: ['/custom/skills'] },
+      }, null, 2),
+    )
+
+    const result = await patchOpencodeJson()
+    expect(result.patched).toBe(true)
+
+    const config = readConfig()
+    expect(config.skills.paths).toEqual(['/custom/skills', '.agents/skills'])
   })
 })

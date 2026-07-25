@@ -49,8 +49,13 @@ export async function patchOpencodeJson(cwd = process.cwd()) {
   const missingSharedPermissions = SHARED_PERMISSIONS.filter(
     ([key, value]) => parsed?.permission?.[key] !== value,
   )
+  // opencode only scans .opencode/skills/ by default, but we install to .agents/skills/
+  const needsSkillsPaths = !(
+    Array.isArray(parsed?.skills?.paths) &&
+    parsed.skills.paths.includes('.agents/skills')
+  )
 
-  if (!needsAgentDisable && missingSkillPermissions.length === 0 && missingSharedPermissions.length === 0) {
+  if (!needsAgentDisable && missingSkillPermissions.length === 0 && missingSharedPermissions.length === 0 && !needsSkillsPaths) {
     return { patched: false }
   }
 
@@ -66,6 +71,15 @@ export async function patchOpencodeJson(cwd = process.cwd()) {
     text = applyModify(text, ['permission', key], value)
   }
 
+  // Ensure .agents/skills is in skills.paths so opencode discovers installed skills
+  if (needsSkillsPaths) {
+    const existingPaths = Array.isArray(parsed?.skills?.paths) ? parsed.skills.paths : []
+    if (!existingPaths.includes('.agents/skills')) {
+      const updatedPaths = [...existingPaths, '.agents/skills']
+      text = applyModify(text, ['skills', 'paths'], updatedPaths)
+    }
+  }
+
   await fse.ensureDir(opencodeDir)
   await fse.writeFile(opencodePath, text, 'utf-8')
   if (needsAgentDisable) {
@@ -76,6 +90,9 @@ export async function patchOpencodeJson(cwd = process.cwd()) {
   }
   if (missingSharedPermissions.length > 0) {
     success('Allowed question/todowrite tools in .opencode/opencode.json')
+  }
+  if (needsSkillsPaths) {
+    success('Added .agents/skills to skills.paths in .opencode/opencode.json')
   }
 
   return { patched: true }

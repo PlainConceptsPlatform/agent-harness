@@ -18,6 +18,9 @@
       "openspec-*": "allow"
     }
   },
+  "skills": {
+    "paths": [".agents/skills"]
+  },
   "default_agent": "fullstack-engineer",
   "agent": {
     "build": { "disable": true },
