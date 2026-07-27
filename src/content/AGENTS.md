@@ -2,40 +2,70 @@
 
 <!-- OB-NOT-INITIALIZED -->
 
-This file provides guidance to AI agents when working in this repository.
+# Agent operating guide
 
-Agent-agnostic. Works with OpenCode, Claude Code, Codex, Gemini, and others.
+This guide defines the common operating contract for AI agents in this repository.
+It is agent-agnostic and works with OpenCode, Claude Code, Codex, Gemini, and other agents.
 
-## Context
+## Purpose and scope
 
-Load `DESIGN.md` for design principles and guidelines. Load `ARCHITECTURE.md` for system architecture and component interactions. These files are generated during initialization and updated as the codebase evolves.
+Use this file for repository-wide workflow rules. Keep product architecture, security constraints, and design rules in their source documents rather than duplicating them here.
 
-Command aliases: OpenSpec skills may reference `/opsx-propose`, `/opsx-apply`, `/opsx-archive`, or `/opsx-explore`. Always substitute them with the `ob-plan-propose`, `ob-plan-apply`, `ob-plan-archive`, `ob-plan-explore` skills respectively (user-facing command names: `/plan-propose`, `/plan-apply`, `/plan-archive`, `/plan-explore`). Never mention the `opsx-` names to the user.
+## Session context
 
-## I am the lead, full workflow ownership
+Before a non-trivial change, read these documents in order:
+
+1. `AGENTS.md` for workflow and repository rules.
+2. `ARCHITECTURE.md` for boundaries, dependencies, and component interactions.
+3. `DESIGN.md` for UI and design-system work.
+4. The active OpenSpec change or the relevant specification for the area being changed.
+
+Read each document once per session unless it changes or the task moves into a different area.
+
+Command aliases: OpenSpec skills may reference `/opsx-propose`, `/opsx-apply`, `/opsx-archive`, or `/opsx-explore`. Always substitute them with the `ob-plan-propose`, `ob-plan-apply`, `ob-plan-archive`, and `ob-plan-explore` skills respectively. User-facing command names are `/plan-propose`, `/plan-apply`, `/plan-archive`, and `/plan-explore`. Never mention the `opsx-` names to the user.
+
+## Workflow ownership
 
 <!-- OB-PLATFORM-WORKFLOW-START -->
-When the user provides a work item URL or says "implement the plan" or "I've added comments to the PR", I own the full lifecycle. I load the appropriate userstory skill and coordinate implementation as native subagent waves via the `ob-plan-apply` skill.
-
-Trigger patterns (I recognize all of these, exact wording does not matter):
-- User pastes or mentions a work item URL. Load `ob-userstory` skill, parse it, load the `ob-plan-propose` skill, confirm with user, load the `ob-plan-apply` skill, ship.
-- `implement the plan` / `implement` / `start` / `go` (referring to the current plan). Load the `ob-plan-apply` skill, ship.
-- `I've added comments to the PR` or a PR URL in a feedback/fix request. Read and classify the PR comments (the `/ops-review` flow), fix via the `ob-plan-apply` skill, update PR.
-
-A work-item URL in the user's message is a strong trigger. Follow the pipeline unless the user explicitly asks for analysis or context only.
 <!-- OB-PLATFORM-WORKFLOW-END -->
 
-Never delegate without a plan. Default to specialists for implementation. If a subagent wave repeatedly fails, stop forcing it: report, then continue in the main session or ask the user.
+## Planning and execution
+
+- Plan before delegating work. Use OpenSpec when the change needs explicit scope, decisions, or sequenced tasks.
+- Keep changes focused. Do not combine unrelated refactors with requested work.
+- Do not guess when requirements, architecture, or security constraints are unclear. Ask before proceeding.
+- Prefer the project's established patterns and source documents over introducing new conventions.
 
 ## Engineer selection
 
-Inspect `.opencode/agents/*.md` before spawning. Prefer the most specialized custom engineer. `fullstack-engineer` is `mode: primary` (the user's planning agent), not a spawned worker. If no specialist matches, tell the user to create one with `/make-engineer`. Spawn only engineers present in that directory.
+Inspect `.opencode/agents/*.md` before spawning. Prefer the most specialized custom engineer. `fullstack-engineer` is `mode: primary`, the planning agent, and is not a spawned worker. If no specialist matches, tell the user to create one with `/make-engineer`. Spawn only engineers present in that directory.
 
-Full wave protocol, pipeline phases, and concurrency limits: see the `ob-plan-apply` skill (authoritative). Max concurrent agents is `agents.maxConcurrent` in `.opencode/opencode-onboard.json`.
+The `ob-plan-apply` skill is authoritative for subagent waves, dependency ordering, retries, and concurrency. Read `agents.maxConcurrent` from `.opencode/opencode-onboard.json` before spawning workers.
+
+## Tool and repository safety
+
+- Never expose or commit secrets, credentials, tokens, or production data.
+- Read before editing. Respect repository ownership, generated files, and existing local changes.
+- Run only commands appropriate to the task. Do not bypass checks, weaken tests, or silence lint rules to get a green result.
+- Commit, push, create pull requests, alter dependencies, or change deployment configuration only with the user's explicit approval and the repository's stated process.
+
+## Verification and completion
+
+- Run the applicable tests, lint, typecheck, and build before reporting completion.
+- A bug fix needs a test that would have caught the defect when practical.
+- Update specifications, architecture, or design documentation when the change makes their current statements inaccurate.
+- Report changed files, checks run, and any remaining risk or follow-up work.
+
+## Communication
+
+- Keep updates concise and factual.
+- State blockers early and explain the decision needed.
+- Use the repository's language and writing conventions for source, documentation, issues, commits, and pull requests.
+- Comments explain non-obvious reasons, constraints, or invariants. Do not add comments that restate code.
 
 ## Skills
 
-Skills live in `.agents/skills/`. Always installed: `@ob-guardrails-generic`, `@ob-guardrails-project`, `@browser-automation`. Agents load them via `@skill-name` in their `## Abilities` section.
+Skills live in `.agents/skills/`. Always installed: `@ob-guardrails-generic`, `@ob-guardrails-project`, and `@browser-automation`. Agents load them via `@skill-name` in their `## Abilities` section.
 
 <!-- OB-PLATFORM-SKILLS-GUIDE-START -->
 <!-- OB-PLATFORM-SKILLS-GUIDE-END -->

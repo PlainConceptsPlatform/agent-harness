@@ -27,4 +27,22 @@ describe('platform patching', () => {
     expect(content).toContain('GitHub Issue URLs, Azure DevOps work item URLs, and PR URLs are NOT automatic triggers in this mode.')
     expect(content).not.toContain('A GitHub or Azure DevOps URL anywhere in the user\'s message is always a trigger')
   })
+
+  it('preserves the operating-guide structure and platform markers', async () => {
+    const source = path.join(process.cwd(), 'src', 'content', 'AGENTS.md')
+    const dest = path.join(tmpDir, 'AGENTS.md')
+    await fse.copyFile(source, dest)
+
+    await patchAgentGuidance('github', 'github', tmpDir)
+
+    const content = await fse.readFile(dest, 'utf-8')
+    expect(content).toContain('# Agent operating guide')
+    expect(content).toContain('## Session context')
+    expect(content).toContain('## Tool and repository safety')
+    expect(content).toContain('## Verification and completion')
+    expect(content).toContain('<!-- OB-PLATFORM-WORKFLOW-START -->')
+    expect(content).toContain('<!-- OB-PLATFORM-WORKFLOW-END -->')
+    expect(content).toContain('<!-- OB-PLATFORM-SKILLS-GUIDE-START -->')
+    expect(content).toContain('<!-- OB-PLATFORM-SKILLS-GUIDE-END -->')
+  })
 })
