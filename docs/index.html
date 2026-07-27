@@ -152,6 +152,7 @@
         <div class="commands-grid">
           <div class="command reveal"><code>/ob-help</code><p>Show all commands and when to use each one. Start here if you're unsure.</p></div>
           <div class="command reveal"><code>/ob-init</code><p>Initialize the project, greenfield or brownfield, and activate the agent team.</p></div>
+          <div class="command reveal"><code>/repo-audit</code><p>Read-only audit of configured source roots, guardrails, dependencies, lockfiles, tooling, tests, and CI.</p></div>
           <div class="command reveal"><code>/ob-explore</code><p>Think through an idea or investigate a problem before committing to a plan.</p></div>
           <div class="command reveal"><code>/ob-propose</code><p>Parse an issue URL or idea into a structured plan: proposal, specs, tasks.</p></div>
           <div class="command reveal"><code>/ob-apply</code><p>Implement tasks via parallel subagent waves with the native task tool.</p></div>
@@ -163,6 +164,7 @@
           <div class="command reveal"><code>/ob-create-architecture</code><p>Generate or regenerate <code>ARCHITECTURE.md</code> from the codebase.</p></div>
           <div class="command reveal"><code>/ob-create-design</code><p>Generate or regenerate <code>DESIGN.md</code> from the design system.</p></div>
           <div class="command reveal"><code>/ob-create-project-guardrails</code><p>Generate a project-guardrails skill from <code>ARCHITECTURE.md</code> and project config.</p></div>
+          <div class="command reveal"><code>/repo-verify</code><p>Verify current-branch changes against applicable guardrails and project checks. Runs in <code>/plan-goal</code>.</p></div>
           <div class="command reveal"><code>/ob-set-model</code><p>Set the model for a tier (plan, build, or fast) per team or per user.</p></div>
         </div>
       </div>
@@ -182,7 +184,7 @@
           <div class="pipe-arrow" aria-hidden="true">↓</div>
           <div class="pipe-step highlight"><span class="pipe-num">4</span><div><h3>Parallel subagent waves</h3><p>Engineers spawn in parallel, each carries its own model tier, implements its tasks, and returns. The lead commits each group. Watch it live in the Subagents panel.</p></div></div>
           <div class="pipe-arrow" aria-hidden="true">↓</div>
-          <div class="pipe-step"><span class="pipe-num">5</span><div><h3>Verify</h3><p>Tests, build, and lint run according to task scope.</p></div></div>
+          <div class="pipe-step"><span class="pipe-num">5</span><div><h3>Verify</h3><p><code>/repo-verify</code> applies change-aware guardrails and checks before the relevant tests, build, and lint pass.</p></div></div>
           <div class="pipe-arrow" aria-hidden="true">↓</div>
           <div class="pipe-step"><span class="pipe-num">6</span><div><h3>Ship</h3><p>Commit → push → PR → review feedback loop, handled by the lead.</p></div></div>
         </div>

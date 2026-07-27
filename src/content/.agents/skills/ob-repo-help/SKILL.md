@@ -16,6 +16,8 @@ Display the following reference to the user exactly as written. Do not summarize
 
 **`/repo-onboard`**: Guided tour of the project and its agentic infrastructure. Explains agents, commands, skills, OpenSpec workflow, and configuration. Read-only: no files modified.
 
+**`/repo-audit`**: Read-only health audit of every configured source root. Loads the fullstack engineer's abilities, checks guardrails, architecture, tooling, dependencies, lockfiles, tests, and CI, then reports prioritized findings.
+
 **`/plan-explore`**: Your backlog is unclear, you have a half-formed idea, or you need to think through a problem before committing to a plan. This is a thinking partner, not an executor.
 
 **`/plan-story <feature or need>`**: Write a detailed, repo-aware user story from a feature idea. Loads the `@user-story` skill (Mike Cohn format + Gherkin acceptance criteria), analyzes your codebase for concrete context, and produces a development-ready story with specific personas, real outcomes, and testable criteria grounded in your actual file paths, component names, and data models. No files written — just the story.
@@ -59,6 +61,8 @@ Display the following reference to the user exactly as written. Do not summarize
 **`/make-evidence-scaffold`**: Scaffold a project-specific visual-evidence harness (deterministic capture, assertions, `evidence.json` manifest, and a verified issue/PR publisher) adapted to your stack. Afterwards `/ops-evidence` and `/plan-goal` delegate to it automatically.
 
 **`/make-guardrails`**: Generate a `ob-guardrails-project` skill from `ARCHITECTURE.md` and project config files. Extracts concrete rules (architecture boundaries, naming, code style, testing, git workflow) that all agents must follow. Updates every `*-engineer.md` to load the skill.
+
+**`/repo-verify`**: Verify the current branch against applicable guardrails and project checks. Repairs relevant failures, checks dependency/lockfile consistency, and reports `VERIFIED` only when every applicable check passes. It runs automatically in `/plan-goal`.
 
 **`/make-user-model <tier> <model>`**: Set the model for a tier (`plan`, `build`, or `fast`). Writes to `.opencode/opencode-onboard.json` (`models`). Use `user` prefix for a personal override: `/make-user-model user fast opencode/big-pickle`. Use a model id or `current` for the active session model. Restart opencode for the `ob-subagent-tiers` plugin to rebuild tier agents.
 

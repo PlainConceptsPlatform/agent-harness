@@ -50,7 +50,7 @@ Tick `propose` when the proposal commit exists.
 
 Load `ob-plan-apply` in autonomous mode with `start_from: load-plan`. It owns worker resolution, subagent waves, commits, verification, and re-waves.
 
-Tick `apply` and `verify` only when it returns every task complete and `VERIFIED`.
+Require it to return every task complete and `VERIFIED`, then load `ob-repo-verify`. Tick `apply` and `verify` only when both phases return `VERIFIED`.
 
 ## Phase 5: Archive
 

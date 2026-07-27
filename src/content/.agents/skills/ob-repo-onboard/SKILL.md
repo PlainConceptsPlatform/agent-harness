@@ -48,11 +48,12 @@ Group them by workflow phase if possible:
 - Implementation: plan-apply, plan-archive
 - Maintenance: make-architecture, make-design, make-engineer, make-guardrails, make-evidence-scaffold
 - Shipping: ops-ship, ops-review, ops-backlog, ops-evidence
+- Quality: repo-audit, repo-verify
 - Setup: init, make-user-model, repo-help
 
 ## Step 4: Skills
 
-Inspect `.agents/skills/` (if present). List installed skills with a one-line description each. Note which are platform-specific (userstory, pullrequest) vs general-purpose.
+Inspect `.agents/skills/` (if present). List installed skills with a one-line description each. Note which are platform-specific (userstory, pullrequest) vs general-purpose, and identify `ob-repo-audit` as read-only and `ob-repo-verify` as the current-branch verification gate.
 
 ## Step 5: OpenSpec workflow
 
@@ -79,6 +80,8 @@ End with 3 to 5 practical tips:
 - How to start working: "Run `/plan-goal` with a description of what you want to build"
 - How to add a specialist: "Run `/make-engineer`"
 - How to regenerate docs: "Run `/make-architecture` or `/make-design`"
+- How to audit the whole repository: "Run `/repo-audit`"
+- How to verify an active branch: "Run `/repo-verify`"
 - How to set up visual evidence: "Run `/make-evidence-scaffold` (UI projects) so `/plan-goal` can prove changes with screenshots"
 - How to see all commands: "Run `/repo-help`"
 - How to refresh config after changes: "Re-run `npx opencode-onboard` in the terminal"

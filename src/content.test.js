@@ -11,6 +11,20 @@ function skill(name, file = "SKILL.md") {
 }
 
 describe("planning skill templates", () => {
+  it("ships repo audit and verification commands with their matching skills", () => {
+    const auditCommand = fs.readFileSync(path.join(CONTENT_DIR, ".opencode", "commands", "repo-audit.md"), "utf-8")
+    const verifyCommand = fs.readFileSync(path.join(CONTENT_DIR, ".opencode", "commands", "repo-verify.md"), "utf-8")
+    const audit = skill("ob-repo-audit")
+    const verify = skill("ob-repo-verify")
+
+    expect(auditCommand).toContain("Load the `ob-repo-audit` skill")
+    expect(verifyCommand).toContain("Load the `ob-repo-verify` skill")
+    expect(audit).toContain("without modifying files")
+    expect(audit).toContain("fullstack-engineer.md")
+    expect(verify).toContain("git diff")
+    expect(verify).toContain("dependency manifest changes")
+  })
+
   it("keeps plan-explore as an openspec-explore facade", () => {
     const explore = skill("ob-plan-explore")
 
@@ -57,6 +71,7 @@ describe("planning skill templates", () => {
     expect(goal).toContain("Require `ARCHIVED_OK` and the archive path")
     expect(apply).toContain("Every command must exit 0")
     expect(archive).toContain("run the archive once more and repeat the check")
+    expect(goal).toContain("then load `ob-repo-verify`")
   })
 
   it("keeps plan-goal as a compact orchestrator", () => {
