@@ -164,7 +164,7 @@
           <div class="command reveal"><code>/ob-create-architecture</code><p>Generate or regenerate <code>ARCHITECTURE.md</code> from the codebase.</p></div>
           <div class="command reveal"><code>/ob-create-design</code><p>Generate or regenerate <code>DESIGN.md</code> from the design system.</p></div>
           <div class="command reveal"><code>/ob-create-project-guardrails</code><p>Generate a project-guardrails skill from <code>ARCHITECTURE.md</code> and project config.</p></div>
-          <div class="command reveal"><code>/repo-verify</code><p>Verify current-branch changes against applicable guardrails and project checks. Runs in <code>/plan-goal</code>.</p></div>
+          <div class="command reveal"><code>/repo-verify</code><p>Verify current-branch changes and run immutable dependency installs, configured builds, and tests for every discovered project. Runs in <code>/plan-goal</code>.</p></div>
           <div class="command reveal"><code>/ob-set-model</code><p>Set the model for a tier (plan, build, or fast) per team or per user.</p></div>
         </div>
       </div>
@@ -184,7 +184,7 @@
           <div class="pipe-arrow" aria-hidden="true">↓</div>
           <div class="pipe-step highlight"><span class="pipe-num">4</span><div><h3>Parallel subagent waves</h3><p>Engineers spawn in parallel, each carries its own model tier, implements its tasks, and returns. The lead commits each group. Watch it live in the Subagents panel.</p></div></div>
           <div class="pipe-arrow" aria-hidden="true">↓</div>
-          <div class="pipe-step"><span class="pipe-num">5</span><div><h3>Verify</h3><p><code>/repo-verify</code> applies change-aware guardrails and checks before the relevant tests, build, and lint pass.</p></div></div>
+          <div class="pipe-step"><span class="pipe-num">5</span><div><h3>Verify</h3><p><code>/repo-verify</code> runs every discovered project's immutable dependency installs, builds, and tests, plus change-aware guardrails and checks.</p></div></div>
           <div class="pipe-arrow" aria-hidden="true">↓</div>
           <div class="pipe-step"><span class="pipe-num">6</span><div><h3>Ship</h3><p>Commit → push → PR → review feedback loop, handled by the lead.</p></div></div>
         </div>

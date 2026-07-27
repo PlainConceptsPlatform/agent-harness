@@ -23,6 +23,8 @@ describe("planning skill templates", () => {
     expect(audit).toContain("fullstack-engineer.md")
     expect(verify).toContain("git diff")
     expect(verify).toContain("dependency manifest changes")
+    expect(verify).toContain("immutable dependency install or restore command")
+    expect(verify).toContain("build command, and test command")
   })
 
   it("keeps plan-explore as an openspec-explore facade", () => {

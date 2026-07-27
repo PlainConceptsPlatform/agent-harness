@@ -62,7 +62,7 @@ Display the following reference to the user exactly as written. Do not summarize
 
 **`/make-guardrails`**: Generate a `ob-guardrails-project` skill from `ARCHITECTURE.md` and project config files. Extracts concrete rules (architecture boundaries, naming, code style, testing, git workflow) that all agents must follow. Updates every `*-engineer.md` to load the skill.
 
-**`/repo-verify`**: Verify the current branch against applicable guardrails and project checks. Repairs relevant failures, checks dependency/lockfile consistency, and reports `VERIFIED` only when every applicable check passes. It runs automatically in `/plan-goal`.
+**`/repo-verify`**: Verify the current branch against applicable guardrails and project checks. Runs immutable dependency installs/restores, configured builds, and tests for every discovered project, repairs relevant failures, checks dependency/lockfile consistency, and reports `VERIFIED` only when every required check passes. It runs automatically in `/plan-goal`.
 
 **`/make-user-model <tier> <model>`**: Set the model for a tier (`plan`, `build`, or `fast`). Writes to `.opencode/opencode-onboard.json` (`models`). Use `user` prefix for a personal override: `/make-user-model user fast opencode/big-pickle`. Use a model id or `current` for the active session model. Restart opencode for the `ob-subagent-tiers` plugin to rebuild tier agents.
 

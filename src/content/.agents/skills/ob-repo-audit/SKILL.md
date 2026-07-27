@@ -30,7 +30,7 @@ Apply the loaded abilities and guardrails to each discovered project. Assess:
 - Security and repository hygiene, including generated files, ignored artifacts, and likely secrets in tracked files.
 - Documentation and configuration drift across `AGENTS.md`, architecture/design documents, project scripts, and CI.
 
-For dependency findings, identify the exact manifest and lockfile involved. State the repository-native remediation and immutable verification command, such as `pnpm install --frozen-lockfile`, `npm ci`, or `dotnet restore`; never run a mutation-capable install during this audit.
+For dependency findings, identify the exact manifest and lockfile involved. State the repository-defined remediation and immutable dependency validation command; never run a mutation-capable install during this audit.
 
 ## Step 4: Report
 

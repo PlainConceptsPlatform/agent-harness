@@ -122,7 +122,7 @@ Commands that other commands (or agents) need to execute are thin wrappers aroun
 | `/make-architecture` | Generate or regenerate `ARCHITECTURE.md` from the codebase. |
 | `/make-design` | Generate or regenerate `DESIGN.md` from the design system. |
 | `/make-guardrails` | Generate a `ob-guardrails-project` skill from `ARCHITECTURE.md` and project config files. Extracts architecture boundaries, naming, code style, testing, and git workflow rules. Updates all `*-engineer.md` to load the skill. |
-| `/repo-verify` | Verify and repair current-branch changes against applicable fullstack abilities, project checks, and dependency/lockfile rules. Runs automatically in `/plan-goal`. |
+| `/repo-verify` | Verify and repair current-branch changes against applicable fullstack abilities and dependency/lockfile rules, while always running immutable dependency installs/restores, configured builds, and tests for every discovered project. Runs automatically in `/plan-goal`. |
 | `/make-user-model [user] <tier> <model>` | Set the model for a tier (`plan`, `build`, `fast`). Writes to `opencode-onboard.json` (team) or `opencode-onboard.user.json` (user override, gitignored) when `user` prefix is used. Restart to pick up changes: the `ob-subagent-tiers` plugin rebuilds tier agents at startup. Pass a model id or `current` for the active session model. |
 
 ---
@@ -246,7 +246,7 @@ lead
 7. Verify with tests, build, and lint according to task scope
 8. Ship or update pull request via lead flow
 
-For unattended Loop Task runs, keep a concrete shell verification task as the final exit-code gate. `/repo-verify` runs inside `/plan-goal` first, applying change-aware checks from the active fullstack abilities and repair loop; the shell task independently proves the critical commands passed before commit or pull request actions.
+For unattended Loop Task runs, keep a concrete shell verification task as the final exit-code gate. `/repo-verify` runs inside `/plan-goal` first, applying fullstack abilities, every discovered project's immutable dependency install or restore, configured build and test commands, and change-aware repair checks; the shell task independently proves the critical commands passed before commit or pull request actions.
 
 Agents run as native OpenCode subagents in parallel waves: no external plugin, no git worktrees. The lead's Todo pane is the live board, and the `ob-subagent-monitor` plugin mirrors state to `.opencode/.ob-run.json`. Navigate into any running subagent with `ctrl+x ↓` then `←`/`→`.
 
