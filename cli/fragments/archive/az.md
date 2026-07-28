@@ -60,7 +60,7 @@
    az repos pr create \
      --repository {repo} \
      --source-branch refs/heads/archive/{change-dir} \
-     --target-branch refs/heads/main \
+     --target-branch refs/heads/$DEFAULT_BRANCH \
      --title "archive: {title}" \
      --description "Archive SDD artifacts for {change-dir} after merge of {sourceRefName}." \
      --auto-complete
