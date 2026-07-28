@@ -27,13 +27,30 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # No version pin: the action reads packageManager from package.json
+      # (pnpm@11.10.0). Pinning here as well makes the action fail on conflict.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --filter opencode-onboard-docs
+
+      - name: Build docs
+        run: pnpm --filter opencode-onboard-docs build
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs
+          path: docs/out
 
       - name: Deploy to GitHub Pages
         id: deployment

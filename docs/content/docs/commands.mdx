@@ -1,0 +1,54 @@
+---
+title: Commands
+description: Every slash command installed into .opencode/commands/.
+---
+
+Custom slash commands are installed into `.opencode/commands/` and are available
+directly in OpenCode.
+
+Commands that other commands (or agents) need to execute are thin wrappers around
+`ob-*` skills in `.agents/skills/`: the command handles user invocation and
+arguments, the skill holds the procedure. OpenCode has no mechanism for a command
+to run another command, but any agent can load a skill mid-conversation, which is
+what makes pipelines like `/plan-goal` composable.
+
+## repo
+
+| Command | Description |
+| --- | --- |
+| `/repo-help` | Show all commands and when to use each one. Start here if you are unsure. |
+| `/repo-onboard` | Guided tour of the project and its agentic infrastructure. Explains agents, commands, skills, the OpenSpec workflow, and configuration. Read-only. |
+| `/repo-audit` | Read-only audit of every configured source root against fullstack abilities and guardrails. Reports prioritized architecture, quality, dependency, lockfile, tooling and CI findings. |
+| `/repo-initialize` | Initialize the project. Asks greenfield versus brownfield, then activates the agent team. |
+| `/repo-verify` | Verify and repair current-branch changes against applicable fullstack abilities and dependency/lockfile rules, while always running immutable dependency installs or restores, configured builds, and tests for every discovered project. Runs automatically in `/plan-goal`. |
+
+## plan
+
+| Command | Description |
+| --- | --- |
+| `/plan-explore` | Think through an idea or investigate a problem before committing to a plan. |
+| `/plan-propose <url or idea>` | Parse a GitHub Issue, Azure DevOps, Jira or browser URL, or a direct idea, into a structured plan (proposal, specs, tasks). Enriches each task with agent and model assignments. |
+| `/plan-quick <task>` | Quick plan for focused changes. Reads the codebase, creates a task checklist in the Todo pane, and stops. No OpenSpec, no proposals, no specs. |
+| `/plan-apply` | Implement tasks from the current plan. Detects format automatically: OpenSpec-annotated tasks run as parallel subagent waves, plain checkboxes run sequentially in-session. |
+| `/plan-archive` | Archive a completed OpenSpec change. |
+| `/plan-goal <feature or URL>` | Autonomous, no-confirmation pipeline: branch off main, then explore, propose, apply, archive (one commit per phase). Default mode merges to main and deletes the feature branch; add the `branch` keyword to keep it. Never pushes. |
+
+## ops
+
+| Command | Description |
+| --- | --- |
+| `/ops-ship` | Create a pull request for the current branch, with screenshots if the user interface changed. |
+| `/ops-review` | Read and triage pull request review feedback. Reports what needs fixing. |
+| `/ops-backlog` | Create an issue in the backlog platform (GitHub, Azure DevOps or Jira) from a description. |
+| `/ops-evidence` | Produce evidence a change works (delegating to a project harness if present, else a screenshot), write `evidence/evidence.json`, and publish an idempotent comment on the issue or PR. Best-effort. |
+
+## make
+
+| Command | Description |
+| --- | --- |
+| `/make-engineer` | Interactive persona-driven form to add a custom specialist engineer. Pick a persona, then confirm an inspected-and-recommended skill set before it installs. |
+| `/make-architecture` | Generate or regenerate `ARCHITECTURE.md` from the codebase. |
+| `/make-design` | Generate or regenerate `DESIGN.md` from the design system. |
+| `/make-guardrails` | Generate an `ob-guardrails-project` skill from `ARCHITECTURE.md` and project config files. Extracts architecture boundaries, naming, code style, testing and git workflow rules, then updates all `*-engineer.md` to load the skill. |
+| `/make-evidence-scaffold` | One-time scaffold of a project-specific visual-evidence harness (deterministic capture, assertions, manifest and publisher) that `/ops-evidence` and `/plan-goal` then delegate to. |
+| `/make-user-model [user] <tier> <model>` | Set the model for a tier (`plan`, `build`, `fast`). Writes to `opencode-onboard.json` (team) or `opencode-onboard.user.json` (user override, gitignored) when the `user` prefix is used. Restart to pick up changes. Pass a model id or `current` for the active session model. |

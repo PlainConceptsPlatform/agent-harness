@@ -1,0 +1,70 @@
+---
+title: Getting started
+description: Install opencode-onboard, satisfy the prerequisites, and rerun individual steps.
+---
+
+## Install
+
+```bash
+npx opencode-onboard@latest
+```
+
+Requires **Node.js 18 or higher**. The wizard runs in the directory you invoke it
+from, so `cd` into the repository you want to prepare first.
+
+When it finishes, open OpenCode in your project and run:
+
+```
+/repo-initialize
+```
+
+OpenCode asks whether this is a greenfield or brownfield project. See
+[The bootstrap sequence](/docs/bootstrap-sequence) for what each path does.
+
+## Prerequisites
+
+| Requirement | Notes |
+| --- | --- |
+| Node.js 18 or higher | Required |
+| [OpenCode](https://opencode.ai) | The agent runtime |
+| [gh CLI](https://cli.github.com) | GitHub platform, must be authenticated |
+| [az CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) plus the `azure-devops` extension | Azure DevOps platform |
+| [acli](https://developer.atlassian.com/cloud/acli/guides/install-acli/) | Jira backlog platform, must be authenticated |
+| [glab](https://gitlab.com/gitlab-org/cli/#installation) | GitLab repository platform, must be authenticated |
+
+CLI checks are skipped for browser-based and `None` platforms.
+
+## Running individual steps
+
+Setup and maintenance steps can run without the full wizard:
+
+```bash
+npx opencode-onboard clean
+npx opencode-onboard platform
+npx opencode-onboard copy
+npx opencode-onboard openspec
+npx opencode-onboard models
+npx opencode-onboard optimization
+npx opencode-onboard browser
+npx opencode-onboard metadata
+npx opencode-onboard join
+```
+
+Show the CLI help and all commands:
+
+```bash
+npx opencode-onboard --help
+```
+
+When available, step commands reuse context from
+`.opencode/opencode-onboard.json`.
+
+## Typical flow for reruns
+
+- Run `clean` to reset old AI files
+- Run `copy` when templates or skills changed in a new release
+- Run `optimization` to reconfigure RTK, quota, caveman, codegraph, agentmemory
+  or humanizer, and the guardrails optimization markers
+- Run `metadata` last, to refresh `.opencode/opencode-onboard.json`
+- Run `join` if you are a new member of an already-onboarded project and want to
+  sync the latest onboarding metadata

@@ -1,0 +1,86 @@
+---
+title: Agents and skills
+description: The line between how to work (agents) and what to know (skills).
+---
+
+opencode-onboard draws a hard line between two concepts.
+
+## Agents: universal behaviors
+
+Agents define *how to work*. They are universal personas, with the same behavior
+across projects and stacks.
+
+```
+lead                   lead/orchestrator, planning, pull request lifecycle
+fullstack-engineer     primary planning agent, accumulates all skills (user-facing, not spawned)
+*-engineer             user-created specialists, spawned by the lead for parallel implementation
+```
+
+`fullstack-engineer` is `mode: primary`. It is the user's planning session agent,
+not a spawned worker. Project-specific specialization comes from user-created
+custom engineers via `/make-engineer`. During `/plan-apply` the lead inspects the
+engineers that actually exist in `.opencode/agents/` and spawns matching
+specialists. `fullstack-engineer` is never assigned to tasks; if no specialist
+matches, create one.
+
+## Skills: platform knowledge
+
+Skills define *what to know*. They provide project rules, platform behavior and
+task-specific execution guidance. Agents auto-detect and load relevant skills:
+**you do not manually choose skills per prompt**.
+
+- `ob-guardrails-generic` is the mandatory baseline for every agent (git, secrets,
+  quality rules, plus the engineer workflow)
+- Baseline context rules and token-optimization guidance live in `AGENTS.md`
+  (always in context), not in a skill
+
+Default `fullstack-engineer` abilities:
+
+```
+## Abilities
+- Guardrails: @ob-guardrails-generic, @ob-guardrails-project
+```
+
+Users are expected to create additional skills and map them into abilities over
+time. Skills live in `.agents/skills/`, and any `SKILL.md` file in a subdirectory
+is automatically discoverable.
+
+## Built-in skills
+
+| Skill | Purpose |
+| --- | --- |
+| `ob-guardrails-generic` | Foundation for user guardrails skills |
+| `ob-guardrails-project` | Project-specific guardrails, populated by `/make-guardrails` |
+| `ob-userstory-gh` | Parse a GitHub Issue URL into a structured work item |
+| `ob-userstory-az` | Parse an Azure DevOps work item URL |
+| `ob-userstory-jira` | Parse a Jira issue URL via the `acli` CLI |
+| `ob-userstory-browser` | Parse a work item from any URL via browser automation |
+| `browser-automation` | Browser control via `@different-ai/opencode-browser` |
+| `ob-plan-explore` | Read-only exploration procedure behind `/plan-explore` |
+| `ob-plan-propose` | Proposal and task-enrichment procedure behind `/plan-propose` |
+| `ob-plan-apply` | Wave-implementation procedure behind `/plan-apply` |
+| `ob-plan-archive` | Archive procedure behind `/plan-archive` |
+| `ob-plan-goal` | Autonomous full-lifecycle pipeline behind `/plan-goal` |
+| `ob-plan-quick` | Quick task checklist behind `/plan-quick` |
+| `ob-ops-ship` | PR-creation procedure behind `/ops-ship` |
+| `ob-ops-evidence` | Evidence of a change, plus an idempotent verified issue/PR comment |
+| `ob-make-architecture` | `ARCHITECTURE.md` generation behind `/make-architecture` |
+| `ob-make-design` | `DESIGN.md` generation behind `/make-design` |
+| `ob-make-guardrails` | Guardrails generation behind `/make-guardrails` |
+| `ob-make-engineer` | Custom engineer creation behind `/make-engineer` |
+| `ob-make-evidence-scaffold` | Visual-evidence harness scaffold behind `/make-evidence-scaffold` |
+| `ob-make-user-model` | Tier model configuration behind `/make-user-model` |
+| `ob-repo-audit` | Read-only health audit across configured source roots |
+| `ob-repo-verify` | Current-branch verification and repair gate |
+| `ob-repo-initialize` | Project initialization behind `/repo-initialize` |
+| `ob-repo-onboard` | Guided project tour behind `/repo-onboard` |
+| `ob-repo-help` | The command reference displayed by `/repo-help` |
+
+Platform operations are injected during onboarding: pull request creation into
+`ob-ops-ship`, the archive PR flow into `ob-plan-archive`, issue and work-item
+evidence comments into `ob-ops-evidence`, and pull request review plus issue
+creation directly into the `/ops-review` and `/ops-backlog` command files.
+
+Platform skills ship as suffixed variants (`ob-userstory-gh`, `ob-userstory-az`,
+`ob-userstory-jira`, `ob-userstory-browser`) and the installer copies only the
+matching one, renamed to its generic name.

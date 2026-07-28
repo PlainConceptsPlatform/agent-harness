@@ -1,0 +1,31 @@
+---
+title: What gets installed
+description: The files and directories opencode-onboard writes into your project.
+---
+
+```text
+your-project/
+├── AGENTS.md                        ← bootstrap mode, replaced after first /repo-initialize
+├── ARCHITECTURE.md                  ← prompt for agents to fill in from your codebase
+├── DESIGN.md                        ← prompt for agents to fill in from your codebase
+├── .opencode/
+│   ├── opencode.json                ← default model + plugin config
+│   ├── opencode-onboard.json        ← onboarding metadata + runtime config
+│   ├── agents/                      ← fullstack-engineer + user-created *-engineer files
+│   ├── tui.json                     ← registers the Subagents sidebar panel
+│   ├── tui/
+│   │   └── ob-subagents.tsx         ← TUI plugin: live Subagents panel
+│   └── plugins/
+│       └── ob-subagent-monitor.js   ← server plugin: subagent state → .opencode/.ob-run.json
+└── .agents/
+    └── skills/
+        ├── ob-guardrails-generic/   ← foundation for user guardrails
+        ├── ob-guardrails-project/   ← populated by /make-guardrails
+        ├── ob-userstory/            ← the variant matching your backlog platform
+        └── browser-automation/
+```
+
+Platform operations (ship, review, backlog) are injected directly into the
+`/ops-*` command files from `src/presets/ops-*/` during onboarding. Source-roots
+metadata lands in `.opencode/source-roots.json`. Token-optimization guidance is
+injected into `ob-guardrails-generic` marker blocks during onboarding.

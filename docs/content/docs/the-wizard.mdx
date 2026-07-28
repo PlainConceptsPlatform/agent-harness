@@ -1,0 +1,43 @@
+---
+title: The wizard
+description: What each of the 10 onboarding steps does.
+---
+
+The CLI runs a 10-step onboarding wizard. It keeps the current step visible plus
+the last two completed steps, so progress is always clear.
+
+| Step | What happens |
+| --- | --- |
+| **1. Source scope** | Choose the current repository or sibling source roots for code analysis. |
+| **2. Clean AI files** | Detects existing `AGENTS.md`, `.cursorrules`, `CLAUDE.md`, `.agents/` and similar, then removes them. Preserves your `.agents/skills/` directory. |
+| **3. Choose platform** | Backlog (GitHub, Azure DevOps, Jira, browser-based, or None) plus repository (GitHub, Azure DevOps, GitLab, or None). Mixed platforms are supported. |
+| **4. Check platform CLI** | Verifies `gh`, or `az` plus the `azure-devops` extension, or `acli`, or `glab`. Skipped for browser-based and None platforms. |
+| **5. Copy scaffolding** | Copies agents, built-in skills and bootstrap documentation, writes source-roots metadata, applies AGENTS bootstrap patching, copies `skills-lock.json`, then runs `npx skills`. |
+| **6. Initialize OpenSpec** | Runs `npx @fission-ai/openspec init` silently. |
+| **7. Choose models** | Fetches a live model list from [models.dev](https://models.dev) and lets you pick plan, build and fast models with canonical cost indicators. |
+| **8. Token optimization tools** | Optional and recommended. One checklist covering RTK, opencode-quota, caveman, codegraph, agentmemory, humanizer, and token-optimization rule injection into guardrails. |
+| **9. Install browser plugin** | Installs `@different-ai/opencode-browser` globally for agent browser automation. |
+| **10. Write onboarding metadata** | Writes `.opencode/opencode-onboard.json` with the selected setup details. |
+
+## After the wizard
+
+Open OpenCode in your project and run `/repo-initialize`. For brownfield projects
+this generates `ARCHITECTURE.md` and `DESIGN.md` from your actual codebase,
+archives project history, then activates the full agent team. For greenfield
+projects it skips documentation generation and leaves placeholder files you can
+populate later with [`/make-architecture`](/docs/commands) and
+[`/make-design`](/docs/commands).
+
+## Model tiers
+
+During onboarding you pick three models:
+
+| Role | Used by | Pick |
+| --- | --- | --- |
+| **plan** | Main OpenCode session (the lead) | Something capable with strong reasoning |
+| **build** | Specialist engineers (default tier) | Something capable for implementation |
+| **fast** | Light helpers (fast tier) | Something fast and cheap |
+
+Models are fetched live from [models.dev](https://models.dev) (3000+ models,
+cached weekly). Cost tiers `[$]`, `[$$]` and `[$$$]` always reflect the canonical
+provider price, so `github-copilot/claude-opus-4.7` shows `[$$]`, not `[$]`.

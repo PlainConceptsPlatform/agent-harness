@@ -11,16 +11,16 @@
     "openspec",
     "cli"
   ],
-  "homepage": "https://github.com/ckgrafico/opencode-onboard",
+  "homepage": "https://github.com/PlainConceptsPlatform/opencode-onboard",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ckgrafico/opencode-onboard.git"
+    "url": "git+https://github.com/PlainConceptsPlatform/opencode-onboard.git"
   },
   "bugs": {
-    "url": "https://github.com/ckgrafico/opencode-onboard/issues"
+    "url": "https://github.com/PlainConceptsPlatform/opencode-onboard/issues"
   },
   "license": "MIT",
-  "author": "ckgrafico",
+  "author": "Plain Concepts",
   "type": "module",
   "bin": {
     "opencode-onboard": "./src/index.js"

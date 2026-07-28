@@ -1,0 +1,14 @@
+title: Documentation
+pages:
+  - index
+  - getting-started
+  - "---Guides---"
+  - the-wizard
+  - bootstrap-sequence
+  - token-budget
+  - "---Reference---"
+  - commands
+  - agents-and-skills
+  - whats-installed
+  - "---Concepts---"
+  - pipeline

@@ -1,0 +1,6 @@
+export { InstallBox } from './copy-button'
+export { Footer } from './footer'
+export { Navbar } from './navbar'
+export { Reveal } from './reveal'
+export { TerminalDemo } from './terminal'
+export { Wordmark } from './wordmark'

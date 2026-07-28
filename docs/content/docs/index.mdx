@@ -1,0 +1,53 @@
+---
+title: Introduction
+description: What opencode-onboard is, and what it sets up in your repository.
+---
+
+Most codebases have no `AGENTS.md`, no architecture documentation that agents can
+read, and no defined workflow for picking up tasks. Agents end up improvising,
+producing inconsistent results.
+
+**opencode-onboard** fixes that in a single interactive wizard. It configures
+[OpenCode](https://opencode.ai) with [OpenSpec](https://github.com/fission-ai/openspec)
+for structured change management, native subagent waves for parallel agent
+execution, [codegraph](https://github.com/colbymchenry/codegraph) for code
+intelligence, and [agentmemory](https://github.com/rohitg00/agentmemory) for
+shared context across agent sessions. It also installs an agent team, platform
+skills, and slash commands: everything agents need to plan, implement, and ship.
+
+## Install
+
+```bash
+npx opencode-onboard@latest
+```
+
+Requires Node.js 18 or higher. See [Getting started](/docs/getting-started) for
+prerequisites and per-step commands.
+
+## What it wires together
+
+| Tool | Role |
+| --- | --- |
+| [OpenCode](https://opencode.ai) | The agent runtime. Native parallel subagent waves, no external plugins, no git worktrees. |
+| [OpenSpec](https://github.com/fission-ai/openspec) | Structured change management: proposals, specs, and tasks. |
+| [codegraph](https://github.com/colbymchenry/codegraph) | Code intelligence and indexing, so agents understand the codebase before touching it. |
+| [agentmemory](https://github.com/rohitg00/agentmemory) | Shared context across agent sessions. |
+
+## Supported platforms
+
+Backlog and repository platforms are chosen independently, so mixed setups work:
+a Jira backlog with a GitHub repository, or a browser backlog with a GitLab
+repository.
+
+- **Backlog:** GitHub, Azure DevOps, Jira, browser-based, or None
+- **Repository:** GitHub, Azure DevOps, GitLab, or None
+
+Choosing `None` for a backlog means no userstory skills are injected; choosing
+`None` for a repository means no pull request skills are injected.
+
+## Where to go next
+
+- [Getting started](/docs/getting-started): install, prerequisites, and reruns
+- [The wizard](/docs/the-wizard): what each of the 10 steps does
+- [Commands](/docs/commands): the full slash command reference
+- [The pipeline](/docs/pipeline): how work flows from a URL to a pull request

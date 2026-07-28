@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/CKGrafico/opencode-onboard/refs/heads/main/docs/assets/logo.png" alt="opencode-onboard" width="160" />
+<img src="https://raw.githubusercontent.com/PlainConceptsPlatform/opencode-onboard/refs/heads/main/docs/public/assets/logo.png" alt="opencode-onboard" width="160" />
 
 # 🧰 opencode-onboard
 
@@ -8,7 +8,7 @@
 
 GitHub, Azure DevOps, Jira, GitLab, browser-based backlog, or combinations (for example, Jira backlog plus GitHub repository, or browser backlog plus GitLab repository).
 
-**[opencode.ckgrafico.com](https://opencode.ckgrafico.com)**
+**[plainconceptsplatform.github.io/opencode-onboard](https://plainconceptsplatform.github.io/opencode-onboard)**
 
 [![npm version](https://img.shields.io/npm/v/opencode-onboard?style=flat-square&color=black)](https://www.npmjs.com/package/opencode-onboard)
 [![npm downloads](https://img.shields.io/npm/dm/opencode-onboard?style=flat-square&color=black)](https://www.npmjs.com/package/opencode-onboard)
@@ -24,7 +24,7 @@ Most codebases have no `AGENTS.md`, no architecture documentation that agents ca
 **opencode-onboard** fixes that in a single interactive wizard. It configures OpenCode with OpenSpec for structured change management, native subagent waves for parallel agent execution, codegraph for code intelligence, and agentmemory for shared context across agent sessions. It also installs an agent team, platform skills, and slash commands: everything agents need to plan, implement, and ship.
 
 <div align="center">
-<img src="https://raw.githubusercontent.com/CKGrafico/opencode-onboard/refs/heads/main/docs/assets/demo.gif" alt="opencode-onboard demo" width="700" />
+<img src="https://raw.githubusercontent.com/PlainConceptsPlatform/opencode-onboard/refs/heads/main/docs/public/assets/demo.gif" alt="opencode-onboard demo" width="700" />
 </div>
 
 ## Quick start
@@ -354,7 +354,7 @@ Wizard choices and defaults live in `src/presets/` where possible:
 - `browser.json` controls opencode-browser installer automation
 
 ```bash
-git clone https://github.com/ckgrafico/opencode-onboard.git
+git clone https://github.com/PlainConceptsPlatform/opencode-onboard.git
 cd opencode-onboard
 pnpm install
 
@@ -380,4 +380,4 @@ Tests are written with [Vitest](https://vitest.dev). Linting uses ESLint flat co
 
 ## License
 
-MIT © [ckgrafico](https://github.com/ckgrafico)
+MIT © [Plain Concepts](https://github.com/PlainConceptsPlatform)

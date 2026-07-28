@@ -1,0 +1,56 @@
+---
+title: The pipeline
+description: How a work item URL becomes a reviewed pull request.
+---
+
+When you give the lead agent a work item URL, execution follows this pipeline. If
+the backlog platform is `None`, skip the work item stage. If the repository
+platform is `None`, skip the pull request stage.
+
+```
+lead
+                   ↓
+          parse work item via userstory skill
+                   ↓
+               plan-propose
+         proposal + specs + tasks
+                   ↓
+              [confirm with user]
+                   ↓
+   wave of subagents (*-engineer, per-tier model)
+  each implements its assigned tasks → returns result → lead commits group
+                   ↓
+        verify (tests, build, lint as needed)
+                   ↓
+     lead (ship mode, if configured)
+   commit → push → pull request → feedback loop
+```
+
+1. Load the platform userstory skill (installed as `ob-userstory`, from the
+   variant matching your backlog platform)
+2. Run `/plan-propose` to produce `proposal.md`, specs and `tasks.md`
+3. Confirm with the user before implementation
+4. Run `/plan-apply` to orchestrate implementation in waves
+5. Each wave spawns engineers in parallel (custom `*-engineer` specialists, each
+   carrying its own tier model), capped at `agents.maxConcurrent`
+6. Each subagent receives its task IDs in its prompt, loads relevant abilities,
+   implements, and returns; the lead commits each group
+7. Verify with tests, build and lint according to task scope
+8. Ship or update the pull request via the lead flow
+
+## Unattended runs
+
+For unattended loop runs, keep a concrete shell verification task as the final
+exit-code gate. `/repo-verify` runs inside `/plan-goal` first, applying fullstack
+abilities, every discovered project's immutable dependency install or restore,
+configured build and test commands, and change-aware repair checks. The shell task
+then independently proves the critical commands passed before commit or pull
+request actions.
+
+## Watching a run
+
+Agents run as native OpenCode subagents in parallel waves: no external plugin, no
+git worktrees. The lead's Todo pane is the live board, and the
+`ob-subagent-monitor` plugin mirrors state to `.opencode/.ob-run.json`. Navigate
+into any running subagent with <kbd>ctrl+x</kbd> <kbd>↓</kbd> then
+<kbd>←</kbd>/<kbd>→</kbd>.
