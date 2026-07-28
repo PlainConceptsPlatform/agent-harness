@@ -1,5 +1,5 @@
 {
-  "name": "opencode-onboard",
+  "name": "@plainconceptsplatform/opencode-onboard",
   "version": "1.5.1",
   "description": "Prepare any codebase for AI. Wires OpenCode, OpenSpec, codegraph, and agentmemory into a multi-agent development workflow powered by native parallel subagents.",
   "keywords": [
@@ -32,6 +32,10 @@
     "src/content",
     "!src/content/**/node_modules"
   ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "engines": {
     "node": ">=18"
   },
@@ -49,7 +53,9 @@
     "lint:fix": "eslint . --fix",
     "test": "vitest run",
     "test:watch": "vitest",
-    "prepublishOnly": "npm run lint && npm run test"
+    "prepublishOnly": "npm run lint && npm run test",
+    "release:dry": "npm publish --dry-run --access public",
+    "release": "npm publish --access public"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
