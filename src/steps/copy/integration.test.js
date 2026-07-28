@@ -108,9 +108,6 @@ describe('installSkills platform gating (real content/.agents/skills)', () => {
   it('update mode replaces shipped ob skills and preserves project-generated skills', async () => {
     const skillsDir = path.join(tmpDir, '.agents', 'skills')
     // A project-generated skill (not shipped by opencode-onboard): must survive update.
-    // Use a name that does NOT exist in content/.agents/skills/ to model a real
-    // project-generated skill like ob-merge-risk-assess or ob-guardrails-project
-    // after /make-guardrails has overwritten the shipped placeholder.
     const projectSkill = path.join(skillsDir, 'ob-merge-risk-assess')
     // A non-ob user skill: must survive update.
     const userSkill = path.join(skillsDir, 'project-workflow')
@@ -126,6 +123,22 @@ describe('installSkills platform gating (real content/.agents/skills)', () => {
     expect(fs.readFileSync(path.join(userSkill, 'SKILL.md'), 'utf-8')).toBe('user-owned')
     // Shipped skills are installed fresh.
     expect(fs.existsSync(path.join(skillsDir, 'ob-plan-goal', 'SKILL.md'))).toBe(true)
+  })
+
+  it('update mode preserves generated guardrails even though the skill is shipped', async () => {
+    const skillsDir = path.join(tmpDir, '.agents', 'skills')
+    // ob-guardrails-project is a shipped skill with a placeholder, but after
+    // /make-guardrails runs, it has project-specific content with a timestamp.
+    const guardrailsDir = path.join(skillsDir, 'ob-guardrails-project')
+    fs.mkdirSync(guardrailsDir, { recursive: true })
+    fs.writeFileSync(path.join(guardrailsDir, 'SKILL.md'), '# Project Guardrails\n\n- Rule 1\n\n<!-- Last updated: 2026-07-28T12:00:00Z -->')
+
+    await installSkills('github', 'github', { forceOverwrite: true })
+
+    // The generated guardrails content must survive — not replaced by the placeholder.
+    const content = fs.readFileSync(path.join(guardrailsDir, 'SKILL.md'), 'utf-8')
+    expect(content).toContain('Rule 1')
+    expect(content).toContain('Last updated: 2026-07-28')
   })
 })
 
