@@ -84,4 +84,4 @@ End with 3 to 5 practical tips:
 - How to verify an active branch: "Run `/repo-verify`"
 - How to set up visual evidence: "Run `/make-evidence-scaffold` (UI projects) so `/plan-goal` can prove changes with screenshots"
 - How to see all commands: "Run `/repo-help`"
-- How to refresh config after changes: "Re-run `npx opencode-onboard` in the terminal"
+- How to refresh config after changes: "Re-run `npx @plainconceptsplatform/opencode-onboard` in the terminal"

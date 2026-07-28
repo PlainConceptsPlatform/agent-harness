@@ -20,7 +20,7 @@ export async function runJoin() {
 
   if (!saved) {
     warn('No .opencode/opencode-onboard.json found.')
-    warn('This project may not have been onboarded yet. Run `npx opencode-onboard` first.')
+    warn('This project may not have been onboarded yet. Run `npx @plainconceptsplatform/opencode-onboard` first.')
     return
   }
 

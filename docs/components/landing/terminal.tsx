@@ -8,7 +8,7 @@ type Tone = 'prompt' | 'accent' | 'dim' | 'ok' | 'plain' | 'br'
 
 const LINES: Line[] = [
   ['prompt', '$ ', 0],
-  ['plain', 'npx opencode-onboard@latest', 34],
+  ['plain', 'npx @plainconceptsplatform/opencode-onboard@latest', 34],
   ['br', '', 0],
   ['br', '', 0],
   ['accent', '🧰 opencode-onboard', 8],

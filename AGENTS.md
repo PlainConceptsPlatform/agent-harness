@@ -45,7 +45,7 @@ pnpm test          # Run all tests (vitest run)
 pnpm test:watch    # Watch mode
 ```
 
-There is no dev server or build step. The CLI runs directly via `node src/index.js` or `npx opencode-onboard`.
+There is no dev server or build step. The CLI runs directly via `node src/index.js` or `npx @plainconceptsplatform/opencode-onboard`.
 
 ## Testing
 

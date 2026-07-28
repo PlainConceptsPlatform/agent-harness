@@ -10,10 +10,10 @@ GitHub, Azure DevOps, Jira, GitLab, browser-based backlog, or combinations (for 
 
 **[plainconceptsplatform.github.io/opencode-onboard](https://plainconceptsplatform.github.io/opencode-onboard)**
 
-[![npm version](https://img.shields.io/npm/v/opencode-onboard?style=flat-square&color=black)](https://www.npmjs.com/package/opencode-onboard)
-[![npm downloads](https://img.shields.io/npm/dm/opencode-onboard?style=flat-square&color=black)](https://www.npmjs.com/package/opencode-onboard)
-[![license](https://img.shields.io/npm/l/opencode-onboard?style=flat-square&color=black)](./LICENSE)
-[![node](https://img.shields.io/node/v/opencode-onboard?style=flat-square&color=black)](https://nodejs.org)
+[![npm version](https://img.shields.io/npm/v/@plainconceptsplatform/opencode-onboard?style=flat-square&color=black)](https://www.npmjs.com/package/@plainconceptsplatform/opencode-onboard)
+[![npm downloads](https://img.shields.io/npm/dm/@plainconceptsplatform/opencode-onboard?style=flat-square&color=black)](https://www.npmjs.com/package/@plainconceptsplatform/opencode-onboard)
+[![license](https://img.shields.io/npm/l/@plainconceptsplatform/opencode-onboard?style=flat-square&color=black)](./LICENSE)
+[![node](https://img.shields.io/node/v/@plainconceptsplatform/opencode-onboard?style=flat-square&color=black)](https://nodejs.org)
 
 </div>
 
@@ -30,7 +30,7 @@ Most codebases have no `AGENTS.md`, no architecture documentation that agents ca
 ## Quick start
 
 ```bash
-npx opencode-onboard@latest
+npx @plainconceptsplatform/opencode-onboard@latest
 ```
 
 Requires **Node.js 18 or higher**.
@@ -41,19 +41,19 @@ You can run individual setup or maintenance steps without running the full wizar
 
 ```bash
 # Run one step directly
-npx opencode-onboard clean
-npx opencode-onboard platform
-npx opencode-onboard copy
-npx opencode-onboard openspec
-npx opencode-onboard models
-npx opencode-onboard optimization
-npx opencode-onboard browser
-npx opencode-onboard metadata
-npx opencode-onboard join
+npx @plainconceptsplatform/opencode-onboard clean
+npx @plainconceptsplatform/opencode-onboard platform
+npx @plainconceptsplatform/opencode-onboard copy
+npx @plainconceptsplatform/opencode-onboard openspec
+npx @plainconceptsplatform/opencode-onboard models
+npx @plainconceptsplatform/opencode-onboard optimization
+npx @plainconceptsplatform/opencode-onboard browser
+npx @plainconceptsplatform/opencode-onboard metadata
+npx @plainconceptsplatform/opencode-onboard join
 
 # Show CLI help and all commands
-npx opencode-onboard --help
-npx opencode-onboard -h
+npx @plainconceptsplatform/opencode-onboard --help
+npx @plainconceptsplatform/opencode-onboard -h
 ```
 
 When available, step commands reuse context from `.opencode/opencode-onboard.json`.

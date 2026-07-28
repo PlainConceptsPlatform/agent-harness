@@ -15,7 +15,7 @@ description: Install opencode-onboard, satisfy the prerequisites, and rerun indi
 ### Run the wizard
 
 ```bash
-npx opencode-onboard@latest
+npx @plainconceptsplatform/opencode-onboard@latest
 ```
 
 Ten steps, run once. It keeps the current step visible plus the last two completed, so progress is
@@ -68,21 +68,22 @@ CLI checks are skipped for browser-based and `None` platforms.
 Setup and maintenance steps can run without the full wizard:
 
 ```bash
-npx opencode-onboard clean
-npx opencode-onboard platform
-npx opencode-onboard copy
-npx opencode-onboard openspec
-npx opencode-onboard models
-npx opencode-onboard optimization
-npx opencode-onboard browser
-npx opencode-onboard metadata
-npx opencode-onboard join
+npx @plainconceptsplatform/opencode-onboard clean
+npx @plainconceptsplatform/opencode-onboard platform
+npx @plainconceptsplatform/opencode-onboard copy
+npx @plainconceptsplatform/opencode-onboard openspec
+npx @plainconceptsplatform/opencode-onboard models
+npx @plainconceptsplatform/opencode-onboard optimization
+npx @plainconceptsplatform/opencode-onboard browser
+npx @plainconceptsplatform/opencode-onboard metadata
+npx @plainconceptsplatform/opencode-onboard join
+npx @plainconceptsplatform/opencode-onboard update
 ```
 
 Show the CLI help and all commands:
 
 ```bash
-npx opencode-onboard --help
+npx @plainconceptsplatform/opencode-onboard --help
 ```
 
 When available, step commands reuse context from `.opencode/opencode-onboard.json`.
@@ -97,8 +98,9 @@ When available, step commands reuse context from `.opencode/opencode-onboard.jso
 </Accordion>
 
 <Accordion title="Picking up a new onboard release">
-  Run `copy` when templates or skills changed, then `metadata` last to refresh
-  `.opencode/opencode-onboard.json`.
+  Run `update` to re-apply every file patch from your saved config without prompts, or `copy` when
+  only templates and skills changed. Generated skills such as `ob-guardrails-project` are preserved.
+  Finish with `metadata` to refresh `.opencode/opencode-onboard.json`.
 </Accordion>
 
 <Accordion title="Reconfiguring the optimization tools">

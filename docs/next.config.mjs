@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
 import { createMDX } from 'fumadocs-mdx/next'
 
 const withMDX = createMDX()
@@ -8,13 +7,43 @@ const withMDX = createMDX()
 // (GitHub Pages project site). Set to '' if the site ever moves to its own domain.
 const basePath = '/opencode-onboard'
 
-// The CLI version shown in the nav. Read here rather than imported from
-// lib/site.ts: the manifest lives outside this Next project, and webpack parses
-// an out-of-scope .json as JavaScript. next.config runs in Node, so fs is fine,
-// and the version still has exactly one source of truth.
-const cliVersion = JSON.parse(
-  readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
-).version
+const PACKAGE_NAME = '@plainconceptsplatform/opencode-onboard'
+
+/**
+ * The version shown in the nav, taken from the npm registry rather than the repo
+ * manifest: the manifest says what will be published next, npm says what people
+ * can actually install today, and those diverge between a bump and a release.
+ *
+ * Resolved at build time so the static export needs no client-side request. The
+ * manifest is the fallback, with a timeout, so a slow or offline registry cannot
+ * break or stall the build.
+ */
+async function resolveVersion() {
+  const manifest = JSON.parse(
+    readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+  ).version
+
+  try {
+    const response = await fetch(
+      `https://registry.npmjs.org/${PACKAGE_NAME.replace('/', '%2F')}`,
+      { signal: AbortSignal.timeout(8000), headers: { accept: 'application/json' } },
+    )
+    if (!response.ok) throw new Error(`registry responded ${response.status}`)
+
+    const published = (await response.json())['dist-tags']?.latest
+    if (typeof published === 'string' && published.length > 0) return published
+
+    throw new Error('registry returned no dist-tags.latest')
+  } catch (error) {
+    console.warn(
+      `[docs] could not read the published version of ${PACKAGE_NAME} (${error.message}); ` +
+        `falling back to the manifest version ${manifest}`,
+    )
+    return manifest
+  }
+}
+
+const cliVersion = await resolveVersion()
 
 /** @type {import('next').NextConfig} */
 const config = {

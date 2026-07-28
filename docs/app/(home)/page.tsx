@@ -2,6 +2,7 @@ import { Bot, FolderTree, ListChecks, Rocket, Terminal, Workflow } from "lucide-
 import Link from "next/link";
 import { source } from "@/app/source";
 import { InstallBox, TerminalDemo } from "@/components/landing";
+import { npmUrl, packageName } from "@/lib/site";
 
 /**
  * The front door is a lobby, not a pitch, following Foundations' homepage: say
@@ -13,8 +14,7 @@ import { InstallBox, TerminalDemo } from "@/components/landing";
  * shadows), --radius for corners, and 150ms colour-only transitions.
  */
 
-const INSTALL = "npx opencode-onboard@latest";
-const NPM_URL = "https://www.npmjs.com/package/opencode-onboard";
+const INSTALL = `npx ${packageName}@latest`;
 const REPO_URL = "https://github.com/PlainConceptsPlatform/opencode-onboard";
 
 type Destination = {
@@ -79,14 +79,18 @@ const DESTINATIONS: Destination[] = [
   },
 ];
 
-/* shields.io badges, matching the set in README.md. Plain <img> rather than
+/* shields.io badges, matching the set in README.md. Built from `packageName` so a
+   rename cannot leave them pointing at a dead package. Plain <img> rather than
    next/image: remote SVGs with no intrinsic size, and next/image would need
    remotePatterns plus a loader that static export cannot run. */
+const badge = (path: string) =>
+  `https://img.shields.io/${path}/${packageName}?style=flat-square&color=black`;
+
 const BADGES = [
-  { alt: "npm version", src: "https://img.shields.io/npm/v/opencode-onboard?style=flat-square&color=black", href: NPM_URL },
-  { alt: "npm downloads", src: "https://img.shields.io/npm/dm/opencode-onboard?style=flat-square&color=black", href: NPM_URL },
-  { alt: "license", src: "https://img.shields.io/npm/l/opencode-onboard?style=flat-square&color=black", href: `${REPO_URL}/blob/main/LICENSE` },
-  { alt: "node version", src: "https://img.shields.io/node/v/opencode-onboard?style=flat-square&color=black", href: "https://nodejs.org" },
+  { alt: "npm version", src: badge("npm/v"), href: npmUrl },
+  { alt: "npm downloads", src: badge("npm/dm"), href: npmUrl },
+  { alt: "license", src: badge("npm/l"), href: `${REPO_URL}/blob/main/LICENSE` },
+  { alt: "node version", src: badge("node/v"), href: "https://nodejs.org" },
 ];
 
 function resolve(destination: Destination) {

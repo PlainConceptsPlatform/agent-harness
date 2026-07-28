@@ -16,9 +16,15 @@ export const siteName = "opencode-onboard";
 export const siteDescription =
   "Prepare any codebase for AI. Wires OpenCode, OpenSpec, codegraph, and agentmemory into a multi-agent development workflow powered by native parallel subagents.";
 
+/** The npm package users install. The `bin` it exposes is still `opencode-onboard`. */
+export const packageName = "@plainconceptsplatform/opencode-onboard";
+
+export const npmUrl = `https://www.npmjs.com/package/${packageName}`;
+
 /**
- * The published CLI version, injected at build time from the package manifest by
- * next.config.mjs, so the badge in the nav cannot drift from what npm serves.
+ * The version currently published on npm, resolved at build time by
+ * next.config.mjs from the registry (not the repo manifest), so the nav badge
+ * shows what people can actually install.
  */
 export const cliVersion: string = process.env.NEXT_PUBLIC_CLI_VERSION ?? "0.0.0";
 
