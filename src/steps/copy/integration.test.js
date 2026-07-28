@@ -105,19 +105,26 @@ describe('installSkills platform gating (real content/.agents/skills)', () => {
     expect(await installedSkill('ob-backlog')).toBeNull()
   })
 
-  it('update mode replaces shipped ob skills and preserves user skills', async () => {
+  it('update mode replaces shipped ob skills and preserves project-generated skills', async () => {
     const skillsDir = path.join(tmpDir, '.agents', 'skills')
-    const retiredSkill = path.join(skillsDir, 'ob-retired-skill')
+    // A project-generated skill (not shipped by opencode-onboard): must survive update.
+    // Use a name that does NOT exist in content/.agents/skills/ to model a real
+    // project-generated skill like ob-merge-risk-assess or ob-guardrails-project
+    // after /make-guardrails has overwritten the shipped placeholder.
+    const projectSkill = path.join(skillsDir, 'ob-merge-risk-assess')
+    // A non-ob user skill: must survive update.
     const userSkill = path.join(skillsDir, 'project-workflow')
-    fs.mkdirSync(retiredSkill, { recursive: true })
+    fs.mkdirSync(projectSkill, { recursive: true })
     fs.mkdirSync(userSkill, { recursive: true })
-    fs.writeFileSync(path.join(retiredSkill, 'SKILL.md'), 'retired')
+    fs.writeFileSync(path.join(projectSkill, 'SKILL.md'), 'project-generated')
     fs.writeFileSync(path.join(userSkill, 'SKILL.md'), 'user-owned')
 
     await installSkills('github', 'github', { forceOverwrite: true })
 
-    expect(fs.existsSync(retiredSkill)).toBe(false)
+    // Project-generated ob- skills are preserved (not shipped, so not managed by update).
+    expect(fs.readFileSync(path.join(projectSkill, 'SKILL.md'), 'utf-8')).toBe('project-generated')
     expect(fs.readFileSync(path.join(userSkill, 'SKILL.md'), 'utf-8')).toBe('user-owned')
+    // Shipped skills are installed fresh.
     expect(fs.existsSync(path.join(skillsDir, 'ob-plan-goal', 'SKILL.md'))).toBe(true)
   })
 })
@@ -174,10 +181,12 @@ describe('ops command patching (real presets + real templates)', () => {
     expect(evidence).toContain('OB-PLATFORM-EVIDENCE-END')
     // Evidence targets the backlog platform; browser has no CLI so nothing is
     // injected (markers stay adjacent), while gh/az/jira inject a comment step.
+    // Normalize line endings for cross-platform test compatibility.
+    const evidenceNormalized = evidence.replace(/\r\n/g, '\n')
     if (backlog === 'browser') {
-      expect(evidence).toContain('OB-PLATFORM-EVIDENCE-START -->\n<!-- OB-PLATFORM-EVIDENCE-END')
+      expect(evidenceNormalized).toContain('OB-PLATFORM-EVIDENCE-START -->\n<!-- OB-PLATFORM-EVIDENCE-END')
     } else {
-      expect(evidence).not.toContain('OB-PLATFORM-EVIDENCE-START -->\n<!-- OB-PLATFORM-EVIDENCE-END')
+      expect(evidenceNormalized).not.toContain('OB-PLATFORM-EVIDENCE-START -->\n<!-- OB-PLATFORM-EVIDENCE-END')
     }
     const evidenceCli = { github: 'issues/{number}/comments', azure: 'az boards work-item update', jira: 'acli jira issue comment' }
     if (evidenceCli[backlog]) {

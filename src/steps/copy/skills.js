@@ -37,15 +37,32 @@ async function installObSkills(backlogPlatform = 'github', repoPlatform, { force
   const destSkillsDir = path.join(process.cwd(), '.agents', 'skills')
   await fse.ensureDir(destSkillsDir)
 
+  // Build the set of skill names we ship (source dirs, after rename).
+  // Only these may be removed during forceOverwrite — project-generated
+  // skills (ob-guardrails-project, ob-merge-risk-assess, etc.) must survive.
+  const contentSkills = await fse.readdir(CONTENT_SKILLS_DIR)
+  const shippedNames = new Set()
+  for (const skill of contentSkills) {
+    const stat = await fse.stat(path.join(CONTENT_SKILLS_DIR, skill)).catch(() => null)
+    if (stat?.isDirectory()) shippedNames.add(SKILL_RENAME[skill] ?? skill)
+  }
+  // Also account for stale platform-variant names (e.g. ob-userstory-gh
+  // when the current platform is azure).
+  Object.keys(SKILL_RENAME).forEach(k => shippedNames.add(k))
+
   if (forceOverwrite) {
     for (const entry of await fse.readdir(destSkillsDir)) {
       if (!entry.startsWith('ob-')) continue
+      if (!shippedNames.has(entry)) {
+        info(`Preserving project-generated skill: ${entry}`)
+        continue
+      }
       await fse.remove(path.join(destSkillsDir, entry))
       info(`Removing shipped skill: ${entry}`)
     }
   }
 
-  const skills = await fse.readdir(CONTENT_SKILLS_DIR)
+  const skills = contentSkills
   for (const skill of skills) {
     const src = path.join(CONTENT_SKILLS_DIR, skill)
     const destName = SKILL_RENAME[skill] ?? skill
