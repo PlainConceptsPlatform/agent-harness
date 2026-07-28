@@ -111,7 +111,7 @@ https://github.com/{owner}/{repo}/blob/{sha}/{path}
 ```
 ## Issue Parsed
 
-Issue: #{number}
+Issue: {number}
 Title: {title}
 State: {state}
 Milestone: {milestone}
