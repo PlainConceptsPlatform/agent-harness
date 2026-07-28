@@ -147,11 +147,11 @@ https://dev.azure.com/{org}/{project}/_git/{repo}/pullrequest/{pr-id}
 ```
 ## User Story Parsed
 
-**Work Item:** {id}
-**Title:** {title}
-**Type:** User Story
-**Iteration:** {sprint}
-**State:** {state}
+Work Item: {id}
+Title: {title}
+Type: User Story
+Iteration: {sprint}
+State: {state}
 
 Change Created: us-{id}-{slug}
 ```
