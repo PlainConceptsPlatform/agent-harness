@@ -1,7 +1,7 @@
 2. **Find the oldest change with a completed MR**
 
    List unarchived changes (top-level only, excludes `archive/`):
-   `{change-dir}` is the directory basename (e.g. `us-{id}-{slug}` for changes derived from user stories or `{slug}` for explorations).
+   `{change-name}` is the directory basename (e.g. `us-{id}-{slug}` for changes derived from user stories or `{slug}` for explorations).
 
    ```bash
    find "$REPO_ROOT/openspec/changes" -mindepth 1 -maxdepth 1 -type d -not -name 'archive' | sort
@@ -28,7 +28,7 @@
 
    ```text
    Oldest unarchived merged change found:
-     ID: {change-dir}
+   ID: {change-name}
      Title: {title from resolved MR}
      MR ID: {iid}
      Merged: {merged_at}
@@ -41,7 +41,7 @@
 4. **Archive the change**
 
    ```bash
-   git checkout -b archive/{change-dir}
+   git checkout -b archive/{change-name}
    ```
 
    Load `@openspec-archive-change` skill and follow it to archive the change.
@@ -55,14 +55,14 @@
    ```bash
    git add -A
    git commit -m "archive: {title}"
-   git push origin archive/{change-dir}
+   git push origin archive/{change-name}
 
    glab mr create \
       --repo {owner}/{repo} \
-      --source-branch "archive/{change-dir}" \
+      --source-branch "archive/{change-name}" \
       --target-branch "$DEFAULT_BRANCH" \
       --title "archive: {title}" \
-      --description "Archive SDD artifacts for {change-dir} after merge."
+      --description "Archive SDD artifacts for {change-name} after merge."
    ```
 
    If work was stashed in step 1, restore it after the MR is created unless the user opts out.
@@ -74,7 +74,7 @@
    ```text
    Archive complete
 
-     Change ID: {change-dir}
+   Change ID: {change-name}
      Title: {title}
      Original MR: {original-mr-link}
      Archive MR: {archive-mr-link}

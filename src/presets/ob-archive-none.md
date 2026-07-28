@@ -1,7 +1,7 @@
 2. **Find the oldest unarchived change**
 
    List unarchived changes (top-level only, excludes `archive/`):
-   `{change-dir}` is the directory basename (e.g. `us-{id}-{slug}` for changes derived from user stories or `{slug}` for explorations).
+   `{change-name}` is the directory basename (e.g. `us-{id}-{slug}` for changes derived from user stories or `{slug}` for explorations).
 
    ```bash
    find "$REPO_ROOT/openspec/changes" -mindepth 1 -maxdepth 1 -type d -not -name 'archive' | sort
@@ -17,7 +17,7 @@
 
    ```text
    Oldest unarchived change found:
-     ID: {change-dir}
+   ID: {change-name}
      Title: {title from proposal.md}
 
    Proceed with archiving? [yes/no]
@@ -28,7 +28,7 @@
 4. **Archive the change**
 
    ```bash
-   git checkout -b archive/{change-dir}
+   git checkout -b archive/{change-name}
    ```
 
    Load `@openspec-archive-change` skill and follow it to archive the change.
@@ -44,7 +44,7 @@
    git commit -m "archive: {title}"
    ```
 
-   No PR is created in this mode. Leave the `archive/{change-dir}` branch for the user to merge or push manually if they choose.
+   No PR is created in this mode. Leave the `archive/{change-name}` branch for the user to merge or push manually if they choose.
 
    If work was stashed in step 1, restore it after the commit unless the user opts out.
 
@@ -55,9 +55,9 @@
    ```text
    Archive complete
 
-     Change ID: {change-dir}
+   Change ID: {change-name}
      Title: {title}
-     Archive branch: archive/{change-dir}
+   Archive branch: archive/{change-name}
 
      Documentation updates:
      - ARCHITECTURE.md: {count} changes applied
