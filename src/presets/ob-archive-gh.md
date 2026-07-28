@@ -59,7 +59,7 @@
 
    gh pr create \
       --repo {owner}/{repo} \
-      --base main \
+      --base $DEFAULT_BRANCH \
       --head archive/{change-dir} \
       --title "archive: {title}" \
       --body "Archive SDD artifacts for {change-dir} after merge."
