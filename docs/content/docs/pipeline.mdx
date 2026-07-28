@@ -40,12 +40,13 @@ lead
 
 ## Unattended runs
 
-For unattended loop runs, keep a concrete shell verification task as the final
-exit-code gate. `/repo-verify` runs inside `/plan-goal` first, applying fullstack
-abilities, every discovered project's immutable dependency install or restore,
-configured build and test commands, and change-aware repair checks. The shell task
-then independently proves the critical commands passed before commit or pull
-request actions.
+<Callout title="Keep a shell task as the final gate" type="warn">
+  For unattended loop runs, end with a concrete shell verification task as the exit-code gate.
+  `/repo-verify` runs inside `/plan-goal` first, applying fullstack abilities, every discovered
+  project's immutable dependency install or restore, configured build and test commands, and
+  change-aware repair checks. The shell task then independently proves the critical commands passed
+  before any commit or pull request action.
+</Callout>
 
 ## Watching a run
 

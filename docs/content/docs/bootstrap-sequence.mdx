@@ -3,29 +3,67 @@ title: The bootstrap sequence
 description: What /repo-initialize does for greenfield and brownfield projects.
 ---
 
-The first time you run `/repo-initialize` in OpenCode after onboarding, the agent
-asks whether this is a **greenfield** or **brownfield** project.
+The first time you run `/repo-initialize` in OpenCode after onboarding, the agent asks whether this
+is a **greenfield** or **brownfield** project.
 
 ## Brownfield (existing codebase)
 
-1. Bootstrap-mode `AGENTS.md` triggers the initialization workflow
-2. OpenCode archives existing project context into OpenSpec (`project-history`)
-3. OpenCode runs `/make-architecture` to generate a real `ARCHITECTURE.md` from
-   your codebase
-4. OpenCode runs `/make-design` to generate a real `DESIGN.md` from your design
-   system
-5. OpenSpec `config.yaml` is populated with the discovered tech stack and domain
-   context
-6. Bootstrap `AGENTS.md` is replaced with production guidance
-7. Team workflows become fully active for normal implementation tasks
+<Steps>
+
+<Step>
+### Trigger the workflow
+Bootstrap-mode `AGENTS.md` starts the initialization workflow.
+</Step>
+
+<Step>
+### Archive what is already there
+OpenCode archives existing project context into OpenSpec as `project-history`.
+</Step>
+
+<Step>
+### Generate the architecture
+`/make-architecture` writes a real `ARCHITECTURE.md` from your codebase.
+</Step>
+
+<Step>
+### Generate the design
+`/make-design` writes a real `DESIGN.md` from your design system.
+</Step>
+
+<Step>
+### Populate OpenSpec
+`config.yaml` is filled in with the discovered tech stack and domain context.
+</Step>
+
+<Step>
+### Swap in production guidance
+Bootstrap `AGENTS.md` is replaced, and the team workflows become fully active.
+</Step>
+
+</Steps>
 
 ## Greenfield (new project, little or no existing code)
 
-1. Bootstrap-mode `AGENTS.md` triggers the initialization workflow
-2. OpenSpec `config.yaml` is populated with what is known (intended stack, domain)
-3. Bootstrap `AGENTS.md` is replaced with production guidance
-4. `ARCHITECTURE.md` and `DESIGN.md` are left as placeholder files
+<Steps>
 
-Once your codebase has meaningful content, run `/make-architecture` and
-`/make-design`. Both commands are safe to rerun at any time as the project
-evolves.
+<Step>
+### Trigger the workflow
+Bootstrap-mode `AGENTS.md` starts the initialization workflow.
+</Step>
+
+<Step>
+### Populate OpenSpec
+`config.yaml` is filled in with what is known: intended stack and domain.
+</Step>
+
+<Step>
+### Swap in production guidance
+Bootstrap `AGENTS.md` is replaced. `ARCHITECTURE.md` and `DESIGN.md` are left as placeholders.
+</Step>
+
+</Steps>
+
+<Callout title="Safe to rerun">
+  Once your codebase has meaningful content, run `/make-architecture` and `/make-design`. Both are
+  safe to rerun at any time as the project evolves.
+</Callout>

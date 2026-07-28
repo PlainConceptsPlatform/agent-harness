@@ -141,10 +141,10 @@ export function TerminalDemo() {
 
   return (
     <div
-      className="overflow-hidden rounded-xl border shadow-lg"
+      className="overflow-hidden rounded-lg border border-border"
       aria-label="Terminal demo of the onboarding wizard"
     >
-      <div className="flex items-center gap-2 border-b bg-raised px-4 py-2.5">
+      <div className="flex items-center gap-2 border-b bg-secondary px-4 py-2.5">
         <span className="h-3 w-3 rounded-full bg-destructive/70" aria-hidden />
         <span className="h-3 w-3 rounded-full bg-warning/70" aria-hidden />
         <span className="h-3 w-3 rounded-full bg-success/70" aria-hidden />

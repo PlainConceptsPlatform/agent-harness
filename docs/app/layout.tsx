@@ -1,56 +1,52 @@
-import type { Metadata } from 'next'
-import { RootProvider } from 'fumadocs-ui/provider'
-import { Geist_Mono, Outfit } from 'next/font/google'
-import './global.css'
+import "./global.css";
+import { RootProvider } from "fumadocs-ui/provider";
+import type { Metadata } from "next";
+import { Geist_Mono, Outfit } from "next/font/google";
+import type { ReactNode } from "react";
+import { siteDescription, siteName, siteUrl } from "@/lib/site";
 
 /* Outfit is the Platform Foundations typeface; it feeds --font-sans, which the
-   ui-theme base layer applies to <body>. Mono is used for terminal output. */
-const outfit = Outfit({
-  subsets: ['latin'],
-  variable: '--font-sans',
-})
-
+   ui-theme base layer applies to <body>. Mono stays Geist for terminal output. */
+const outfit = Outfit({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
 const geistMono = Geist_Mono({
-  subsets: ['latin'],
-  variable: '--font-mono',
-})
+  subsets: ["latin"],
+  variable: "--font-mono-geist",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    'https://plainconceptsplatform.github.io/opencode-onboard',
-  ),
+  metadataBase: new URL(siteUrl),
   title: {
-    default: 'opencode-onboard: Prepare any codebase for AI',
-    template: '%s | opencode-onboard',
+    default: `${siteName}: Prepare any codebase for AI`,
+    template: `%s · ${siteName}`,
   },
-  description:
-    'Prepare any codebase for AI. Wires OpenCode, OpenSpec, codegraph, and agentmemory into a multi-agent development workflow powered by native parallel subagents.',
+  description: siteDescription,
+  applicationName: siteName,
   openGraph: {
-    siteName: 'opencode-onboard',
-    type: 'website',
-    images: ['/assets/logo.png'],
+    type: "website",
+    siteName,
+    title: siteName,
+    description: siteDescription,
+    url: siteUrl,
+    images: ["/assets/logo.png"],
   },
   twitter: {
-    card: 'summary',
+    card: "summary",
+    title: siteName,
+    description: siteDescription,
   },
-}
+};
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function Layout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="en"
       className={`${outfit.variable} ${geistMono.variable}`}
       suppressHydrationWarning
     >
-      <body className="flex min-h-screen flex-col font-sans antialiased">
-        <RootProvider theme={{ enabled: true, defaultTheme: 'system' }}>
-          {children}
-        </RootProvider>
+      <body className="flex min-h-screen flex-col">
+        <RootProvider>{children}</RootProvider>
       </body>
     </html>
-  )
+  );
 }

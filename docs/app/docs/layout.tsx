@@ -1,16 +1,12 @@
-import { DocsLayout } from 'fumadocs-ui/layouts/docs'
-import type { ReactNode } from 'react'
-import { source } from '@/app/source'
-import { Wordmark } from '@/components/landing'
+import { DocsLayout } from "fumadocs-ui/layouts/docs";
+import type { ReactNode } from "react";
+import { baseOptions } from "@/app/layout.config";
+import { source } from "@/app/source";
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
-    <DocsLayout
-      tree={source.pageTree}
-      githubUrl="https://github.com/PlainConceptsPlatform/opencode-onboard"
-      nav={{ title: <Wordmark size={22} />, enabled: true }}
-    >
+    <DocsLayout tree={source.pageTree} {...baseOptions}>
       {children}
     </DocsLayout>
-  )
+  );
 }

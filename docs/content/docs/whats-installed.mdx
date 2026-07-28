@@ -3,29 +3,48 @@ title: What gets installed
 description: The files and directories opencode-onboard writes into your project.
 ---
 
-```text
-your-project/
-├── AGENTS.md                        ← bootstrap mode, replaced after first /repo-initialize
-├── ARCHITECTURE.md                  ← prompt for agents to fill in from your codebase
-├── DESIGN.md                        ← prompt for agents to fill in from your codebase
-├── .opencode/
-│   ├── opencode.json                ← default model + plugin config
-│   ├── opencode-onboard.json        ← onboarding metadata + runtime config
-│   ├── agents/                      ← fullstack-engineer + user-created *-engineer files
-│   ├── tui.json                     ← registers the Subagents sidebar panel
-│   ├── tui/
-│   │   └── ob-subagents.tsx         ← TUI plugin: live Subagents panel
-│   └── plugins/
-│       └── ob-subagent-monitor.js   ← server plugin: subagent state → .opencode/.ob-run.json
-└── .agents/
-    └── skills/
-        ├── ob-guardrails-generic/   ← foundation for user guardrails
-        ├── ob-guardrails-project/   ← populated by /make-guardrails
-        ├── ob-userstory/            ← the variant matching your backlog platform
-        └── browser-automation/
-```
+<Files>
+  <File name="AGENTS.md" annotation="Bootstrap mode, replaced after the first /repo-initialize" />
+  <File name="ARCHITECTURE.md" annotation="Prompt for agents to fill in from your codebase" />
+  <File name="DESIGN.md" annotation="Prompt for agents to fill in from your design system" />
+  <Folder name=".opencode" defaultOpen>
+    <File name="opencode.json" annotation="Default model and plugin config" />
+    <File name="opencode-onboard.json" annotation="Onboarding metadata and runtime config" />
+    <File name="source-roots.json" annotation="Which roots agents analyse" />
+    <File name="tui.json" annotation="Registers the Subagents sidebar panel" />
+    <Folder name="agents">
+      <File name="fullstack-engineer.md" annotation="Primary planning agent" />
+      <File name="*-engineer.md" annotation="Your specialists, from /make-engineer" />
+    </Folder>
+    <Folder name="commands" annotation="The /repo-*, /plan-*, /ops-* and /make-* commands" />
+    <Folder name="tui">
+      <File name="ob-subagents.tsx" annotation="Live Subagents panel" />
+    </Folder>
+    <Folder name="plugins">
+      <File name="ob-subagent-monitor.js" annotation="Mirrors subagent state to .ob-run.json" />
+    </Folder>
+  </Folder>
+  <Folder name=".agents" defaultOpen>
+    <Folder name="skills">
+      <Folder name="ob-guardrails-generic" annotation="Foundation for user guardrails" />
+      <Folder name="ob-guardrails-project" annotation="Populated by /make-guardrails" />
+      <Folder name="ob-userstory" annotation="The variant matching your backlog platform" />
+      <Folder name="browser-automation" />
+    </Folder>
+  </Folder>
+</Files>
 
-Platform operations (ship, review, backlog) are injected directly into the
-`/ops-*` command files from `src/presets/ops-*/` during onboarding. Source-roots
-metadata lands in `.opencode/source-roots.json`. Token-optimization guidance is
-injected into `ob-guardrails-generic` marker blocks during onboarding.
+## How the variants are resolved
+
+Platform skills ship as suffixed variants (`ob-userstory-gh`, `ob-userstory-az`,
+`ob-userstory-jira`, `ob-userstory-browser`) and the installer copies only the one matching your
+backlog platform, renamed to its generic name.
+
+Platform operations for ship, review and backlog are injected directly into the `/ops-*` command
+files from `src/presets/ops-*/` during onboarding, and token-optimization guidance is injected into
+`ob-guardrails-generic` marker blocks.
+
+<Callout title="Your own skills survive">
+  Step 2 of the wizard removes stale AI files, but never your `.agents/skills/` directory. Any
+  `SKILL.md` in a subdirectory there stays put and remains discoverable.
+</Callout>

@@ -3,16 +3,31 @@ title: Getting started
 description: Install opencode-onboard, satisfy the prerequisites, and rerun individual steps.
 ---
 
-## Install
+<Callout title="Requires Node.js 18 or higher" type="warn">
+  The wizard runs in the directory you invoke it from, so `cd` into the repository you want to
+  prepare before starting.
+</Callout>
+
+<Steps>
+
+<Step>
+
+### Run the wizard
 
 ```bash
 npx opencode-onboard@latest
 ```
 
-Requires **Node.js 18 or higher**. The wizard runs in the directory you invoke it
-from, so `cd` into the repository you want to prepare first.
+Ten steps, run once. It keeps the current step visible plus the last two completed, so progress is
+always clear. See [The wizard](/docs/the-wizard) for what each step does.
 
-When it finishes, open OpenCode in your project and run:
+</Step>
+
+<Step>
+
+### Initialize the project
+
+Open OpenCode in your project and run:
 
 ```
 /repo-initialize
@@ -20,6 +35,20 @@ When it finishes, open OpenCode in your project and run:
 
 OpenCode asks whether this is a greenfield or brownfield project. See
 [The bootstrap sequence](/docs/bootstrap-sequence) for what each path does.
+
+</Step>
+
+<Step>
+
+### Start working
+
+Give the lead agent a work item URL or an idea and the
+[pipeline](/docs/pipeline) takes it from proposal to pull request. `/repo-help` lists every
+command if you are unsure where to start.
+
+</Step>
+
+</Steps>
 
 ## Prerequisites
 
@@ -56,15 +85,29 @@ Show the CLI help and all commands:
 npx opencode-onboard --help
 ```
 
-When available, step commands reuse context from
-`.opencode/opencode-onboard.json`.
+When available, step commands reuse context from `.opencode/opencode-onboard.json`.
 
 ## Typical flow for reruns
 
-- Run `clean` to reset old AI files
-- Run `copy` when templates or skills changed in a new release
-- Run `optimization` to reconfigure RTK, quota, caveman, codegraph, agentmemory
-  or humanizer, and the guardrails optimization markers
-- Run `metadata` last, to refresh `.opencode/opencode-onboard.json`
-- Run `join` if you are a new member of an already-onboarded project and want to
-  sync the latest onboarding metadata
+<Accordions>
+
+<Accordion title="Resetting stale AI files">
+  Run `clean`. It detects existing `AGENTS.md`, `.cursorrules`, `CLAUDE.md` and similar and removes
+  them, while preserving your `.agents/skills/` directory.
+</Accordion>
+
+<Accordion title="Picking up a new onboard release">
+  Run `copy` when templates or skills changed, then `metadata` last to refresh
+  `.opencode/opencode-onboard.json`.
+</Accordion>
+
+<Accordion title="Reconfiguring the optimization tools">
+  Run `optimization` to reconfigure RTK, quota, caveman, codegraph, agentmemory or humanizer, and
+  the guardrails optimization markers.
+</Accordion>
+
+<Accordion title="Joining a project someone else onboarded">
+  Run `join` to sync the latest onboarding metadata for your machine.
+</Accordion>
+
+</Accordions>

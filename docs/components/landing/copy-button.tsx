@@ -30,7 +30,7 @@ export function InstallBox({
 
   return (
     <div
-      className={`inline-flex items-center gap-3 rounded-lg border bg-raised font-mono ${
+      className={`inline-flex items-center gap-3 rounded-lg border border-border bg-secondary font-mono ${
         size === 'lg' ? 'px-5 py-3.5 text-base' : 'px-4 py-2.5 text-sm'
       }`}
     >

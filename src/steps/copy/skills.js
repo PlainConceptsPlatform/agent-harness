@@ -32,6 +32,23 @@ function shouldInstallSkill(skill, backlogPlatform, _repoPlatform) {
   return true
 }
 
+// Shipped skills whose content is a PLACEHOLDER — a /make-* command
+// overwrites them with project-specific content. During forceOverwrite,
+// these must be preserved when they have already been generated (detected
+// by the <!-- Last updated: marker). Without this check, the update would
+// wipe project-specific guardrails, risk assessments, etc.
+const GENERATABLE_SKILLS = new Set([
+  'ob-guardrails-project',
+  'ob-merge-risk-assess',
+])
+
+async function isGeneratedSkill(dest) {
+  const skillMd = path.join(dest, 'SKILL.md')
+  if (!await fse.pathExists(skillMd)) return false
+  const content = await fse.readFile(skillMd, 'utf-8')
+  return content.includes('<!-- Last updated:')
+}
+
 async function installObSkills(backlogPlatform = 'github', repoPlatform, { forceOverwrite = false } = {}) {
   const repo = repoPlatform ?? backlogPlatform
   const destSkillsDir = path.join(process.cwd(), '.agents', 'skills')
@@ -39,7 +56,7 @@ async function installObSkills(backlogPlatform = 'github', repoPlatform, { force
 
   // Build the set of skill names we ship (source dirs, after rename).
   // Only these may be removed during forceOverwrite — project-generated
-  // skills (ob-guardrails-project, ob-merge-risk-assess, etc.) must survive.
+  // skills (ob-merge-risk-assess, custom loops, etc.) must survive.
   const contentSkills = await fse.readdir(CONTENT_SKILLS_DIR)
   const shippedNames = new Set()
   for (const skill of contentSkills) {
@@ -55,6 +72,11 @@ async function installObSkills(backlogPlatform = 'github', repoPlatform, { force
       if (!entry.startsWith('ob-')) continue
       if (!shippedNames.has(entry)) {
         info(`Preserving project-generated skill: ${entry}`)
+        continue
+      }
+      // Generatable skills: preserve if already populated by /make-*
+      if (GENERATABLE_SKILLS.has(entry) && await isGeneratedSkill(path.join(destSkillsDir, entry))) {
+        info(`Preserving generated skill: ${entry}`)
         continue
       }
       await fse.remove(path.join(destSkillsDir, entry))
@@ -82,6 +104,13 @@ async function installObSkills(backlogPlatform = 'github', repoPlatform, { force
     }
     if (await fse.pathExists(dest) && !forceOverwrite) {
       info(`${destName} already exists, skipping`)
+      continue
+    }
+    // Even with forceOverwrite, never overwrite an already-generated
+    // generatable skill — its content was produced by /make-guardrails or
+    // similar, not by the shipped placeholder.
+    if (forceOverwrite && GENERATABLE_SKILLS.has(destName) && await isGeneratedSkill(dest)) {
+      info(`Preserving generated skill: ${destName}`)
       continue
     }
     await fse.copy(src, dest, { overwrite: true })

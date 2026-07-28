@@ -3,10 +3,16 @@ title: Token budget controls
 description: Keep long unattended agent sessions from burning through your budget.
 ---
 
-Long unattended agent sessions can consume significant tokens. Set these controls
-up **before** first use.
+<Callout title="Set these up before first use" type="warn">
+  Long unattended agent sessions can consume significant tokens. Provider-side limits are the only
+  control that cannot be talked past by an agent, so start there.
+</Callout>
 
-## 1. Set provider-side limits first
+<Steps>
+
+<Step>
+
+### Set provider-side limits first
 
 A monthly soft limit plus a hard usage cap in your provider dashboard:
 
@@ -14,24 +20,42 @@ A monthly soft limit plus a hard usage cap in your provider dashboard:
 - Anthropic: [console.anthropic.com](https://console.anthropic.com)
 - Google AI Studio: [aistudio.google.com/app/usage](https://aistudio.google.com/app/usage)
 
-## 2. Route models by task type
+</Step>
 
-Use a fast, cheap model for orchestration and status loops; reserve expensive
-models for implementation tasks only. This is what the
-[plan / build / fast tiers](/docs/the-wizard) are for.
+<Step>
 
-## 3. Install the quota plugin
+### Route models by task type
 
-The [`@slkiser/opencode-quota`](https://www.npmjs.com/package/@slkiser/opencode-quota)
-plugin adds `/quota` and `/quota_status` commands that surface real-time token
-usage inside OpenCode sessions.
+Use a fast, cheap model for orchestration and status loops; reserve expensive models for
+implementation only. This is what the [plan / build / fast tiers](/docs/the-wizard) are for.
 
-## 4. Use /quota checkpoints
+</Step>
 
-Run `/quota` before starting any `/plan-apply` session and after each agent wave.
-Pause at 75 percent consumed; stop at 90 percent.
+<Step>
 
-## 5. Confirm before large runs
+### Install the quota plugin
 
-The onboarded `/plan-apply` workflow asks for confirmation before spawning agents
-for Medium (4 to 7 tasks) or High (8 or more tasks) scope sessions.
+[`@slkiser/opencode-quota`](https://www.npmjs.com/package/@slkiser/opencode-quota) adds `/quota` and
+`/quota_status`, which surface real-time token usage inside OpenCode sessions.
+
+</Step>
+
+<Step>
+
+### Use /quota checkpoints
+
+Run `/quota` before starting any `/plan-apply` session and after each agent wave. Pause at 75
+percent consumed; stop at 90 percent.
+
+</Step>
+
+<Step>
+
+### Confirm before large runs
+
+The onboarded `/plan-apply` workflow asks for confirmation before spawning agents for Medium (4 to 7
+tasks) or High (8 or more tasks) scope sessions.
+
+</Step>
+
+</Steps>

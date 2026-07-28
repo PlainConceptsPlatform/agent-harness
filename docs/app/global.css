@@ -1,32 +1,118 @@
-/* opencode-onboard docs, themed with Platform Foundations.
- *
- * Layer order mirrors Platform Foundations' apps/docs/app/global.css:
- * Tailwind, the Fumadocs neutral preset, then @plainconceptsplatform/ui-theme,
- * the published Platform styleguide, which is the source of truth for colour,
- * radius and typography.
- *
- * opencode-onboard keeps exactly one product signal: its coral is bound to
- * --primary. Surfaces, text and borders all come from the Platform neutral
- * ramp, so the site reads as part of the Platform family, in light and dark.
- */
 @import "tailwindcss";
-@import "fumadocs-ui/css/neutral.css";
 @import "fumadocs-ui/css/preset.css";
 
+/* Platform Foundations theme (Platform tokens). */
 @import "@plainconceptsplatform/ui-theme/theme.css";
 @import "@plainconceptsplatform/ui-theme/base.css";
+
+/* Radix/shadcn overlay animations, as Foundations ships them. */
+@import "tw-animate-css";
 
 /* Let Tailwind scan Fumadocs UI so its classes are generated. */
 @source "../node_modules/fumadocs-ui/dist/**/*.js";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ── Backfill from Foundations' theme.css ─────────────────────────────────
+   Foundations ships theme 0.2.0, but npm still only has
+   @plainconceptsplatform/ui-theme@0.1.0, which predates the sidebar and chart
+   token groups and the elevation neutralization. This block mirrors exactly the
+   tokens 0.2.0 adds, so this site matches Foundations today.
+
+   DELETE THIS WHOLE BLOCK and bump the dependency once 0.2.0 is published. */
+:root {
+  --sidebar: var(--pc-neutral-100);
+  --sidebar-foreground: var(--pc-neutral-900);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--pc-neutral-200);
+  --sidebar-ring: var(--ring);
+
+  /* Categorical data-viz ramp; every entry clears 3:1 against --background. */
+  --chart-1: var(--pc-blue-500);
+  --chart-2: var(--pc-warning-700);
+  --chart-3: var(--pc-success-700);
+  --chart-4: var(--pc-error-500);
+  --chart-5: var(--pc-info-700);
+}
+
+.dark {
+  --sidebar: #17181b;
+  --sidebar-foreground: #fafafc;
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: #2a2c33;
+  --sidebar-ring: var(--ring);
+
+  /* On near-black the 500 steps are the legible ones; brand blue lifts to 400. */
+  --chart-1: var(--pc-blue-400);
+  --chart-2: var(--pc-warning-500);
+  --chart-3: var(--pc-success-500);
+  --chart-4: var(--pc-error-500);
+  --chart-5: var(--pc-info-500);
+}
+
+/* The Platform design has no shadows: elevation is a border plus a surface.
+   Overriding the scale means shadow-* utilities still compile but paint nothing,
+   so vendored component source needs no edits. The value is `0 0 #0000` rather
+   than `none` because Tailwind composes ring into the same box-shadow list, and
+   `none` inside a comma-separated list would drop the focus ring with it. */
+@theme {
+  --shadow-2xs: 0 0 #0000;
+  --shadow-xs: 0 0 #0000;
+  --shadow-sm: 0 0 #0000;
+  --shadow-md: 0 0 #0000;
+  --shadow-lg: 0 0 #0000;
+  --shadow-xl: 0 0 #0000;
+  --shadow-2xl: 0 0 #0000;
+
+  --inset-shadow-2xs: 0 0 #0000;
+  --inset-shadow-xs: 0 0 #0000;
+  --inset-shadow-sm: 0 0 #0000;
+
+  --drop-shadow-xs: 0 0 #0000;
+  --drop-shadow-sm: 0 0 #0000;
+  --drop-shadow-md: 0 0 #0000;
+  --drop-shadow-lg: 0 0 #0000;
+  --drop-shadow-xl: 0 0 #0000;
+  --drop-shadow-2xl: 0 0 #0000;
+
+  --text-shadow-2xs: 0 0 #0000;
+  --text-shadow-xs: 0 0 #0000;
+  --text-shadow-sm: 0 0 #0000;
+  --text-shadow-md: 0 0 #0000;
+  --text-shadow-lg: 0 0 #0000;
+}
+
+/* Expose the backfilled groups as utilities, as 0.2.0 does. */
+@theme inline {
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+}
+
 /* ── Product accent ───────────────────────────────────────────────────────
-   Coral replaces Platform blue as --primary. Light mode uses a darkened coral:
-   #f5495e on white is ~3.5:1 and fails WCAG AA for text, #cf1c33 is 5.4:1. */
+   opencode-onboard's coral replaces Platform blue as --primary; everything else
+   comes from the Platform ramp. Light mode uses a darkened coral: #f5495e on
+   white is ~3.5:1 and fails WCAG AA for text, #cf1c33 is 5.4:1. */
 :root {
   --oo-coral: #cf1c33;
-  --oo-coral-soft: #e23347;
+  --oo-coral-hover: #b01829;
 
   --primary: var(--oo-coral);
   --primary-foreground: var(--pc-neutral-0);
@@ -34,17 +120,15 @@
   --accent: #fdeaec;
   --accent-foreground: #8f1123;
 
-  /* Surface ramp, drawn from the Platform neutral primitives. */
-  --surface-terminal: var(--pc-neutral-900);
-  --surface-terminal-text: var(--pc-neutral-100);
-  --surface-raised: var(--pc-neutral-100);
-  --line-hairline: var(--pc-neutral-200);
-  --text-secondary: var(--pc-neutral-600);
+  /* Terminal surface. App-specific by design: per DESIGN.md, palettes a single
+     product needs stay in the product, not in the shared theme. */
+  --terminal: var(--pc-neutral-900);
+  --terminal-foreground: var(--pc-neutral-100);
 }
 
 .dark {
   --oo-coral: #f5495e;
-  --oo-coral-soft: #f8a0ac;
+  --oo-coral-hover: #f8737f;
 
   --primary: var(--oo-coral);
   --primary-foreground: var(--pc-neutral-0);
@@ -52,114 +136,39 @@
   --accent: #2e1216;
   --accent-foreground: #f8a0ac;
 
-  --surface-terminal: #08090a;
-  --surface-terminal-text: var(--pc-neutral-100);
-  --surface-raised: #22242a;
-  --line-hairline: #24262b;
-  --text-secondary: #b9bac0;
+  --terminal: #08090a;
+  --terminal-foreground: var(--pc-neutral-100);
 }
 
+/* Fumadocs styles its own chrome (navbar, sidebar, TOC, search, code blocks)
+   from a --color-fd-* namespace, independent of the shadcn tokens. Alias it onto
+   the Platform semantics so the site is themed by the same tokens as the rest. */
 @theme inline {
-  --color-terminal: var(--surface-terminal);
-  --color-terminal-foreground: var(--surface-terminal-text);
-  --color-raised: var(--surface-raised);
-  --color-hairline: var(--line-hairline);
-  --color-text-secondary: var(--text-secondary);
-  --color-brand-soft: var(--oo-coral-soft);
-}
-
-/* ── Fumadocs chrome, mapped onto the Platform tokens ─────────────────── */
-:root,
-.dark {
   --color-fd-background: var(--background);
   --color-fd-foreground: var(--foreground);
-  --color-fd-muted: var(--muted);
-  --color-fd-muted-foreground: var(--muted-foreground);
-  --color-fd-popover: var(--popover);
-  --color-fd-popover-foreground: var(--popover-foreground);
   --color-fd-card: var(--card);
   --color-fd-card-foreground: var(--card-foreground);
-  --color-fd-border: var(--border);
+  --color-fd-popover: var(--popover);
+  --color-fd-popover-foreground: var(--popover-foreground);
   --color-fd-primary: var(--primary);
   --color-fd-primary-foreground: var(--primary-foreground);
   --color-fd-secondary: var(--secondary);
   --color-fd-secondary-foreground: var(--secondary-foreground);
+  --color-fd-muted: var(--muted);
+  --color-fd-muted-foreground: var(--muted-foreground);
   --color-fd-accent: var(--accent);
   --color-fd-accent-foreground: var(--accent-foreground);
+  --color-fd-border: var(--border);
   --color-fd-ring: var(--ring);
+
+  --color-terminal: var(--terminal);
+  --color-terminal-foreground: var(--terminal-foreground);
+
+  --font-mono: var(--font-mono-geist), ui-monospace, "SF Mono", Menlo, Consolas,
+    monospace;
 }
 
-html {
-  scroll-behavior: smooth;
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-}
-
-::selection {
-  background: color-mix(in oklab, var(--primary) 25%, transparent);
-}
-
-/* Prose links carry the accent, only inside rendered docs content. */
-.prose a:not([data-card]) {
-  color: var(--primary);
-  text-decoration-color: color-mix(in oklab, var(--primary) 35%, transparent);
-  text-underline-offset: 3px;
-  transition: color 0.15s ease;
-}
-.prose a:not([data-card]):hover {
-  color: var(--oo-coral-soft);
-}
-
-.prose h1 a,
-.prose h2 a,
-.prose h3 a,
-.prose h4 a {
-  color: inherit;
-  text-decoration: none;
-}
-
-.prose :not(pre) > code {
-  background: var(--surface-raised);
-  border: 1px solid var(--line-hairline);
-  border-radius: var(--radius-sm);
-  padding: 0.1em 0.35em;
-  font-size: 0.875em;
-}
-
-figure.shiki {
-  border-color: var(--line-hairline);
-}
-figure.shiki pre {
-  border: none;
-  border-radius: 0;
-}
-
-/* ── Landing motion helpers ─────────────────────────────────────────────
-   Elements start hidden and are revealed by the Reveal client component. */
-.reveal {
-  opacity: 0;
-  transform: translateY(14px);
-  transition:
-    opacity 0.6s ease-out,
-    transform 0.6s ease-out;
-}
-.reveal.visible {
-  opacity: 1;
-  transform: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .reveal {
-    opacity: 1;
-    transform: none;
-    transition: none;
-  }
-}
-
-/* Terminal caret */
+/* Terminal caret for the wizard demo. */
 @keyframes caret-blink {
   0%,
   49% {
@@ -170,6 +179,7 @@ figure.shiki pre {
     opacity: 0;
   }
 }
+
 .terminal-caret {
   display: inline-block;
   width: 0.55em;
@@ -177,9 +187,4 @@ figure.shiki pre {
   vertical-align: text-bottom;
   background: var(--primary);
   animation: caret-blink 1.1s steps(1) infinite;
-}
-@media (prefers-reduced-motion: reduce) {
-  .terminal-caret {
-    animation: none;
-  }
 }

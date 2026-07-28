@@ -21,12 +21,13 @@ the last two completed steps, so progress is always clear.
 
 ## After the wizard
 
-Open OpenCode in your project and run `/repo-initialize`. For brownfield projects
-this generates `ARCHITECTURE.md` and `DESIGN.md` from your actual codebase,
-archives project history, then activates the full agent team. For greenfield
-projects it skips documentation generation and leaves placeholder files you can
-populate later with [`/make-architecture`](/docs/commands) and
-[`/make-design`](/docs/commands).
+<Callout title="Run /repo-initialize next">
+  Open OpenCode in your project and run `/repo-initialize`. Brownfield projects get
+  `ARCHITECTURE.md` and `DESIGN.md` generated from the actual codebase and their history archived
+  before the agent team activates. Greenfield projects skip generation and leave placeholders you can
+  fill later with [`/make-architecture`](/docs/commands) and [`/make-design`](/docs/commands). Full
+  detail in [The bootstrap sequence](/docs/bootstrap-sequence).
+</Callout>
 
 ## Model tiers
 
