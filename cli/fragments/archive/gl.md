@@ -1,6 +1,7 @@
 2. **Find the oldest change with a completed MR**
 
    List unarchived changes (top-level only, excludes `archive/`):
+   `{change-dir}` is the directory basename (e.g. `us-{id}-{slug}` for changes derived from user stories or `{slug}` for explorations).
 
    ```bash
    find "$REPO_ROOT/openspec/changes" -mindepth 1 -maxdepth 1 -type d -not -name 'archive' | sort
@@ -14,7 +15,7 @@
    glab mr list --repo {owner}/{repo} --merged --output json --jq 'sort_by(.merged_at) | .[] | {name: .title, sourceRefName: .source_branch, mergedAt: .merged_at, mergeRequestId: .iid}'
    ```
 
-   Match each change to a completed MR using its ID and slug as search hints:
+   Match each change to a completed MR using its title as search hints:
    - No match → skip (record as blocked: `no merged MR found`).
    - One match → eligible.
    - Multiple matches → ask the user which MR belongs to that change.
@@ -27,7 +28,7 @@
 
    ```text
    Oldest unarchived merged change found:
-     ID: {change-id}
+     ID: {change-dir}
      Title: {title from resolved MR}
      MR ID: {iid}
      Merged: {merged_at}
@@ -40,7 +41,7 @@
 4. **Archive the change**
 
    ```bash
-   git checkout -b archive/{change-id}
+   git checkout -b archive/{change-dir}
    ```
 
    Load `@openspec-archive-change` skill and follow it to archive the change.
@@ -53,15 +54,15 @@
 
    ```bash
    git add -A
-   git commit -m "archive: {title} ({change-id})"
-   git push origin archive/{change-id}
+   git commit -m "archive: {title}"
+   git push origin archive/{change-dir}
 
    glab mr create \
       --repo {owner}/{repo} \
-      --source-branch "archive/{change-id}" \
+      --source-branch "archive/{change-dir}" \
       --target-branch "$DEFAULT_BRANCH" \
-      --title "archive: {title} ({change-id})" \
-      --description "Archive SDD artifacts for {change-id} after merge."
+      --title "archive: {title}" \
+      --description "Archive SDD artifacts for {change-dir} after merge."
    ```
 
    If work was stashed in step 1, restore it after the MR is created unless the user opts out.
@@ -73,7 +74,7 @@
    ```text
    Archive complete
 
-     Change ID: {change-id}
+     Change ID: {change-dir}
      Title: {title}
      Original MR: {original-mr-link}
      Archive MR: {archive-mr-link}
