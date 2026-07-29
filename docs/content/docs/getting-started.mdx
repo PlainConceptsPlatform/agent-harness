@@ -98,8 +98,9 @@ When available, step commands reuse context from `.opencode/opencode-onboard.jso
 </Accordion>
 
 <Accordion title="Picking up a new onboard release">
-  Run `update` to re-apply every file patch from your saved config without prompts, or `copy` when
-  only templates and skills changed. Generated skills such as `ob-guardrails-project` are preserved.
+  Run `update` to refresh unchanged managed templates and re-apply marker-based patches without
+  prompts. User-modified files, generated skills, project agents, configuration, and OpenSpec
+  history are preserved. Generated skills such as `ob-guardrails-project` are preserved.
   Finish with `metadata` to refresh `.opencode/opencode-onboard.json`.
 </Accordion>
 

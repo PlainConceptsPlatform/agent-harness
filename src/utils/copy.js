@@ -1,5 +1,6 @@
 import fse from 'fs-extra'
 import path from 'path'
+import { canUpdateManagedFile, hashFile, readUpdateManifest, recordManagedFile, writeUpdateManifest } from './update-manifest.js'
 
 // Folders never copied (skills handled separately by installSkills, .bootstrap is internal tooling)
 const ALWAYS_EXCLUDE = ['.bootstrap', 'skills', 'node_modules']
@@ -12,6 +13,16 @@ const NEVER_OVERWRITE = [
   'opencode.jsonc',
 ]
 
+const MARKER_COMMANDS = new Set(['.opencode/commands/ops-review.md', '.opencode/commands/ops-backlog.md'])
+
+export function isManagedContentPath(relativePath) {
+  const normalized = relativePath.split(path.sep).join('/')
+  if (normalized.startsWith('.opencode/plugins/')) return true
+  if (normalized === '.opencode/tui/ob-subagents.tsx') return true
+  if (normalized.startsWith('.opencode/commands/') && !MARKER_COMMANDS.has(normalized)) return true
+  return normalized === 'openspec/specs/.gitkeep' || normalized === 'openspec/changes/archive/.gitkeep'
+}
+
 /**
  * Copy content/ directory to destination.
  * Excludes:
@@ -22,12 +33,13 @@ const NEVER_OVERWRITE = [
  * @param {string} contentDir - absolute path to content/
  * @param {string} destDir - absolute path to destination (project root)
  * @param {'azure'|'github'} platform
- * @param {{ hasDesign?: boolean, hasArchitecture?: boolean }} ctx
+ * @param {{ hasDesign?: boolean, hasArchitecture?: boolean, updateMode?: boolean }} ctx
  */
 export async function copyContent(contentDir, destDir, platform, ctx = {}) {
+  const manifest = ctx.updateMode ? await readUpdateManifest(destDir) : null
   await fse.copy(contentDir, destDir, {
-    overwrite: ctx.forceOverwrite ?? false,
-    filter: (src) => {
+    overwrite: ctx.updateMode || ctx.forceOverwrite || false,
+    filter: async (src) => {
       const rel = path.relative(contentDir, src)
       const parts = rel.split(path.sep)
       if (parts.some(part => ALWAYS_EXCLUDE.includes(part))) return false
@@ -37,9 +49,45 @@ export async function copyContent(contentDir, destDir, platform, ctx = {}) {
       // The update command calls writeModelsToConfigs separately to set the
       // model field in opencode.jsonc without destroying user additions.
       if (NEVER_OVERWRITE.includes(rel)) return false
-      return true
+      if (!ctx.updateMode) return true
+
+      const stat = await fse.stat(src)
+      if (stat.isDirectory()) return true
+      if (!isManagedContentPath(rel)) {
+        return !(await fse.pathExists(path.join(destDir, rel)))
+      }
+      return canUpdateManagedFile(rel, destDir, manifest)
     },
   })
+}
+
+export async function recordManagedContent(contentDir, destDir, { updateMode = false } = {}) {
+  const manifest = await readUpdateManifest(destDir)
+
+  async function walk(directory) {
+    for (const entry of await fse.readdir(directory, { withFileTypes: true })) {
+      const sourcePath = path.join(directory, entry.name)
+      const relativePath = path.relative(contentDir, sourcePath)
+      if (entry.isDirectory()) {
+        await walk(sourcePath)
+        continue
+      }
+      if (!isManagedContentPath(relativePath)) continue
+
+      const destinationPath = path.join(destDir, relativePath)
+      if (!await fse.pathExists(destinationPath)) continue
+      const sourceHash = await hashFile(sourcePath)
+      const destinationHash = await hashFile(destinationPath)
+      const manifestPath = relativePath.split(path.sep).join('/')
+      const previousHash = manifest.files?.[manifestPath]
+      if (!updateMode || destinationHash === sourceHash || destinationHash === previousHash) {
+        await recordManagedFile(manifest, relativePath, sourcePath)
+      }
+    }
+  }
+
+  await walk(contentDir)
+  await writeUpdateManifest(manifest, destDir)
 }
 
 export async function findAiFiles(dir, files) {

@@ -179,4 +179,27 @@ describe('writeOnboardConfig()', () => {
     expect(payload.models.build).toBe('new')
     expect(payload.agents.maxConcurrent).toBe(4)
   })
+
+  it('preserves unknown project metadata during refresh', async () => {
+    execa.mockResolvedValue({ exitCode: 0, stdout: '1', stderr: '' })
+    fse.readJson.mockResolvedValueOnce({
+      project: { owner: 'team-a' },
+      models: { build: 'old' },
+      tools: { customTool: true },
+    })
+
+    await writeOnboardConfig({
+      backlogPlatform: 'github',
+      repoPlatform: 'github',
+      sourceMode: 'current',
+      sourceRoots: [],
+      buildModel: 'new',
+      cwd: tmpDir,
+    })
+
+    const payload = lastPayload()
+    expect(payload.project).toEqual({ owner: 'team-a' })
+    expect(payload.tools.customTool).toBe(true)
+    expect(payload.models.build).toBe('new')
+  })
 })

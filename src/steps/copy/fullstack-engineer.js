@@ -22,10 +22,14 @@ function stripStartupDirective(text) {
     .trim()
 }
 
-export async function generateFullstackEngineer({ cwd = process.cwd() } = {}) {
+export async function generateFullstackEngineer({ cwd = process.cwd(), updateMode = false } = {}) {
   const agentsDir = path.join(cwd, '.opencode', 'agents')
   await fse.ensureDir(agentsDir)
   const filePath = path.join(agentsDir, FULLSTACK_FILE)
+
+  if (updateMode && await fse.pathExists(filePath)) {
+    return { generated: false, preserved: true }
+  }
 
   let existingAbilities = null
   let existingIdentity = null

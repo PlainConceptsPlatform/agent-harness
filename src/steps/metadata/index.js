@@ -42,7 +42,9 @@ export async function writeOnboardConfig(data) {
       fast: data.fastModel,
     }).filter(([, value]) => value)
   )
-  const models = Object.keys(selectedModels).length > 0 ? selectedModels : existing?.models ?? null
+  const models = Object.keys(selectedModels).length > 0
+    ? { ...existing?.models, ...selectedModels }
+    : existing?.models ?? null
   const maxConcurrent = clampConcurrency(data.maxConcurrentAgents ?? existing?.agents?.maxConcurrent ?? 3)
 
   const optionalTools = data.optionalTools ?? existing?.tools ?? {}
@@ -55,12 +57,14 @@ export async function writeOnboardConfig(data) {
   }
 
   const payload = {
+    ...existing,
     version: 2,
     generatedAt: new Date().toISOString(),
     onboardVersion,
     opencodeVersion,
 
     platform: {
+      ...existing?.platform,
       backlog: data.backlogPlatform ?? 'none',
       repo: data.repoPlatform ?? 'none',
     },
@@ -68,17 +72,20 @@ export async function writeOnboardConfig(data) {
     ...(models ? { models } : {}),
 
     agents: {
+      ...existing?.agents,
       maxConcurrent,
     },
 
     source: {
+      ...existing?.source,
       mode: data.sourceMode ?? 'current',
       roots: data.sourceRoots ?? [],
     },
 
-    tools,
+    tools: { ...existing?.tools, ...tools },
 
     preexisting: {
+      ...existing?.preexisting,
       design: !!data.hasDesign,
       architecture: !!data.hasArchitecture,
       openspec: !!data.hasOpenspec,

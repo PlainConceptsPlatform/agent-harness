@@ -211,7 +211,7 @@ export async function runJoin() {
   // Step 10: Ensure .opencode/.gitignore exists
   header('Step 10, Checking .opencode/.gitignore')
   const gitignorePath = path.join(opencodeDir, '.gitignore')
-  const requiredEntries = ['node_modules', '.ob-run.json', 'opencode-onboard.user.json', 'source-roots.json', '*-engineer.*.md']
+  const requiredEntries = ['node_modules', '.ob-run.json', 'opencode-onboard.user.json', 'opencode-onboard-managed.json', 'source-roots.json', '*-engineer.*.md']
 
   if (await fse.pathExists(gitignorePath)) {
     const content = await fse.readFile(gitignorePath, 'utf-8')

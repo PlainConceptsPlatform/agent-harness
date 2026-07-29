@@ -5,6 +5,7 @@ import fse from 'fs-extra'
 
 // Use real fs-extra for file system tests (temp dirs)
 import { copyContent, findAiFiles } from '../copy.js'
+import { hashFile, writeUpdateManifest } from '../update-manifest.js'
 
 const tmpDir = () => fse.mkdtempSync(path.join(os.tmpdir(), 'ob-test-'))
 const aiFiles = [
@@ -134,6 +135,43 @@ describe('copy utils', () => {
 
       const content = await fse.readFile(path.join(dest, 'opencode.jsonc'), 'utf-8')
       expect(JSON.parse(content).user).toBe(true)
+    })
+
+    it('updates an unchanged managed file when its source changes', async () => {
+      const sourcePath = path.join(src, '.opencode', 'plugins', 'monitor.js')
+      const destinationPath = path.join(dest, '.opencode', 'plugins', 'monitor.js')
+      await fse.ensureDir(path.dirname(sourcePath))
+      await fse.writeFile(sourcePath, 'v2')
+      await fse.ensureDir(path.dirname(destinationPath))
+      await fse.writeFile(destinationPath, 'v1')
+      await writeUpdateManifest({ files: { '.opencode/plugins/monitor.js': await hashFile(destinationPath) } }, dest)
+
+      await copyContent(src, dest, 'github', { updateMode: true })
+
+      expect(await fse.readFile(destinationPath, 'utf-8')).toBe('v2')
+    })
+
+    it('preserves a modified managed file during update', async () => {
+      const sourcePath = path.join(src, '.opencode', 'plugins', 'monitor.js')
+      const destinationPath = path.join(dest, '.opencode', 'plugins', 'monitor.js')
+      await fse.ensureDir(path.dirname(sourcePath))
+      await fse.writeFile(sourcePath, 'v2')
+      await fse.ensureDir(path.dirname(destinationPath))
+      await fse.writeFile(destinationPath, 'user customization')
+      await writeUpdateManifest({ files: { '.opencode/plugins/monitor.js': 'hash-of-v1' } }, dest)
+
+      await copyContent(src, dest, 'github', { updateMode: true })
+
+      expect(await fse.readFile(destinationPath, 'utf-8')).toBe('user customization')
+    })
+
+    it('does not overwrite existing unmanaged files during update', async () => {
+      await fse.writeFile(path.join(src, 'AGENTS.md'), 'template')
+      await fse.writeFile(path.join(dest, 'AGENTS.md'), 'project rules')
+
+      await copyContent(src, dest, 'github', { updateMode: true })
+
+      expect(await fse.readFile(path.join(dest, 'AGENTS.md'), 'utf-8')).toBe('project rules')
     })
   })
 })

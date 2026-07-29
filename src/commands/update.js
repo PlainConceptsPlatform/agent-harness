@@ -37,7 +37,7 @@ export async function runUpdate() {
     maxConcurrentAgents: saved.agents?.maxConcurrent ?? 3,
     installScope: 'local',
     skipSkills: false,
-    forceOverwrite: true,
+    updateMode: true,
   }
 
   console.log()

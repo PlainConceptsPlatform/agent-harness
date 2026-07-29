@@ -2,6 +2,7 @@ import fse from 'fs-extra'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { info, success } from '../../utils/exec.js'
+import { canUpdateManagedFile, readUpdateManifest, recordManagedFile, writeUpdateManifest } from '../../utils/update-manifest.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const CONTENT_SKILLS_DIR = path.resolve(__dirname, '../../content/.agents/skills')
@@ -42,6 +43,14 @@ const GENERATABLE_SKILLS = new Set([
   'ob-merge-risk-assess',
 ])
 
+const MARKER_SKILLS = new Set([
+  'ob-guardrails-generic',
+  'ob-plan-archive',
+  'ob-ops-ship',
+  'ob-ops-evidence',
+  'ob-repo-initialize',
+])
+
 async function isGeneratedSkill(dest) {
   const skillMd = path.join(dest, 'SKILL.md')
   if (!await fse.pathExists(skillMd)) return false
@@ -49,10 +58,43 @@ async function isGeneratedSkill(dest) {
   return content.includes('<!-- Last updated:')
 }
 
-async function installObSkills(backlogPlatform = 'github', repoPlatform, { forceOverwrite = false } = {}) {
+async function syncSkillFiles(src, dest, relativeRoot, cwd, manifest) {
+  for (const entry of await fse.readdir(src, { withFileTypes: true })) {
+    const sourcePath = path.join(src, entry.name)
+    const destinationPath = path.join(dest, entry.name)
+    const relativePath = path.join(relativeRoot, entry.name)
+    if (entry.isDirectory()) {
+      await syncSkillFiles(sourcePath, destinationPath, relativePath, cwd, manifest)
+      continue
+    }
+    if (!await fse.pathExists(destinationPath) || await canUpdateManagedFile(relativePath, cwd, manifest)) {
+      await fse.ensureDir(path.dirname(destinationPath))
+      await fse.copyFile(sourcePath, destinationPath)
+      await recordManagedFile(manifest, relativePath, sourcePath)
+      success(`Updated skill: ${relativePath}`)
+    } else {
+      info(`Preserving modified skill file: ${relativePath}`)
+    }
+  }
+}
+
+async function recordSkillSourceFiles(src, relativeRoot, manifest) {
+  for (const entry of await fse.readdir(src, { withFileTypes: true })) {
+    const sourcePath = path.join(src, entry.name)
+    const relativePath = path.join(relativeRoot, entry.name)
+    if (entry.isDirectory()) {
+      await recordSkillSourceFiles(sourcePath, relativePath, manifest)
+    } else {
+      await recordManagedFile(manifest, relativePath, sourcePath)
+    }
+  }
+}
+
+async function installObSkills(backlogPlatform = 'github', repoPlatform, { forceOverwrite = false, updateMode = false } = {}) {
   const repo = repoPlatform ?? backlogPlatform
   const destSkillsDir = path.join(process.cwd(), '.agents', 'skills')
   await fse.ensureDir(destSkillsDir)
+  const manifest = await readUpdateManifest()
 
   // Build the set of skill names we ship (source dirs, after rename).
   // Only these may be removed during forceOverwrite — project-generated
@@ -67,7 +109,7 @@ async function installObSkills(backlogPlatform = 'github', repoPlatform, { force
   // when the current platform is azure).
   Object.keys(SKILL_RENAME).forEach(k => shippedNames.add(k))
 
-  if (forceOverwrite) {
+  if (forceOverwrite && !updateMode) {
     for (const entry of await fse.readdir(destSkillsDir)) {
       if (!entry.startsWith('ob-')) continue
       if (!shippedNames.has(entry)) {
@@ -102,6 +144,16 @@ async function installObSkills(backlogPlatform = 'github', repoPlatform, { force
       info(`Skipping skill: ${skill} (not needed for platforms: ${backlogPlatform}/${repo})`)
       continue
     }
+    if (updateMode) {
+      if (!await fse.pathExists(dest)) {
+        await syncSkillFiles(src, dest, path.join('.agents', 'skills', destName), process.cwd(), manifest)
+      } else if (MARKER_SKILLS.has(destName) || GENERATABLE_SKILLS.has(destName)) {
+        info(`Preserving project-owned skill: ${destName}`)
+      } else {
+        await syncSkillFiles(src, dest, path.join('.agents', 'skills', destName), process.cwd(), manifest)
+      }
+      continue
+    }
     if (await fse.pathExists(dest) && !forceOverwrite) {
       info(`${destName} already exists, skipping`)
       continue
@@ -114,8 +166,13 @@ async function installObSkills(backlogPlatform = 'github', repoPlatform, { force
       continue
     }
     await fse.copy(src, dest, { overwrite: true })
+    if (!MARKER_SKILLS.has(destName) && !GENERATABLE_SKILLS.has(destName)) {
+      await recordSkillSourceFiles(src, path.join('.agents', 'skills', destName), manifest)
+    }
     success(`${forceOverwrite ? 'Updated' : 'Installed'} skill: ${destName}`)
   }
+
+  await writeUpdateManifest(manifest)
 }
 
 export async function installSkills(backlogPlatform = 'github', repoPlatform, opts = {}) {
@@ -125,7 +182,7 @@ export async function installSkills(backlogPlatform = 'github', repoPlatform, op
 
   if (await fse.pathExists(CONTENT_SKILLS_LOCK)) {
     const destLock = path.join(process.cwd(), 'skills-lock.json')
-    if (await fse.pathExists(destLock) && !opts.forceOverwrite) {
+    if (await fse.pathExists(destLock) && (opts.updateMode || !opts.forceOverwrite)) {
       info('skills-lock.json already exists, skipping')
     } else {
       await fse.copy(CONTENT_SKILLS_LOCK, destLock, { overwrite: true })

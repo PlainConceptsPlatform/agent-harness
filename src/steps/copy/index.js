@@ -1,7 +1,7 @@
 import fse from "fs-extra"
 import path from "path"
 import { fileURLToPath } from "url"
-import { copyContent } from "../../utils/copy.js"
+import { copyContent, recordManagedContent } from "../../utils/copy.js"
 import { error, header, success } from "../../utils/exec.js"
 import { exit } from "../../utils/process.js"
 import { patchAgentGuidance, patchAgentsMd } from "./agents.js"
@@ -46,32 +46,38 @@ export async function copyContentStep(platform, ctx = {}) {
     }
 
     const rootsFile = path.join(dest, ".opencode", "source-roots.json")
-    await fse.writeJson(
-      rootsFile,
-      {
-        mode: ctx.sourceMode || "current",
-        // An empty array is truthy, so `|| [dest]` never kicked in and reruns
-        // wrote `roots: []`, leaving agents with no source scope.
-        roots: ctx.sourceRoots?.length ? ctx.sourceRoots : [dest],
-      },
-      { spaces: 2 },
-    )
+    if (!ctx.updateMode || !await fse.pathExists(rootsFile)) {
+      await fse.writeJson(
+        rootsFile,
+        {
+          mode: ctx.sourceMode || "current",
+          // An empty array is truthy, so `|| [dest]` never kicked in and reruns
+          // wrote `roots: []`, leaving agents with no source scope.
+          roots: ctx.sourceRoots?.length ? ctx.sourceRoots : [dest],
+        },
+        { spaces: 2 },
+      )
+    }
 
     await patchAgentGuidance(backlogPlatform, repoPlatform)
     await patchOpsReview({ backlogPlatform, repoPlatform })
     await patchOpsBacklog({ backlogPlatform, repoPlatform })
     await patchOpencodeJson()
-    await patchAgentsMd(ctx)
+    if (!ctx.updateMode) await patchAgentsMd(ctx)
 
     if (!ctx.skipSkills) {
-      await installSkills(backlogPlatform, repoPlatform, { forceOverwrite: ctx.forceOverwrite })
+      await installSkills(backlogPlatform, repoPlatform, {
+        forceOverwrite: ctx.forceOverwrite,
+        updateMode: ctx.updateMode,
+      })
     }
     // These patch SKILL.md files (ob-plan-archive, ob-ops-ship, ob-ops-evidence),
     // so they must run after installSkills has copied the skills into the project.
     await patchArchiveCommand({ backlogPlatform, repoPlatform })
     await patchOpsShip({ backlogPlatform, repoPlatform })
     await patchOpsEvidence({ backlogPlatform, repoPlatform })
-    await generateFullstackEngineer()
+    await generateFullstackEngineer({ updateMode: ctx.updateMode })
+    await recordManagedContent(CONTENT_DIR, dest, { updateMode: ctx.updateMode })
     success("Files copied to project root")
   } catch (err) {
     error(`Failed to copy content: ${err.message}`)

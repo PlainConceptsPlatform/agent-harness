@@ -8,6 +8,7 @@ vi.mock('../steps/metadata/index.js', () => ({ writeOnboardConfig: vi.fn() }))
 vi.mock('../utils/process.js', () => ({ exit: vi.fn() }))
 
 import { readOnboardConfig } from './shared.js'
+import { copyContentStep } from '../steps/copy/index.js'
 import { patchGuardrails } from '../steps/optimization/patch-guardrails.js'
 import { runUpdate } from './update.js'
 
@@ -24,6 +25,11 @@ describe('runUpdate()', () => {
   it('restores every saved optional tool selection', async () => {
     await runUpdate()
 
+    expect(copyContentStep).toHaveBeenCalledWith(
+      { backlogPlatform: 'github', repoPlatform: 'github' },
+      expect.objectContaining({ updateMode: true }),
+    )
+    expect(copyContentStep.mock.calls[0][1].forceOverwrite).toBeUndefined()
     expect(patchGuardrails).toHaveBeenCalledWith(expect.objectContaining({ humanizer: true }))
   })
 })
