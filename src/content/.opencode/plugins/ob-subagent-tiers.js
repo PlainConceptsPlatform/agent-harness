@@ -65,7 +65,7 @@ export const ObSubagentTiers = async ({ directory }) => {
   // engineer templates must never declare a model: models are resolved at
   // startup per-tier and injected into variant files only. A stale model:
   // (e.g. from a prior `stampAgentModels` run) is stripped here so the base
-  // agent falls back to the session-level model in opencode.json.
+  // agent falls back to the session-level model in opencode.jsonc.
   function normalizeTemplate(templateContent) {
     const fmMatch = templateContent.match(/^---\r?\n([\s\S]*?)\r?\n---/)
     if (!fmMatch) return templateContent

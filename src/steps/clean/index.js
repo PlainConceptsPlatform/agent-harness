@@ -44,7 +44,7 @@ async function hasOpenspecHistory(cwd) {
   return false
 }
 
-export async function cleanAiFiles() {
+export async function cleanAiFiles({ removeLegacyConfig = false } = {}) {
   header('Step 2, Existing AI config files')
 
   const cwd = process.cwd()
@@ -57,6 +57,12 @@ export async function cleanAiFiles() {
   if (ctx.hasDesign) info('DESIGN.md exists and is populated, keeping it')
   if (ctx.hasArchitecture) info('ARCHITECTURE.md exists and is populated, keeping it')
   if (ctx.hasOpenspec) info('openspec/ history exists, keeping it')
+
+  const legacyConfig = path.join(cwd, '.opencode', 'opencode.json')
+  if (removeLegacyConfig && await fse.pathExists(legacyConfig)) {
+    await fse.remove(legacyConfig)
+    info('Removed legacy .opencode/opencode.json')
+  }
 
   const flatFiles = await findAiFiles(cwd, cleanPreset.detectFiles)
   const dirTargets = cleanPreset.directoryTargets

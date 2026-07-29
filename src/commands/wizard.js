@@ -76,7 +76,7 @@ export async function runWizard(version) {
     ],
   })
 
-  const preserve = await cleanAiFiles()
+  const preserve = await cleanAiFiles({ removeLegacyConfig: true })
   const ctx = { ...preserve, ...scope, maxConcurrentAgents, installScope }
 
   const { backlogPlatform, repoPlatform } = await choosePlatform()

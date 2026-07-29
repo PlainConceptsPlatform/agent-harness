@@ -23,8 +23,7 @@ function applyModify(text, jsonPath, value) {
 }
 
 export async function patchOpencodeJson(cwd = process.cwd()) {
-  const opencodeDir = path.join(cwd, '.opencode')
-  const opencodePath = path.join(opencodeDir, 'opencode.json')
+  const opencodePath = path.join(cwd, 'opencode.jsonc')
 
   let text
   if (await fse.pathExists(opencodePath)) {
@@ -80,19 +79,18 @@ export async function patchOpencodeJson(cwd = process.cwd()) {
     }
   }
 
-  await fse.ensureDir(opencodeDir)
   await fse.writeFile(opencodePath, text, 'utf-8')
   if (needsAgentDisable) {
-    success('Disabled built-in build/plan agents in .opencode/opencode.json')
+    success('Disabled built-in build/plan agents in opencode.jsonc')
   }
   if (missingSkillPermissions.length > 0) {
-    success('Allowed ob-*/openspec-* skill loading in .opencode/opencode.json')
+    success('Allowed ob-*/openspec-* skill loading in opencode.jsonc')
   }
   if (missingSharedPermissions.length > 0) {
-    success('Allowed question/todowrite tools in .opencode/opencode.json')
+    success('Allowed question/todowrite tools in opencode.jsonc')
   }
   if (needsSkillsPaths) {
-    success('Added .agents/skills to skills.paths in .opencode/opencode.json')
+    success('Added .agents/skills to skills.paths in opencode.jsonc')
   }
 
   return { patched: true }

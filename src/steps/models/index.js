@@ -32,7 +32,7 @@ export async function chooseModels() {
 
   if (!rawModels) {
     warn('Could not fetch models (offline and no cache). Skipping model selection.');
-    warn('Set models later in .opencode/opencode.json');
+    warn('Set models later in opencode.jsonc');
     return;
   }
 
@@ -47,7 +47,7 @@ export async function chooseModels() {
   console.log();
   info('Three models: main session, engineers, and light commands.');
   info('Cost indicators: [$] cheap  [$$] mid  [$$$] expensive');
-  info('Pick provider first, then search by name. Change later in .opencode/opencode.json');
+  info('Pick provider first, then search by name. Change later in opencode.jsonc');
   console.log();
 
   const planModel  = await pickRoleModel('plan',  models); console.log();
@@ -58,7 +58,7 @@ export async function chooseModels() {
 
   console.log();
   warn('Make sure you have API access to the selected models.');
-  warn('Change them anytime in .opencode/opencode.json');
+  warn('Change them anytime in opencode.jsonc');
 
   return { planModel, buildModel, fastModel };
 }

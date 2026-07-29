@@ -105,4 +105,27 @@ describe('cleanAiFiles()', () => {
     expect(choices.some(c => c.value === agentsDir)).toBe(true)
     expect(await fse.pathExists(agentsDir)).toBe(false)
   })
+
+  it('removes the legacy OpenCode config during install cleanup', async () => {
+    const legacyConfig = path.join(tmpDir, '.opencode', 'opencode.json')
+    await fse.ensureDir(path.dirname(legacyConfig))
+    await fse.writeFile(legacyConfig, '{}')
+
+    const { cleanAiFiles } = await import('./index.js')
+    await cleanAiFiles({ removeLegacyConfig: true })
+
+    expect(await fse.pathExists(legacyConfig)).toBe(false)
+  })
+
+  it('keeps the legacy OpenCode config during update cleanup', async () => {
+    const legacyConfig = path.join(tmpDir, '.opencode', 'opencode.json')
+    await fse.ensureDir(path.dirname(legacyConfig))
+    await fse.writeFile(legacyConfig, '{}')
+    checkbox.mockResolvedValue([])
+
+    const { cleanAiFiles } = await import('./index.js')
+    await cleanAiFiles()
+
+    expect(await fse.pathExists(legacyConfig)).toBe(true)
+  })
 })

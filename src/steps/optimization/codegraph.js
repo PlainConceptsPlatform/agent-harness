@@ -5,49 +5,38 @@ import { applyEdits, modify, parse as parseJsonc } from 'jsonc-parser'
 import { header, success, warn, error, loading } from '../../utils/exec.js'
 
 /**
- * After codegraph install, it may create an `opencode.jsonc` at the project root.
- * This project uses `.opencode/opencode.json` instead. Merge any MCP config from
- * the rogue file into the correct location and remove it.
- * Returns true if config was successfully merged (or no rogue file existed), false on parse failure.
+ * Normalizes codegraph's MCP entry in the project-level OpenCode config.
+ * Older codegraph versions write `mcpServers`; OpenCode expects `mcp`.
+ * Returns true if the config was successfully normalized (or no config exists).
  */
 export async function fixCodegraphConfig() {
   const cwd = process.cwd()
-  const rogueFile = path.join(cwd, 'opencode.jsonc')
-  const correctFile = path.join(cwd, '.opencode', 'opencode.json')
+  const configFile = path.join(cwd, 'opencode.jsonc')
 
-  if (!await fse.pathExists(rogueFile)) return true
+  if (!await fse.pathExists(configFile)) return true
 
-  let rogueContent
+  let configText
+  let config
   try {
-    const raw = await fse.readFile(rogueFile, 'utf-8')
+    configText = await fse.readFile(configFile, 'utf-8')
     const errors = []
-    rogueContent = parseJsonc(raw, errors)
+    config = parseJsonc(configText, errors)
     if (errors.length > 0) throw new Error(`parse errors: ${errors.length}`)
-    if (!rogueContent || typeof rogueContent !== 'object' || Array.isArray(rogueContent)) {
+    if (!config || typeof config !== 'object' || Array.isArray(config)) {
       throw new Error('unexpected structure')
     }
   } catch {
-    warn('Could not parse opencode.jsonc, removing it')
-    await fse.remove(rogueFile)
+    warn('Could not parse opencode.jsonc, leaving it untouched')
     return false
   }
 
-  let correctText = JSON.stringify({ $schema: 'https://opencode.ai/config.json' }, null, 2)
-  if (await fse.pathExists(correctFile)) {
-    try {
-      correctText = await fse.readFile(correctFile, 'utf-8')
-      const errors = []
-      parseJsonc(correctText, errors)
-      if (errors.length > 0) throw new Error(`parse errors: ${errors.length}`)
-    } catch {
-      warn('Could not parse .opencode/opencode.json, leaving it untouched')
-      return false
-    }
-  }
+  const legacyMcp = config.mcpServers
+  const mcp = config.mcp || {}
+  const entries = { ...legacyMcp, ...mcp }
+  let changed = false
 
-  const rogueMcp = rogueContent.mcpServers || rogueContent.mcp
-  if (rogueMcp) {
-    for (const entry of Object.values(rogueMcp)) {
+  if (Object.keys(entries).length > 0) {
+    for (const entry of Object.values(entries)) {
       if (Array.isArray(entry.command) && entry.command[0] === 'codegraph') {
         entry.command = ['npx', '@colbymchenry/codegraph', ...entry.command.slice(1)]
         // codegraph defaults to a 30s MCP timeout, which fails under parallel
@@ -55,18 +44,26 @@ export async function fixCodegraphConfig() {
         if (entry.timeout == null) entry.timeout = 120000
       }
     }
-    for (const [name, entry] of Object.entries(rogueMcp)) {
-      const edits = modify(correctText, ['mcp', name], entry, {
+    for (const [name, entry] of Object.entries(entries)) {
+      const edits = modify(configText, ['mcp', name], entry, {
         formattingOptions: { insertSpaces: true, tabSize: 2 },
       })
-      correctText = applyEdits(correctText, edits)
+      configText = applyEdits(configText, edits)
+      changed = true
     }
   }
 
-  await fse.ensureDir(path.dirname(correctFile))
-  await fse.writeFile(correctFile, correctText, 'utf-8')
-  await fse.remove(rogueFile)
-  warn('Migrated codegraph config from opencode.jsonc → .opencode/opencode.json (removed opencode.jsonc)')
+  if (legacyMcp) {
+    configText = applyEdits(configText, modify(configText, ['mcpServers'], undefined, {
+      formattingOptions: { insertSpaces: true, tabSize: 2 },
+    }))
+    changed = true
+  }
+
+  if (changed) {
+    await fse.writeFile(configFile, configText, 'utf-8')
+    warn('Normalized codegraph MCP config in opencode.jsonc')
+  }
 
   return true
 }

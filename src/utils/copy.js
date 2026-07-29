@@ -9,7 +9,7 @@ const ALWAYS_EXCLUDE = ['.bootstrap', 'skills', 'node_modules']
 // with project-specific content. Overwriting on update would destroy user work.
 const NEVER_OVERWRITE = [
   `openspec${path.sep}config.yaml`,
-  `.opencode${path.sep}opencode.json`,
+  'opencode.jsonc',
 ]
 
 /**
@@ -35,7 +35,7 @@ export async function copyContent(contentDir, destDir, platform, ctx = {}) {
       if (ctx.hasArchitecture && rel === 'ARCHITECTURE.md') return false
       // User-owned config files are never overwritten, even with forceOverwrite.
       // The update command calls writeModelsToConfigs separately to set the
-      // model field in opencode.json without destroying user additions.
+      // model field in opencode.jsonc without destroying user additions.
       if (NEVER_OVERWRITE.includes(rel)) return false
       return true
     },

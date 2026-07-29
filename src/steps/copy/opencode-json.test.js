@@ -22,8 +22,7 @@ afterEach(() => {
 })
 
 function readConfig() {
-  const p = path.join(tmpDir, '.opencode', 'opencode.json')
-  return JSON.parse(fs.readFileSync(p, 'utf-8'))
+  return JSON.parse(fs.readFileSync(path.join(tmpDir, 'opencode.jsonc'), 'utf-8'))
 }
 
 describe('patchOpencodeJson()', () => {
@@ -40,10 +39,8 @@ describe('patchOpencodeJson()', () => {
   })
 
   it('adds agent block to existing config without touching other keys', async () => {
-    const opencodeDir = path.join(tmpDir, '.opencode')
-    fs.mkdirSync(opencodeDir, { recursive: true })
     fs.writeFileSync(
-      path.join(opencodeDir, 'opencode.json'),
+      path.join(tmpDir, 'opencode.jsonc'),
       JSON.stringify({
         $schema: 'https://opencode.ai/config.json',
         model: 'anthropic/claude-sonnet-4-5',
@@ -62,10 +59,8 @@ describe('patchOpencodeJson()', () => {
   })
 
   it('does not write when agents are disabled and skill permissions are present', async () => {
-    const opencodeDir = path.join(tmpDir, '.opencode')
-    fs.mkdirSync(opencodeDir, { recursive: true })
     fs.writeFileSync(
-      path.join(opencodeDir, 'opencode.json'),
+      path.join(tmpDir, 'opencode.jsonc'),
       JSON.stringify({
         $schema: 'https://opencode.ai/config.json',
         agent: { build: { disable: true }, plan: { disable: true } },
@@ -83,10 +78,8 @@ describe('patchOpencodeJson()', () => {
   })
 
   it('adds skill permissions when only they are missing', async () => {
-    const opencodeDir = path.join(tmpDir, '.opencode')
-    fs.mkdirSync(opencodeDir, { recursive: true })
     fs.writeFileSync(
-      path.join(opencodeDir, 'opencode.json'),
+      path.join(tmpDir, 'opencode.jsonc'),
       JSON.stringify({
         $schema: 'https://opencode.ai/config.json',
         agent: { build: { disable: true }, plan: { disable: true } },
@@ -115,27 +108,23 @@ describe('patchOpencodeJson()', () => {
   })
 
   it('preserves comments in JSONC files', async () => {
-    const opencodeDir = path.join(tmpDir, '.opencode')
-    fs.mkdirSync(opencodeDir, { recursive: true })
     const jsonc = `{
   // This is a comment
   "$schema": "https://opencode.ai/config.json",
   "model": "anthropic/claude-sonnet-4-5"
 }
 `
-    fs.writeFileSync(path.join(opencodeDir, 'opencode.json'), jsonc)
+    fs.writeFileSync(path.join(tmpDir, 'opencode.jsonc'), jsonc)
 
     await patchOpencodeJson()
 
-    const content = fs.readFileSync(path.join(opencodeDir, 'opencode.json'), 'utf-8')
+    const content = fs.readFileSync(path.join(tmpDir, 'opencode.jsonc'), 'utf-8')
     expect(content).toContain('This is a comment')
     expect(content).toContain('"disable": true')
   })
 
   it('returns patched:false on parse error', async () => {
-    const opencodeDir = path.join(tmpDir, '.opencode')
-    fs.mkdirSync(opencodeDir, { recursive: true })
-    fs.writeFileSync(path.join(opencodeDir, 'opencode.json'), '{ invalid json }')
+    fs.writeFileSync(path.join(tmpDir, 'opencode.jsonc'), '{ invalid json }')
 
     const result = await patchOpencodeJson()
     expect(result.patched).toBe(false)
@@ -143,10 +132,8 @@ describe('patchOpencodeJson()', () => {
   })
 
   it('adds .agents/skills to skills.paths when missing', async () => {
-    const opencodeDir = path.join(tmpDir, '.opencode')
-    fs.mkdirSync(opencodeDir, { recursive: true })
     fs.writeFileSync(
-      path.join(opencodeDir, 'opencode.json'),
+      path.join(tmpDir, 'opencode.jsonc'),
       JSON.stringify({
         $schema: 'https://opencode.ai/config.json',
         agent: { build: { disable: true }, plan: { disable: true } },
@@ -166,10 +153,8 @@ describe('patchOpencodeJson()', () => {
   })
 
   it('appends .agents/skills to existing skills.paths without removing other paths', async () => {
-    const opencodeDir = path.join(tmpDir, '.opencode')
-    fs.mkdirSync(opencodeDir, { recursive: true })
     fs.writeFileSync(
-      path.join(opencodeDir, 'opencode.json'),
+      path.join(tmpDir, 'opencode.jsonc'),
       JSON.stringify({
         $schema: 'https://opencode.ai/config.json',
         agent: { build: { disable: true }, plan: { disable: true } },

@@ -2,10 +2,11 @@ import { execa } from 'execa'
 import { addSkillToLock } from './skills-lock.js'
 import fse from 'fs-extra'
 import path from 'node:path'
+import { parse as parseJsonc } from 'jsonc-parser'
 import { error, info, loading, success, warn } from '../../utils/exec.js'
 
 /**
- * Configures the agentmemory MCP server in .opencode/opencode.json
+ * Configures the agentmemory MCP server in opencode.jsonc
  * and installs the agentmemory skills.
  *
  * agentmemory runs as a persistent local server on localhost:3111.
@@ -33,14 +34,18 @@ export async function installMemory(options = {}) {
     warn(`agentmemory install failed: ${err.message}`)
   }
 
-  // Configure MCP server in .opencode/opencode.json
+  // Configure MCP server in opencode.jsonc
   try {
-    const opencodeDir = path.join(process.cwd(), '.opencode')
-    const opencodePath = path.join(opencodeDir, 'opencode.json')
+    const opencodePath = path.join(process.cwd(), 'opencode.jsonc')
 
-    const opencode = await fse.pathExists(opencodePath)
-      ? await fse.readJson(opencodePath)
-      : { $schema: 'https://opencode.ai/config.json' }
+    let opencode = { $schema: 'https://opencode.ai/config.json' }
+    if (await fse.pathExists(opencodePath)) {
+      const errors = []
+      opencode = parseJsonc(await fse.readFile(opencodePath, 'utf-8'), errors)
+      if (errors.length > 0 || !opencode || typeof opencode !== 'object' || Array.isArray(opencode)) {
+        throw new Error('opencode.jsonc could not be parsed')
+      }
+    }
 
     if (!opencode.mcp) opencode.mcp = {}
     if (!opencode.mcp['agentmemory']) {
@@ -55,9 +60,8 @@ export async function installMemory(options = {}) {
       }
     }
 
-    await fse.ensureDir(opencodeDir)
     await fse.writeJson(opencodePath, opencode, { spaces: 2 })
-    success('agentmemory MCP server configured in .opencode/opencode.json')
+    success('agentmemory MCP server configured in opencode.jsonc')
   } catch (err) {
     error(`Failed to configure agentmemory MCP: ${err.message}`)
     return { optedIn: true, installed: false }

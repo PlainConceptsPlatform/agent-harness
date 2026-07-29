@@ -2,6 +2,7 @@ import chalk from 'chalk'
 import { execa } from 'execa'
 import fse from 'fs-extra'
 import path from 'node:path'
+import { parse as parseJsonc } from 'jsonc-parser'
 import { installBrowser } from '../steps/browser/index.js'
 import { checkRtk } from '../steps/optimization/index.js'
 import { checkPlatform } from '../steps/platform/index.js'
@@ -30,7 +31,7 @@ export async function runJoin() {
   const teamModels = saved?.models ?? {}
 
   const opencodeDir = path.join(process.cwd(), '.opencode')
-  const opencodeJsonPath = path.join(opencodeDir, 'opencode.json')
+  const opencodeJsonPath = path.join(process.cwd(), 'opencode.jsonc')
 
   // Step 1: Platform CLI check
   header('Step 1, Platform CLI check')
@@ -96,7 +97,9 @@ export async function runJoin() {
   let cfg = {}
   if (await fse.pathExists(opencodeJsonPath)) {
     try {
-      cfg = await fse.readJson(opencodeJsonPath)
+      const errors = []
+      cfg = parseJsonc(await fse.readFile(opencodeJsonPath, 'utf-8'), errors)
+      if (errors.length > 0) cfg = {}
     } catch {
       // ignore config read errors
     }

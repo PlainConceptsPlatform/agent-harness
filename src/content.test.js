@@ -6,6 +6,13 @@ import { describe, expect, it } from "vitest"
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const CONTENT_DIR = path.join(__dirname, "content")
 
+describe("OpenCode config template", () => {
+  it("ships the project config as root JSONC", () => {
+    expect(fs.existsSync(path.join(CONTENT_DIR, "opencode.jsonc"))).toBe(true)
+    expect(fs.existsSync(path.join(CONTENT_DIR, ".opencode", "opencode.json"))).toBe(false)
+  })
+})
+
 function skill(name, file = "SKILL.md") {
   return fs.readFileSync(path.join(CONTENT_DIR, ".agents", "skills", name, file), "utf-8")
 }

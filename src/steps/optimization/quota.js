@@ -2,6 +2,7 @@ import { confirm } from '@inquirer/prompts'
 import fse from 'fs-extra'
 import path from 'node:path'
 import { fileURLToPath } from 'url'
+import { parse as parseJsonc } from 'jsonc-parser'
 import { error, header, info, loading, success, warn } from '../../utils/exec.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -52,15 +53,20 @@ export async function installQuota(options = {}) {
 
   try {
     const opencodeDir = path.join(process.cwd(), '.opencode')
-    const opencodePath = path.join(opencodeDir, 'opencode.json')
+    const opencodePath = path.join(process.cwd(), 'opencode.jsonc')
     const pkgPath = path.join(opencodeDir, 'package.json')
     const tuiPath = path.join(opencodeDir, 'tui.json')
     const quotaDir = path.join(opencodeDir, 'opencode-quota')
     const quotaPath = path.join(quotaDir, 'quota-toast.json')
 
-    const opencode = await fse.pathExists(opencodePath)
-      ? await fse.readJson(opencodePath)
-      : { $schema: 'https://opencode.ai/config.json' }
+    let opencode = { $schema: 'https://opencode.ai/config.json' }
+    if (await fse.pathExists(opencodePath)) {
+      const errors = []
+      opencode = parseJsonc(await fse.readFile(opencodePath, 'utf-8'), errors)
+      if (errors.length > 0 || !opencode || typeof opencode !== 'object' || Array.isArray(opencode)) {
+        throw new Error('opencode.jsonc could not be parsed')
+      }
+    }
 
     const pkg = await fse.pathExists(pkgPath)
       ? await fse.readJson(pkgPath)

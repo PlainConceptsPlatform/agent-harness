@@ -126,15 +126,13 @@ describe('copy utils', () => {
       expect(content).toBe('user customized')
     })
 
-    it('never overwrites .opencode/opencode.json even with forceOverwrite', async () => {
-      await fse.ensureDir(path.join(src, '.opencode'))
-      await fse.writeFile(path.join(src, '.opencode', 'opencode.json'), '{"template":true}')
-      await fse.ensureDir(path.join(dest, '.opencode'))
-      await fse.writeFile(path.join(dest, '.opencode', 'opencode.json'), '{"user":true}')
+    it('never overwrites opencode.jsonc even with forceOverwrite', async () => {
+      await fse.writeFile(path.join(src, 'opencode.jsonc'), '{"template":true}')
+      await fse.writeFile(path.join(dest, 'opencode.jsonc'), '{"user":true}')
 
       await copyContent(src, dest, 'github', { forceOverwrite: true })
 
-      const content = await fse.readFile(path.join(dest, '.opencode', 'opencode.json'), 'utf-8')
+      const content = await fse.readFile(path.join(dest, 'opencode.jsonc'), 'utf-8')
       expect(JSON.parse(content).user).toBe(true)
     })
   })
