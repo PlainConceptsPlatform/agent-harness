@@ -54,8 +54,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "prepublishOnly": "npm run lint && npm run test",
-    "release:dry": "npm publish --dry-run --access public",
-    "release": "npm publish --access public"
+    "release:dry": "pnpm publish --dry-run --no-git-checks --access public",
+    "release": "pnpm publish --no-git-checks --access public"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
