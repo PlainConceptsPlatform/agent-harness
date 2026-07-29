@@ -7,6 +7,8 @@ export default [
       'node_modules/**',
       'coverage/**',
       'dist/**',
+      'docs/.next/**',
+      'docs/out/**',
       'src/content/**/node_modules/**',
       'src/content/.opencode/package-lock.json',
       'src/content/**/*.tsx',
@@ -85,6 +87,19 @@ export default [
       sourceType: 'script',
       globals: {
         ...globals.browser,
+        ...globals.node,
+        fetch: 'readonly',
+      },
+    },
+  },
+  {
+    files: ['docs/**/*.mjs'],
+    languageOptions: {
+      sourceType: 'module',
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+        fetch: 'readonly',
       },
     },
   }
