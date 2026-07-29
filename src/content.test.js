@@ -11,6 +11,21 @@ describe("OpenCode config template", () => {
     expect(fs.existsSync(path.join(CONTENT_DIR, "opencode.jsonc"))).toBe(true)
     expect(fs.existsSync(path.join(CONTENT_DIR, ".opencode", "opencode.json"))).toBe(false)
   })
+
+  it("pins external OpenCode plugins", () => {
+    const config = JSON.parse(fs.readFileSync(path.join(CONTENT_DIR, "opencode.jsonc"), "utf-8"))
+    const packageConfig = JSON.parse(fs.readFileSync(path.join(CONTENT_DIR, ".opencode", "package.json"), "utf-8"))
+    const quota = JSON.parse(fs.readFileSync(path.join(__dirname, "presets", "quota.json"), "utf-8"))
+
+    expect(config.plugin).toEqual([
+      "@different-ai/opencode-browser@4.6.1",
+      "@mohak34/opencode-notifier@0.2.8",
+    ])
+    expect(packageConfig.dependencies["@opencode-ai/plugin"]).toBe("1.17.13")
+    expect(packageConfig.dependencies["@different-ai/opencode-browser"]).toBe("4.6.1")
+    expect(packageConfig.dependencies["@mohak34/opencode-notifier"]).toBe("0.2.8")
+    expect(quota.plugin).toBe("@slkiser/opencode-quota@4.2.0")
+  })
 })
 
 function skill(name, file = "SKILL.md") {

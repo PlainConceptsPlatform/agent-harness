@@ -12,7 +12,7 @@ vi.mock('../../utils/exec.js', () => ({
 vi.mock('fs-extra', () => ({
   default: {
     readJson: vi.fn().mockResolvedValue({
-      installer: { command: 'npx', args: ['@different-ai/opencode-browser', 'install'] },
+       installer: { command: 'npx', args: ['@different-ai/opencode-browser@4.6.1', 'install'] },
       output: { showAfter: '===', hideAfter: '===' },
       locationChoices: { local: '2', global: '1' },
       autoAnswers: [
@@ -44,7 +44,7 @@ describe('installBrowser()', () => {
 
     await installBrowser()
 
-    expect(execa).toHaveBeenCalledWith('npx', expect.arrayContaining(['@different-ai/opencode-browser']), expect.any(Object))
+    expect(execa).toHaveBeenCalledWith('npx', expect.arrayContaining(['@different-ai/opencode-browser@4.6.1']), expect.any(Object))
   })
 
   it('logs success when exit code is 0', async () => {

@@ -80,7 +80,7 @@ export async function installBrowser(ctx = {}) {
     if (result.exitCode === 0) {
       success('opencode-browser installed')
       if (extensionPathShown) {
-        info('If you skipped loading the extension, run: npx @different-ai/opencode-browser install')
+        info('If you skipped loading the extension, run: npx @different-ai/opencode-browser@4.6.1 install')
       }
     } else {
       warn('opencode-browser install exited with non-zero code')

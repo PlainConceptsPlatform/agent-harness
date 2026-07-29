@@ -1,5 +1,5 @@
 {
-  "plugin": "@slkiser/opencode-quota@latest",
+  "plugin": "@slkiser/opencode-quota@4.2.0",
   "prompt": {
     "message": "Install opencode-quota with recommended defaults?",
     "default": true,

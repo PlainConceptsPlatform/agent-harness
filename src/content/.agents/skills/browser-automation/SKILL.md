@@ -24,10 +24,10 @@ The only exception: when the user selects "Others (Browser)" as their backlog pl
 
 ## CLI-first debugging
 
-- List all available tools: `npx @different-ai/opencode-browser tools`
-- Run one tool directly: `npx @different-ai/opencode-browser tool browser_status`
-- Pass JSON args: `npx @different-ai/opencode-browser tool browser_query --args '{"mode":"page_text"}'`
-- Run smoke test: `npx @different-ai/opencode-browser self-test`
+- List all available tools: `npx @different-ai/opencode-browser@4.6.1 tools`
+- Run one tool directly: `npx @different-ai/opencode-browser@4.6.1 tool browser_status`
+- Pass JSON args: `npx @different-ai/opencode-browser@4.6.1 tool browser_query --args '{"mode":"page_text"}'`
+- Run smoke test: `npx @different-ai/opencode-browser@4.6.1 self-test`
 - After `update`, reload the unpacked extension in `chrome://extensions`
 
 ## Selecting options

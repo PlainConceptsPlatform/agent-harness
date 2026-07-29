@@ -4,8 +4,8 @@
     "AGENTS.md"
   ],
   "plugin": [
-    "@different-ai/opencode-browser@latest",
-    "@mohak34/opencode-notifier@latest"
+    "@different-ai/opencode-browser@4.6.1",
+    "@mohak34/opencode-notifier@0.2.8"
   ],
   "experimental": {
     "mcp_timeout": 300000

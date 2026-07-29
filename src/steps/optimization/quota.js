@@ -10,6 +10,12 @@ const QUOTA_PRESET_PATH = path.resolve(__dirname, '../../presets/quota.json')
 const quotaPreset = await fse.readJson(QUOTA_PRESET_PATH)
 const PLUGIN = quotaPreset.plugin
 
+export function splitPackageSpec(spec) {
+  const separator = spec.startsWith('@') ? spec.indexOf('@', 1) : spec.lastIndexOf('@')
+  if (separator === -1) return { name: spec, version: 'latest' }
+  return { name: spec.slice(0, separator), version: spec.slice(separator + 1) }
+}
+
 function ensurePlugin(config) {
   if (!Array.isArray(config.plugin)) config.plugin = []
   if (!config.plugin.includes(PLUGIN)) config.plugin.push(PLUGIN)
@@ -90,10 +96,8 @@ export async function installQuota(options = {}) {
     ensurePlugin(tui)
 
     if (!pkg.dependencies) pkg.dependencies = {}
-    const pkgName = PLUGIN.replace(/@latest$/, '')
-    if (!(pkgName in pkg.dependencies)) {
-      pkg.dependencies[pkgName] = 'latest'
-    }
+    const { name: pkgName, version: pkgVersion } = splitPackageSpec(PLUGIN)
+    if (pkg.dependencies[pkgName] !== pkgVersion) pkg.dependencies[pkgName] = pkgVersion
 
     await fse.ensureDir(opencodeDir)
     await fse.writeFile(opencodePath, opencodeText, 'utf-8')

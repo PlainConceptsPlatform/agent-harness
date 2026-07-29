@@ -1,7 +1,7 @@
 {
   "installer": {
     "command": "npx",
-    "args": ["@different-ai/opencode-browser", "install"]
+    "args": ["@different-ai/opencode-browser@4.6.1", "install"]
   },
   "output": {
     "showAfter": "To load the extension",
