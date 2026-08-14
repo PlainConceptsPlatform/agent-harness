@@ -66,12 +66,12 @@ wave     = pick groups whose file-sets are pairwise DISJOINT, capped at maxConcu
 **7. Spawn the wave: one assistant turn, multiple `task()` calls (they run in parallel).** For each group:
 - `subagent_type` = the task's `agent` exactly as written in `tasks.md` (e.g. `frontend-engineer.build`, `backend-engineer.fast`). It is the tier-suffixed `mode: subagent` worker created by `ob-subagent-tiers`. Worker resolution happened in step 2; a missing worker stops the stage before spawning. `fullstack-engineer`, `general`, and the lead session are not fallbacks for annotated implementation work.
 - `description` = `"<task-ids>: <short label>"` (e.g. `"2.1,2.2: RPC endpoints"`) so the subagent is legible in the left/right list and the monitor.
-- `prompt` must contain the exact task IDs and text plus the gathered context. The worker follows the Engineer workflow defined in `@ob-guardrails-generic`; do not restate it in the prompt.
+- `prompt` must contain the exact task IDs and text plus the gathered context. The worker follows the Engineer workflow defined in `@ob-guardrails-generic`; do not restate it in the prompt. **Worker output discipline:** instruct each worker to return a compact summary: what it changed (file names, not contents), pass/fail status of any verification it ran, and any blockers. Workers must NOT return file contents or full diffs as their result — the lead can `git diff` if needed.
 - Flip each spawned task's Todo item to `in_progress` and prefix its label with `<agent>: ` (e.g. `frontend-engineer.build: 2.1 Consolidate logic`) so the running worker is visible in the Todo pane. On completion, drop the prefix and mark `completed`.
 
 **8. Collect the wave.** Each foreground `task()` returns its result to you. For each group:
-- success: `git add` the group's `touches` paths and commit `"{ids}: {summary}"`; mark its Todo items `completed`; check `[x]` in `tasks.md`.
-- error / empty: revert that group's impact: `git checkout -- <tracked paths>` for modified files AND `git clean -f -- <paths>` for net-new files the group created (checkout alone leaves them behind, poisoning the retry). Mark `failed` and record the reason in `tasks.md`; `.opencode/.ob-run.json` is owned by the monitor plugin. Then retry once with a shorter prompt. Still failing: leave failed and surface it; do not loop.
+- success: `git add` the group's `touches` paths and commit `"{ids}: {summary}"` in a single tool call (`git add <paths> && git commit -m "..."`); mark its Todo items `completed`; check `[x]` in `tasks.md`.
+- error / empty: revert that group's impact: `git checkout -- <tracked paths> && git clean -f -- <paths>` (one tool call). Mark `failed` and record the reason in `tasks.md`; `.opencode/.ob-run.json` is owned by the monitor plugin. Then retry once with a shorter prompt. Still failing: leave failed and surface it; do not loop.
 - A failed group only blocks its dependents; unrelated tasks keep flowing.
 
 **9. Progress guard.** If a full wave moved zero tasks to DONE: STOP (do not re-spawn the identical failing set). Otherwise recompute `eligible` and loop to step 5.

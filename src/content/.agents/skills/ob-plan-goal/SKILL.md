@@ -12,6 +12,8 @@ Keep this checklist visible:
 
 Move forward only when a phase returns its required result. On a hard failure, follow the [failure policy](failure-policy.md). Continue after each phase skill returns; the run ends only after every checklist item is complete.
 
+**Token efficiency rules:** Batch git operations within a phase (combine `git add -A && git commit` in one tool call). Do not run status checks between sequential operations in the same phase. Minimize model turns: if a phase requires 3 git commands, call them in one tool call, not 3.
+
 Input: `$ARGUMENTS`
 
 ## Phase 0: Resolve input
@@ -23,11 +25,15 @@ Load the [output mode](output-mode.md) reference and resolve the mode from the f
 - Preserve title, description, work-item reference, and acceptance criteria as `{resolved_input}`.
 - Derive `{slug}` and classify scope as `focused`, `standard`, or `complex`.
 
+**Refined-issue detection:** After resolving input, check whether `{resolved_input}` already contains structured acceptance criteria (e.g. "## Acceptance criteria", "### Scenario:", Gherkin blocks), affected artifacts, and design decisions. If it does, set `{refined}` to `true` and skip Phases 2-3 (Explore and Propose). Go directly to Phase 4 (Apply). The issue content IS the proposal; create a minimal OpenSpec change (tasks.md only, `skip_specs: true` in `.openspec.yaml`) directly from the issue's acceptance criteria and affected artifacts.
+
 ## Phase 1: Branch
 
 Follow the [branching procedure](branching.md) with `{slug}`. Record `$START_BRANCH`, `$DEFAULT_BRANCH`, `$BRANCH`, and whether the goal stash exists.
 
 ## Phase 2: Explore
+
+**Skip if `{refined}` is `true`.** The issue already contains structured acceptance criteria and affected artifacts; re-exploring the codebase would waste tokens re-deriving what the issue already specifies. Set `EXPLORATION_BRIEF` to a one-line summary: `"Pre-refined issue: {title}"`.
 
 Load `ob-plan-explore` with `{resolved_input}` in autonomous mode. Require an in-memory `EXPLORATION_BRIEF` as its findings handoff to Phase 3.
 
@@ -35,13 +41,14 @@ Tick `explore` when `ob-plan-explore` returns its findings handoff.
 
 ## Phase 3: Propose
 
+**Skip if `{refined}` is `true`.** Instead, create a minimal OpenSpec change directly: run `openspec new change "{change-id}"`, write `tasks.md` from the issue's acceptance criteria (one task per criterion or artifact group), create `.openspec.yaml` with `skip_specs: true` (the issue already has the spec content), and commit: `git add -A && git commit -m "propose: {title} ({change-id})"`.
+
 Load `ob-plan-propose` in autonomous mode with `{resolved_input}`, `EXPLORATION_BRIEF`, and `scope_classification`.
 
 Confirm its change directory and actionable `tasks.md` exist. Rename `$BRANCH` when the canonical change slug differs from `{slug}`, then commit the proposal:
 
 ```bash
-git add -A
-git commit -m "propose: {title} ({change-id})"
+git add -A && git commit -m "propose: {title} ({change-id})"
 ```
 
 Tick `propose` when the proposal commit exists.
@@ -59,21 +66,21 @@ Require `verify` and a clean working tree. Load `ob-plan-archive` in autonomous 
 Require `ARCHIVED_OK` and the archive path, then commit:
 
 ```bash
-git add -A
-git commit -m "archive: {title} ({change-id})"
+git add -A && git commit -m "archive: {title} ({change-id})"
 ```
 
 Tick `archive` when the archive commit exists.
 
 ## Phase 5.5: Evidence
 
+**Skip if running in CI** (no display server, `GITHUB_ACTIONS` env var is set, or `RUNNER_TEMP` exists). Evidence capture always fails in CI and wastes turns. Mark as `skipped` and move to Phase 6.
+
 Load `ob-ops-evidence` with `operation: capture` and `{change-id}`. It owns evidence decisions, capture, and the manifest. Evidence capture is non-fatal.
 
 Commit evidence when files or a manifest were written:
 
 ```bash
-git add -A
-git commit -m "evidence: {title} ({change-id})"
+git add -A && git commit -m "evidence: {title} ({change-id})"
 ```
 
 Record the manifest result and tick `evidence` after capture was attempted.
