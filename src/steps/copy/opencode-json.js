@@ -53,8 +53,12 @@ export async function patchOpencodeJson(cwd = process.cwd()) {
     Array.isArray(parsed?.skills?.paths) &&
     parsed.skills.paths.includes('.agents/skills')
   )
+  const needsCompaction = !(
+    parsed?.compaction?.auto === true &&
+    parsed?.compaction?.prune === true
+  )
 
-  if (!needsAgentDisable && missingSkillPermissions.length === 0 && missingSharedPermissions.length === 0 && !needsSkillsPaths) {
+  if (!needsAgentDisable && missingSkillPermissions.length === 0 && missingSharedPermissions.length === 0 && !needsSkillsPaths && !needsCompaction) {
     return { patched: false }
   }
 
@@ -79,6 +83,13 @@ export async function patchOpencodeJson(cwd = process.cwd()) {
     }
   }
 
+  // Enable context pruning to reduce token costs in long agent sessions
+  if (needsCompaction) {
+    text = applyModify(text, ['compaction', 'auto'], true)
+    text = applyModify(text, ['compaction', 'prune'], true)
+    text = applyModify(text, ['compaction', 'reserved'], 10000)
+  }
+
   await fse.writeFile(opencodePath, text, 'utf-8')
   if (needsAgentDisable) {
     success('Disabled built-in build/plan agents in opencode.jsonc')
@@ -91,6 +102,9 @@ export async function patchOpencodeJson(cwd = process.cwd()) {
   }
   if (needsSkillsPaths) {
     success('Added .agents/skills to skills.paths in opencode.jsonc')
+  }
+  if (needsCompaction) {
+    success('Enabled context pruning (compaction.prune) in opencode.jsonc')
   }
 
   return { patched: true }

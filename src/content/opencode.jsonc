@@ -10,6 +10,11 @@
   "experimental": {
     "mcp_timeout": 300000
   },
+  "compaction": {
+    "auto": true,
+    "prune": true,
+    "reserved": 10000
+  },
   "permission": {
     "question": "allow",
     "todowrite": "allow",
