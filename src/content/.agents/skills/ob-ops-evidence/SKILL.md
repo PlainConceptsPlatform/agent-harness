@@ -39,9 +39,13 @@ If skipped: write `evidence.json` with `status: "skipped"` and reason. Done.
 - If no routes found → screenshot `/` only
 - Always include `/` (homepage) as a baseline
 
-**Step 3: Start the app stack.**
+**Step 3: Start the app stack. YOU MUST ALWAYS TRY THIS. Never skip by assuming the environment can't run the app. The database may already be running on the host. `pnpm run dev` knows how to detect and skip database startup if it's already running. Execute it and see what happens.**
+
 ```bash
 # Start the full stack in background
+# The project's pnpm run dev starts everything: database (if not already running), API, web server.
+# Inside CI containers, the database may have been pre-started by the CI setup steps.
+# pnpm run dev will detect this and only start the app servers.
 nohup pnpm run dev > /tmp/gh-aw/app-dev.log 2>&1 &
 
 # Poll for the dev server. Check common ports sequentially.
@@ -58,6 +62,8 @@ done
 
 if [ -z "$APP_URL" ]; then
   echo "App did not start within 120s"
+  # Check the log for errors before writing blocked
+  tail -50 /tmp/gh-aw/app-dev.log
   # Fall through to write blocked evidence.json
 fi
 ```
