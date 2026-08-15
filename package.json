@@ -1,6 +1,6 @@
 {
   "name": "@plainconceptsplatform/opencode-onboard",
-  "version": "1.6.4",
+  "version": "1.6.5",
   "description": "Prepare any codebase for AI. Wires OpenCode, OpenSpec, codegraph, and agentmemory into a multi-agent development workflow powered by native parallel subagents.",
   "keywords": [
     "opencode",
