@@ -70,6 +70,7 @@ describe('patchOpencodeJson()', () => {
           skill: { 'ob-*': 'allow', 'openspec-*': 'allow' },
         },
         skills: { paths: ['.agents/skills'] },
+        compaction: { auto: true, prune: true },
       }, null, 2),
     )
 

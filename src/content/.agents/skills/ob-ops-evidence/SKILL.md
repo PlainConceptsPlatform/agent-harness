@@ -1,75 +1,142 @@
 ---
 name: ob-ops-evidence
-description: Produce auditable evidence that a completed change works, and publish it to the originating issue/PR. Decides whether evidence is required, delegates to a project-provided evidence harness when one exists (else captures a screenshot generically), writes evidence/evidence.json with a passed/skipped/failed/blocked status, and separately publishes an idempotent verified comment. Load after a change is implemented. Invoked by the /ops-evidence command and the plan-goal pipeline.
+description: Capture visual evidence using playwright-cli + pnpm run dev convention. Writes evidence/evidence.json with passed/skipped/failed/blocked status and publishes to PR. Load after a change is implemented. Invoked by /ops-evidence and the plan-goal pipeline.
 license: MIT
 ---
 
 # Ops Evidence
 
-Produce evidence of what a change actually did, store it inside the OpenSpec change (so it travels on archive), and surface it where an async reviewer will see it: a comment on the originating issue and PR.
+Capture screenshots of the running app to prove a change works visually. Store them in the OpenSpec change folder and publish a status comment to the PR.
 
-Capture is best-effort and must never be fatal to a pipeline. But be honest about outcomes: a change that needed evidence and couldn't produce it is blocked, not skipped. Surface that honestly. Publishing is separate and, when a caller opts into it as a ship gate, may block shipping.
+Capture is best-effort and must never be fatal. But be honest: a change that needed evidence and couldn't produce it is `blocked`, not `skipped`.
+
+## Convention
+
+Every platform project has `pnpm run dev` at root that starts the **full stack** (database + API + web). The app runs with mock auth in development mode (no real authentication needed). This is the only contract — no per-project evidence harness, fixture apps, or scenario registries.
+
+Screenshots are captured with `playwright-cli` (headless by default, works inside containers).
 
 ## Input
 
 The caller provides (all optional):
 - change id: locates `openspec/changes/{change-id}/` (or the archived `archive/*{change-id}/`).
-- issue / work-item ref and PR number: where to publish. Absent means capture only.
-- output mode (`default` / `push` / `pr`): whether the branch was pushed (decides whether image URLs resolve).
-- operation: `capture` (default), `publish`, or `both`. plan-goal runs `capture` after archive and `publish` after push.
-
-## The evidence contract
-
-Evidence lives at `openspec/changes/{change-id}/evidence/` and follows the schema and status definitions in the [evidence contract](../ob-make-evidence-scaffold/evidence-contract.md) reference. That reference is the single source of truth for the `evidence.json` schema and status semantics.
+- issue / work-item ref and PR number: where to publish.
+- output mode (`default` / `push` / `pr`): whether the branch was pushed.
+- operation: `capture` (default), `publish`, or `both`.
 
 ## Part 1: Capture (operation: capture / both)
 
-**Step 1: Decide whether evidence is required.** Inspect the change's `touches`/diff and proposal:
-- Required when changed files include user-visible UI: components, pages/views/routes, styles (`*.css/scss/less`), `*.tsx/jsx/vue/svelte`, layout, navigation, dialogs/forms, or loading/empty/error/success states, or the proposal describes a UI/interaction/styling change.
-- Skipped when the change is docs-only, an internal refactor with no visible behavior, dependency-only, test-only, logging-only, or backend/main-process-only with no user-visible component.
+**Step 1: Decide whether evidence is required.** Inspect the change's diff:
+- Required when changed files include user-visible UI: `*.tsx/jsx/vue/svelte`, `*.css/scss/less`, pages, layouts, components, navigation.
+- Skipped when docs-only, internal refactor, dependency-only, test-only, backend-only.
 - Mixed or unknown: required (be safe).
 
-If skipped: write `evidence.json` with `status: "skipped"` and reason, no assets, and stop. This is success.
+If skipped: write `evidence.json` with `status: "skipped"` and reason. Done.
 
-**Step 2: Prefer a project-provided evidence harness.** Many mature repos build a deterministic harness (Playwright/Electron/Vite scenarios with assertions). If the project has one, delegate to it instead of a naive screenshot, it is more reliable and produces richer, asserted evidence. Detect it in this order:
-- a `visual-evidence` script in `package.json`: run it: `pnpm visual-evidence --change {change-id}` (or the repo's package manager). Respect its exit codes: `0` passed/skipped, `1` failed, `2` blocked, `3` invalid input.
-- a `visual-evidence` skill in `.agents/skills/`: load and follow it.
-- a documented evidence entrypoint in `AGENTS.md` / `README.md`.
+**Step 2: Discover routes from git diff.** Parse changed files to determine which routes to screenshot:
+- `pages/**/*.tsx` or `app/**/page.tsx` → extract the route path
+- `features/**/*.tsx` or `components/**/*.tsx` → screenshot the homepage and any routes that import the changed component
+- If no routes found → screenshot `/` only
+- Always include `/` (homepage) as a baseline
 
-A project harness writes `evidence/` and `evidence.json` itself; consume its manifest and `prMarkdown` and skip to Part 2. If no harness exists, tell the user once that `/make-evidence-scaffold` can scaffold one, then fall back to Step 3.
+**Step 3: Start the app stack.**
+```bash
+# Start the full stack in background
+nohup pnpm run dev > /tmp/gh-aw/app-dev.log 2>&1 &
 
-**Step 3: Generic fallback capture (time-boxed, best-effort).** Only via `@browser-automation` (`localhost` only). Use the `browser-automation` skill's localhost scope rule: external services are out of scope for browser tools.
-- Start/detect the app's dev server, navigate to the relevant route, wait for the UI to settle, screenshot.
-- Enforce a time budget (~2 min). Server won't start / route 404s / budget exceeded: write `evidence.json` with `status: "blocked"` and reason, and continue. Do not retry more than once.
-- Save into the change's `evidence/` folder, resolving where the change currently lives (active or already archived; prefer archived):
+# Poll for the dev server. Check common ports sequentially.
+APP_URL=""
+for port in 3000 3001 5173 5174 5175 5180; do
+  for i in $(seq 1 60); do
+    if curl -sf "http://127.0.0.1:${port}" >/dev/null 2>&1; then
+      APP_URL="http://127.0.0.1:${port}"
+      break 2
+    fi
+    sleep 2
+  done
+done
 
-  ```bash
-  REPO_ROOT="$(git rev-parse --show-toplevel)"
-  DEST="$(ls -d "$REPO_ROOT/openspec/changes/archive/"*"{change-id}" 2>/dev/null | head -1)"
-  [ -z "$DEST" ] && DEST="$REPO_ROOT/openspec/changes/{change-id}"
-  mkdir -p "$DEST/evidence"
-   # save the screenshot to "$DEST/evidence/01-final.png"
-   ```
+if [ -z "$APP_URL" ]; then
+  echo "App did not start within 120s"
+  # Fall through to write blocked evidence.json
+fi
+```
 
-- Send command output and any intermediate capture files to `$REPO_ROOT/.opencode/.tmp/evidence-{change-id}/`, then copy final assets directly into `$DEST/evidence/`. Do not use an operating-system temporary directory.
+**Step 4: Capture screenshots with playwright-cli.**
+```bash
+# Determine evidence directory
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+DEST="$(ls -d "$REPO_ROOT/openspec/changes/archive/"*"{change-id}" 2>/dev/null | head -1)"
+[ -z "$DEST" ] && DEST="$REPO_ROOT/openspec/changes/{change-id}"
+mkdir -p "$DEST/evidence"
 
-**Step 4: Always write `evidence.json`.** Even non-UI/skipped/blocked changes get a manifest so the outcome is auditable. Write it and every final asset under `$DEST/evidence/`, with manifest paths matching that archived location. Build `prMarkdown` from the assets (or a text summary: tasks N/N, verification result, commit list).
+# Open the app (headless by default, works in containers)
+playwright-cli open "$APP_URL"
+
+# Take a snapshot to see what's on the page
+playwright-cli snapshot
+
+# If a login page with mock users is shown, click the first mock user button
+# (look for buttons with email-like text or "mock" in the snapshot refs)
+# playwright-cli click {ref}
+
+# Desktop screenshot (default viewport 1280x720)
+playwright-cli screenshot --filename="$DEST/evidence/01-desktop-home.png"
+
+# Screenshot changed routes
+for route in $ROUTES; do
+  playwright-cli goto "$APP_URL$route"
+  sleep 1
+  playwright-cli screenshot --filename="$DEST/evidence/02-route.png"
+done
+
+# Mobile viewport screenshot
+playwright-cli close
+playwright-cli open "$APP_URL" --viewport=375,667
+playwright-cli screenshot --filename="$DEST/evidence/03-mobile-home.png"
+
+# Clean up
+playwright-cli close
+```
+
+Time budget: 2 minutes total for capture. If the app doesn't start or a route 404s, write `evidence.json` with `status: "blocked"` and continue.
+
+**Step 5: Always write `evidence.json`.** Even blocked/skipped changes get a manifest:
+```json
+{
+  "version": 1,
+  "changeId": "{change-id}",
+  "required": true,
+  "status": "passed",
+  "assets": [
+    { "type": "screenshot", "path": "openspec/changes/archive/.../evidence/01-desktop-home.png", "caption": "Desktop homepage", "bytes": 12345, "format": "png" }
+  ],
+  "reason": "",
+  "prMarkdown": "## Evidence\n\n![Desktop](path)\n\n![Mobile](path)"
+}
+```
+
+**Step 6: Kill the dev server.**
+```bash
+# Kill the background dev process
+kill %1 2>/dev/null || true
+pkill -f "pnpm.*dev" 2>/dev/null || true
+pkill -f "next dev" 2>/dev/null || true
+pkill -f "dotnet watch" 2>/dev/null || true
+```
 
 Capture never commits, stages, or pushes. The caller owns git.
 
-## Part 2: Publish (operation: publish / both, platform-specific)
+## Part 2: Publish (operation: publish / both)
 
 Preconditions:
-- An issue/work-item ref (and/or PR number) was provided. Else skip publishing.
-- Image URLs resolve only if the branch was pushed. In `pr`/`push` modes embed images; in `default` mode post text evidence only (never a dead image link).
-- Backlog platform from `.opencode/opencode-onboard.json` -> `platform.backlog`; `none`/`browser` means skip publishing.
-- Publish one idempotent status comment for every manifest result. A `blocked` or `failed` result must state its status and reason; it must never be presented as passed.
-
-The platform-specific publish procedure is injected by the CLI during onboarding:
+- An issue/PR number was provided. Else skip.
+- Image URLs resolve only if the branch was pushed (`pr`/`push` modes).
+- Backlog platform from `.opencode/opencode-onboard.json`; `none` means skip.
 
 <!-- OB-PLATFORM-EVIDENCE-START -->
 <!-- OB-PLATFORM-EVIDENCE-END -->
 
 ## Report
 
-One block: the `status` (passed/skipped/failed/blocked) and why; assets written (paths) or why not; whether a comment was posted (and where) or why skipped. Never present a best-effort capture miss as a pipeline failure, but surface `blocked`/`failed` honestly.
+One block: the `status` (passed/skipped/failed/blocked) and why; assets written or why not; whether a comment was posted. Never present a blocked capture as passed.

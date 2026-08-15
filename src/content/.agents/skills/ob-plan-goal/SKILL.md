@@ -73,9 +73,9 @@ Tick `archive` when the archive commit exists.
 
 ## Phase 5.5: Evidence
 
-**Skip if running in CI** (no display server, `GITHUB_ACTIONS` env var is set, or `RUNNER_TEMP` exists). Evidence capture always fails in CI and wastes turns. Mark as `skipped` and move to Phase 6.
-
 Load `ob-ops-evidence` with `operation: capture` and `{change-id}`. It owns evidence decisions, capture, and the manifest. Evidence capture is non-fatal.
+
+The evidence skill uses `playwright-cli` (headless, works inside containers) and `pnpm run dev` (starts the full app stack with mock auth). Evidence capture works in CI.
 
 Commit evidence when files or a manifest were written:
 
