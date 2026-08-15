@@ -49,10 +49,10 @@ Call the `question` tool with all five questions in a single batch (do not ask t
     },
     {
       "header": "Evidence",
-      "question": "Set up a visual-evidence harness for this project? (recommended for UI apps; /plan-goal uses it to prove changes work)",
+      "question": "Enable visual evidence capture for this project? (playwright-cli + pnpm run dev; no per-project scaffold needed)",
       "options": [
-        { "label": "Yes", "description": "I want deterministic screenshot/GIF evidence for pull requests. (Scaffolded after restart via /make-evidence-scaffold, not during init.)" },
-        { "label": "No", "description": "Skip. You can run /make-evidence-scaffold any time later." }
+        { "label": "Yes", "description": "Evidence will be captured automatically by /plan-goal using playwright-cli + pnpm run dev." },
+        { "label": "No", "description": "Skip evidence capture." }
       ]
     }
   ]
@@ -103,7 +103,7 @@ Load the `ob-make-guardrails` skill now. Follow every step defined in it.
 
 ### Visual evidence (if Yes)
 
-Do not scaffold the harness during init. It writes `src/` source code, which is outside init's scope, and it needs the app to build under a restarted, fully-wired session. The completion message in Step 4 will instruct the user to run `/make-evidence-scaffold` after restarting.
+Evidence is built into the `ob-ops-evidence` skill using `playwright-cli` + `pnpm run dev`. No scaffold is needed — it works out of the box as long as the project has a root `pnpm run dev` script that starts the full app stack with mock auth. Ensure `playwright-cli` is installed (handled by `opencode-ci.md` in CI).
 
 ## Step 3: Show help
 
@@ -123,11 +123,7 @@ Nothing will work correctly until you do.
 After restarting you are ready to work.
 ```
 
-If the user answered Yes to Question 5 (Evidence), append this line to the message so the opted-in next step is not lost:
-
-```
-Next: run /make-evidence-scaffold to scaffold your visual-evidence harness.
-```
+If the user answered Yes to Question 5 (Evidence), no post-init step is needed. Evidence works automatically via `ob-ops-evidence` using `playwright-cli` + `pnpm run dev`.
 
 ## Init scope
 
