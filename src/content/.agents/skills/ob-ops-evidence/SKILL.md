@@ -116,6 +116,24 @@ playwright-cli close
 Time budget: 2 minutes total for capture. If the app doesn't start or a route 404s, write `evidence.json` with `status: "blocked"` and continue.
 
 **Step 5: Always write `evidence.json`.** Even blocked/skipped changes get a manifest:
+
+IMPORTANT: The `path` field in assets AND the `prMarkdown` must use **absolute commit-pinned raw URLs**, not relative paths. Relative paths do not render in GitHub PR descriptions. Use this formula:
+```
+{GITHUB_SERVER_URL}/{GITHUB_REPOSITORY}/raw/{commit-sha}/{relative-path}
+```
+
+```bash
+# Get the commit SHA and build the base raw URL
+COMMIT_SHA=$(git rev-parse HEAD)
+RAW_BASE="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/raw/${COMMIT_SHA}"
+
+# Build absolute paths for each asset
+ASSET_1="${RAW_BASE}/${REL_PATH_1}"
+ASSET_2="${RAW_BASE}/${REL_PATH_2}"
+ASSET_3="${RAW_BASE}/${REL_PATH_3}"
+```
+
+The resulting `evidence.json`:
 ```json
 {
   "version": 1,
@@ -123,10 +141,10 @@ Time budget: 2 minutes total for capture. If the app doesn't start or a route 40
   "required": true,
   "status": "passed",
   "assets": [
-    { "type": "screenshot", "path": "openspec/changes/archive/.../evidence/01-desktop-home.png", "caption": "Desktop homepage", "bytes": 12345, "format": "png" }
+    { "type": "screenshot", "path": "https://github.com/PlainConceptsPlatform/orbion/raw/{sha}/openspec/changes/archive/.../evidence/01-desktop-home.png", "caption": "Desktop homepage", "bytes": 12345, "format": "png" }
   ],
   "reason": "",
-  "prMarkdown": "## Evidence\n\n![Desktop](path)\n\n![Mobile](path)"
+  "prMarkdown": "## Evidence\n\n![Desktop](https://github.com/PlainConceptsPlatform/orbion/raw/{sha}/openspec/changes/archive/.../evidence/01-desktop-home.png)\n\n![Mobile](https://github.com/PlainConceptsPlatform/orbion/raw/{sha}/openspec/changes/archive/.../evidence/03-mobile-home.png)"
 }
 ```
 
