@@ -49,19 +49,24 @@ If skipped: write `evidence.json` with `status: "skipped"` and reason. Done.
 nohup pnpm run dev > /tmp/gh-aw/app-dev.log 2>&1 &
 
 # Poll for the dev server. Check common ports sequentially.
+# IMPORTANT: The first port to respond might be a proxy or a 404 page.
+# Verify the response is HTTP 200 (not 404) before using it.
 APP_URL=""
 for port in 3000 3001 5173 5174 5175 5180; do
-  for i in $(seq 1 60); do
-    if curl -sf "http://127.0.0.1:${port}" >/dev/null 2>&1; then
+  for i in $(seq 1 90); do  # 3 minutes total per port
+    HTTP_CODE=$(curl -sf -o /dev/null -w "%{http_code}" "http://127.0.0.1:${port}" 2>/dev/null || echo "000")
+    if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "302" ]; then
       APP_URL="http://127.0.0.1:${port}"
+      echo "App is ready at $APP_URL (HTTP $HTTP_CODE)"
       break 2
     fi
+    # Port is responding but not 200 yet - server might still be compiling
     sleep 2
   done
 done
 
 if [ -z "$APP_URL" ]; then
-  echo "App did not start within 120s"
+  echo "App did not return HTTP 200 within the polling window"
   # Check the log for errors before writing blocked
   tail -50 /tmp/gh-aw/app-dev.log
   # Fall through to write blocked evidence.json
@@ -78,6 +83,9 @@ mkdir -p "$DEST/evidence"
 
 # Open the app (headless by default, works in containers)
 playwright-cli open "$APP_URL"
+
+# Wait for the page to fully render (JS frameworks need time to hydrate)
+sleep 3
 
 # Take a snapshot to see what's on the page
 playwright-cli snapshot
