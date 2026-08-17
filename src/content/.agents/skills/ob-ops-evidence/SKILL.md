@@ -1,20 +1,18 @@
 ---
 name: ob-ops-evidence
-description: Capture visual evidence using playwright-cli + pnpm run dev convention. Writes evidence/evidence.json with passed/skipped/failed/blocked status and publishes to PR. Load after a change is implemented. Invoked by /ops-evidence and the plan-goal pipeline.
+description: Writes a capturePlan in evidence.json for the Visual Evidence CI workflow to execute on a runner with Docker and Chrome access. Load after a change is implemented. Invoked by /ops-evidence and the plan-goal pipeline.
 license: MIT
 ---
 
 # Ops Evidence
 
-Capture screenshots of the running app to prove a change works visually. Store them in the OpenSpec change folder and publish a status comment to the PR.
+Write a capture plan so the Visual Evidence CI workflow can capture screenshots on a runner with full Docker and Chrome access.
 
-Capture is best-effort and must never be fatal. But be honest: a change that needed evidence and couldn't produce it is `blocked`, not `skipped`.
+The agent runs inside the awf sandbox where Docker-in-Docker is unsupported and headless Chromium's sandbox is blocked by the container security policy. The agent cannot capture screenshots itself. Instead, it analyzes the diff and writes a `capturePlan` in `evidence.json`. A separate CI workflow executes the plan.
 
 ## Convention
 
 Every platform project has `pnpm run dev` at root that starts the **full stack** (database + API + web). The app runs with mock auth in development mode (no real authentication needed). This is the only contract — no per-project evidence harness, fixture apps, or scenario registries.
-
-Screenshots are captured with `playwright-cli` (headless by default, works inside containers).
 
 ## Input
 
@@ -39,122 +37,77 @@ If skipped: write `evidence.json` with `status: "skipped"` and reason. Done.
 - If no routes found → screenshot `/` only
 - Always include `/` (homepage) as a baseline
 
-**Step 3: Start the app stack. YOU MUST ALWAYS TRY THIS. Never skip by assuming the environment can't run the app. The database may already be running on the host. `pnpm run dev` knows how to detect and skip database startup if it's already running. Execute it and see what happens.**
+**Step 3: Write `evidence.json` with `capturePlan`.** The agent never attempts to start the app stack or launch a browser — those always fail inside the awf sandbox. Instead, write a `capturePlan` immediately.
 
-```bash
-# Start the full stack in background
-# The project's pnpm run dev starts everything: database (if not already running), API, web server.
-# Inside CI containers, the database may have been pre-started by the CI setup steps.
-# pnpm run dev will detect this and only start the app servers.
-nohup pnpm run dev > /tmp/gh-aw/app-dev.log 2>&1 &
+### The `capturePlan` schema
 
-# Poll for the dev server. Check common ports sequentially.
-# IMPORTANT: The first port to respond might be a proxy or a 404 page.
-# Verify the response is HTTP 200 (not 404) before using it.
-APP_URL=""
-for port in 3000 3001 5173 5174 5175 5180; do
-  for i in $(seq 1 90); do  # 3 minutes total per port
-    HTTP_CODE=$(curl -sf -o /dev/null -w "%{http_code}" "http://127.0.0.1:${port}" 2>/dev/null || echo "000")
-    if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "302" ]; then
-      APP_URL="http://127.0.0.1:${port}"
-      echo "App is ready at $APP_URL (HTTP $HTTP_CODE)"
-      break 2
-    fi
-    # Port is responding but not 200 yet - server might still be compiling
-    sleep 2
-  done
-done
-
-if [ -z "$APP_URL" ]; then
-  echo "App did not return HTTP 200 within the polling window"
-  # Check the log for errors before writing blocked
-  tail -50 /tmp/gh-aw/app-dev.log
-  # Fall through to write blocked evidence.json
-fi
+```
+capturePlan:
+  routes:           # Array of route objects to screenshot (at minimum [{ path: "/" }])
+    - path: string  # URL path, e.g. "/quotes/:id"
+      sampleId:     # string | "first" | "any" — how to resolve dynamic segments
+      caption:      # string — human-readable description of what this screenshot shows
+  viewports:        # Array of viewport objects
+    - width: number
+      height: number
+      label: string # "desktop" | "mobile" | custom
+  requireApi:       # boolean — true when the route needs the backend API running
+  requireLogin:     # boolean — true when the route needs authentication
+  loginMethod:      # string — "mock-sso" | "none" | custom method identifier
+  reason:           # string — why evidence was blocked and what the screenshots should show
 ```
 
-**Step 4: Capture screenshots with playwright-cli.**
-```bash
-# Determine evidence directory
-REPO_ROOT="$(git rev-parse --show-toplevel)"
-DEST="$(ls -d "$REPO_ROOT/openspec/changes/archive/"*"{change-id}" 2>/dev/null | head -1)"
-[ -z "$DEST" ] && DEST="$REPO_ROOT/openspec/changes/{change-id}"
-mkdir -p "$DEST/evidence"
+### Rules for writing capturePlan
 
-# Open the app (headless by default, works in containers)
-playwright-cli open "$APP_URL"
+1. `routes` MUST always include `{ path: "/", caption: "Homepage" }` as the first entry.
+2. Every additional route discovered from the diff goes after the homepage entry.
+3. `sampleId: "first"` means the CI workflow should use the first record returned by the API (e.g. the first quote from the seed data). `sampleId: "any"` means any valid ID.
+4. `requireApi` is `true` when any route needs the backend to return data. It is `false` only for purely static pages (login, not-found).
+5. `requireLogin` is `true` when any route needs authentication. For dev mode with mock auth, `loginMethod` is `"mock-sso"`.
+6. `reason` should explain both WHY capture was blocked and WHAT the screenshots should show once captured.
 
-# Wait for the page to fully render (JS frameworks need time to hydrate)
-sleep 3
+### Example `evidence.json`
 
-# Take a snapshot to see what's on the page
-playwright-cli snapshot
-
-# If a login page with mock users is shown, click the first mock user button
-# (look for buttons with email-like text or "mock" in the snapshot refs)
-# playwright-cli click {ref}
-
-# Desktop screenshot (default viewport 1280x720)
-playwright-cli screenshot --filename="$DEST/evidence/01-desktop-home.png"
-
-# Screenshot changed routes
-for route in $ROUTES; do
-  playwright-cli goto "$APP_URL$route"
-  sleep 1
-  playwright-cli screenshot --filename="$DEST/evidence/02-route.png"
-done
-
-# Mobile viewport screenshot
-playwright-cli close
-playwright-cli open "$APP_URL" --viewport=375,667
-playwright-cli screenshot --filename="$DEST/evidence/03-mobile-home.png"
-
-# Clean up
-playwright-cli close
+```json
+{
+  "version": 1,
+  "changeId": "currency-in-project-details",
+  "required": true,
+  "status": "blocked",
+  "assets": [],
+  "capturePlan": {
+    "routes": [
+      { "path": "/", "sampleId": "any", "caption": "Homepage / accounts list" },
+      { "path": "/quotes/:id", "sampleId": "first", "caption": "Quote editor with currency selector in ProjectDetailsCard" }
+    ],
+    "viewports": [
+      { "width": 1280, "height": 720, "label": "desktop" },
+      { "width": 375, "height": 667, "label": "mobile" }
+    ],
+    "requireApi": true,
+    "requireLogin": true,
+    "loginMethod": "mock-sso",
+    "reason": "Currency selector moved from editor body into ProjectDetailsCard; visual change in quote editor page."
+  },
+  "reason": "Visual evidence cannot be captured inside the awf sandbox (Docker-in-Docker unsupported, headless Chromium sandbox blocked). A capturePlan has been written for the Visual Evidence CI workflow.",
+  "prMarkdown": "## Evidence\n\nVisual evidence for this change is **blocked** in this agent run. A `capturePlan` has been written to `evidence.json` — the Visual Evidence CI workflow will execute it on a runner with full Docker and Chrome access.\n\nAutomated verification that did run:\n- Lint: clean\n- Tests: all pass\n- Build: success"
+}
 ```
 
-Time budget: 2 minutes total for capture. If the app doesn't start or a route 404s, write `evidence.json` with `status: "blocked"` and continue.
+### When evidence is not required
 
-**Step 5: Always write `evidence.json`.** Even blocked/skipped changes get a manifest:
+If evidence is skipped (no UI files changed), write without a `capturePlan`:
 
-IMPORTANT: The `path` field in assets AND the `prMarkdown` must use **absolute commit-pinned raw URLs**, not relative paths. Relative paths do not render in GitHub PR descriptions. Use this formula:
-```
-{GITHUB_SERVER_URL}/{GITHUB_REPOSITORY}/raw/{commit-sha}/{relative-path}
-```
-
-```bash
-# Get the commit SHA and build the base raw URL
-COMMIT_SHA=$(git rev-parse HEAD)
-RAW_BASE="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/raw/${COMMIT_SHA}"
-
-# Build absolute paths for each asset
-ASSET_1="${RAW_BASE}/${REL_PATH_1}"
-ASSET_2="${RAW_BASE}/${REL_PATH_2}"
-ASSET_3="${RAW_BASE}/${REL_PATH_3}"
-```
-
-The resulting `evidence.json`:
 ```json
 {
   "version": 1,
   "changeId": "{change-id}",
-  "required": true,
-  "status": "passed",
-  "assets": [
-    { "type": "screenshot", "path": "https://github.com/PlainConceptsPlatform/orbion/raw/{sha}/openspec/changes/archive/.../evidence/01-desktop-home.png", "caption": "Desktop homepage", "bytes": 12345, "format": "png" }
-  ],
-  "reason": "",
-  "prMarkdown": "## Evidence\n\n![Desktop](https://github.com/PlainConceptsPlatform/orbion/raw/{sha}/openspec/changes/archive/.../evidence/01-desktop-home.png)\n\n![Mobile](https://github.com/PlainConceptsPlatform/orbion/raw/{sha}/openspec/changes/archive/.../evidence/03-mobile-home.png)"
+  "required": false,
+  "status": "skipped",
+  "assets": [],
+  "reason": "No user-visible UI files changed in this PR.",
+  "prMarkdown": "## Evidence\n\nSkipped: no user-visible UI changes."
 }
-```
-
-**Step 6: Kill the dev server.**
-```bash
-# Kill the background dev process
-kill %1 2>/dev/null || true
-pkill -f "pnpm.*dev" 2>/dev/null || true
-pkill -f "next dev" 2>/dev/null || true
-pkill -f "dotnet watch" 2>/dev/null || true
 ```
 
 Capture never commits, stages, or pushes. The caller owns git.
@@ -171,4 +124,4 @@ Preconditions:
 
 ## Report
 
-One block: the `status` (passed/skipped/failed/blocked) and why; assets written or why not; whether a comment was posted. Never present a blocked capture as passed.
+One block: the `status` (passed/skipped/failed/blocked) and why; capturePlan written or why not. Never present a blocked capture as passed.

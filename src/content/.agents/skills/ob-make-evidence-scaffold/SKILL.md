@@ -6,10 +6,10 @@ license: MIT
 
 # DEPRECATED
 
-This skill is no longer needed. Visual evidence is now handled directly by `ob-ops-evidence` using:
+This skill is no longer needed. Visual evidence uses a two-phase architecture:
 
-1. `playwright-cli` (headless browser automation, works inside containers)
-2. `pnpm run dev` (convention: starts the full app stack with mock auth)
+1. **Agent phase:** `ob-ops-evidence` writes a `capturePlan` in `evidence.json` (the agent sandbox cannot run Docker or headless Chromium)
+2. **CI phase:** A separate "Visual evidence" CI workflow reads the capturePlan and captures screenshots on a runner with full Docker and Chrome access
 
 No per-project scaffold, fixture apps, or scenario registries are required. The `ob-ops-evidence` skill handles everything generically.
 
