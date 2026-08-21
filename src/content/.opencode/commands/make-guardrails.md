@@ -1,5 +1,5 @@
 ---
-description: Generate or update a ob-guardrails-project skill from ARCHITECTURE.md and relevant project files.
+description: Generate or update a pc-guardrails-project skill from ARCHITECTURE.md and relevant project files.
 ---
 
-Load the `ob-make-guardrails` skill and follow every step defined in it.
+Load the `pc-make-guardrails` skill and follow every step defined in it.

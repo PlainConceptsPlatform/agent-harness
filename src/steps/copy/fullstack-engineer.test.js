@@ -32,7 +32,7 @@ describe('generateFullstackEngineer()', () => {
     expect(content).toContain('  question: allow')
     expect(content).toContain('  todowrite: allow')
     expect(content).not.toContain('**Startup — before doing anything else:**')
-    expect(content).toContain('- Guardrails: @ob-guardrails-generic, @ob-guardrails-project')
+    expect(content).toContain('- Guardrails: @pc-guardrails-generic, @pc-guardrails-project')
     expect(content).toContain('You are the default engineer')
     expect(content).not.toContain('@react19')
     expect(content).not.toContain('@dotnet')
@@ -44,7 +44,7 @@ describe('generateFullstackEngineer()', () => {
     fs.mkdirSync(agentsDir, { recursive: true })
     fs.writeFileSync(
       path.join(agentsDir, 'fullstack-engineer.md'),
-      '---\ndescription: Old.\nmode: primary\nmodel: custom/model\n---\n\nYou are the default engineer.\n\n## Abilities\n- Guardrails: @ob-guardrails-generic, @ob-guardrails-project\n',
+      '---\ndescription: Old.\nmode: primary\nmodel: custom/model\n---\n\nYou are the default engineer.\n\n## Abilities\n- Guardrails: @pc-guardrails-generic, @pc-guardrails-project\n',
       'utf-8'
     )
 
@@ -60,7 +60,7 @@ describe('generateFullstackEngineer()', () => {
     fs.mkdirSync(agentsDir, { recursive: true })
     fs.writeFileSync(
       path.join(agentsDir, 'fullstack-engineer.md'),
-      '---\ndescription: Old.\nmode: primary\n---\n\nYou are a custom identity paragraph.\n\n## Abilities\n- Guardrails: @ob-guardrails-generic\n',
+      '---\ndescription: Old.\nmode: primary\n---\n\nYou are a custom identity paragraph.\n\n## Abilities\n- Guardrails: @pc-guardrails-generic\n',
       'utf-8'
     )
 
@@ -76,7 +76,7 @@ describe('generateFullstackEngineer()', () => {
     fs.mkdirSync(agentsDir, { recursive: true })
     fs.writeFileSync(
       path.join(agentsDir, 'fullstack-engineer.md'),
-      '---\ndescription: Old.\nmode: primary\n---\n\nYou are a custom identity paragraph.\n\n**Startup — before doing anything else:** load every skill listed under `## Abilities`.\n\n## Abilities\n- Guardrails: @ob-guardrails-generic\n',
+      '---\ndescription: Old.\nmode: primary\n---\n\nYou are a custom identity paragraph.\n\n**Startup — before doing anything else:** load every skill listed under `## Abilities`.\n\n## Abilities\n- Guardrails: @pc-guardrails-generic\n',
       'utf-8'
     )
 
@@ -92,7 +92,7 @@ describe('generateFullstackEngineer()', () => {
     fs.mkdirSync(agentsDir, { recursive: true })
     fs.writeFileSync(
       path.join(agentsDir, 'frontend-engineer.md'),
-      '---\r\ndescription: Frontend.\r\n---\r\n\r\nYou are a frontend engineer.\r\n\r\n**Startup, before doing anything else:** load every skill listed under `## Abilities`.\r\n\r\n## Abilities\r\n- Guardrails: @ob-guardrails-generic\r\n',
+      '---\r\ndescription: Frontend.\r\n---\r\n\r\nYou are a frontend engineer.\r\n\r\n**Startup, before doing anything else:** load every skill listed under `## Abilities`.\r\n\r\n## Abilities\r\n- Guardrails: @pc-guardrails-generic\r\n',
     )
 
     await removeLegacyStartupDirectives({ cwd: tmpDir })
@@ -114,7 +114,7 @@ describe('generateFullstackEngineer()', () => {
       'You are the default engineer.',
       '',
       '## Abilities',
-      '- Guardrails: @ob-guardrails-generic, @ob-guardrails-project',
+      '- Guardrails: @pc-guardrails-generic, @pc-guardrails-project',
       '- Development: @react19-concurrent-patterns, @dotnet-best-practices',
       '- Testing: @react19-test-patterns',
       '',

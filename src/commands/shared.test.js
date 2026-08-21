@@ -8,9 +8,9 @@ vi.mock('execa', () => ({
 }))
 
 import { execa } from 'execa'
-import { ensureGitLongpaths, readOnboardConfig } from './shared.js'
+import { ensureGitLongpaths, readHarnessConfig } from './shared.js'
 
-describe('readOnboardConfig()', () => {
+describe('readHarnessConfig()', () => {
   let tmpDir, originalCwd
 
   beforeEach(() => {
@@ -26,7 +26,7 @@ describe('readOnboardConfig()', () => {
   })
 
   it('returns null when config file does not exist', async () => {
-    const result = await readOnboardConfig()
+    const result = await readHarnessConfig()
 
     expect(result).toBeNull()
   })
@@ -35,12 +35,12 @@ describe('readOnboardConfig()', () => {
     const configDir = path.join(tmpDir, '.opencode')
     fs.mkdirSync(configDir)
     fs.writeFileSync(
-      path.join(configDir, 'opencode-onboard.json'),
+      path.join(configDir, 'harness.json'),
       JSON.stringify({ version: 2, platform: { repo: 'github' } }),
       'utf-8'
     )
 
-    const result = await readOnboardConfig()
+    const result = await readHarnessConfig()
 
     expect(result).not.toBeNull()
     expect(result.version).toBe(2)
@@ -51,12 +51,12 @@ describe('readOnboardConfig()', () => {
     const configDir = path.join(tmpDir, '.opencode')
     fs.mkdirSync(configDir)
     fs.writeFileSync(
-      path.join(configDir, 'opencode-onboard.json'),
+      path.join(configDir, 'harness.json'),
       'not valid json',
       'utf-8'
     )
 
-    const result = await readOnboardConfig()
+    const result = await readHarnessConfig()
 
     expect(result).toBeNull()
   })

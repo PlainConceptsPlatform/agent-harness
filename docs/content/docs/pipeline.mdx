@@ -26,7 +26,7 @@ lead
    commit → push → pull request → feedback loop
 ```
 
-1. Load the platform userstory skill (installed as `ob-userstory`, from the
+1. Load the platform userstory skill (installed as `pc-userstory`, from the
    variant matching your backlog platform)
 2. Run `/plan-propose` to produce `proposal.md`, specs and `tasks.md`
 3. Confirm with the user before implementation
@@ -52,6 +52,6 @@ lead
 
 Agents run as native OpenCode subagents in parallel waves: no external plugin, no
 git worktrees. The lead's Todo pane is the live board, and the
-`ob-subagent-monitor` plugin mirrors state to `.opencode/.ob-run.json`. Navigate
+`pc-subagent-monitor` plugin mirrors state to `.opencode/harness-run.json`. Navigate
 into any running subagent with <kbd>ctrl+x</kbd> <kbd>↓</kbd> then
 <kbd>←</kbd>/<kbd>→</kbd>.

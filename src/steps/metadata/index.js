@@ -3,9 +3,10 @@ import fse from 'fs-extra'
 import path from 'path'
 import { createRequire } from 'node:module'
 import { header, success, warn } from '../../utils/exec.js'
+import { configPath } from '../../utils/paths.js'
 
 const require = createRequire(import.meta.url)
-const { version: onboardVersion } = require('../../../package.json')
+const { version: harnessVersion } = require('../../../package.json')
 
 function clampConcurrency(n) {
   const v = Number(n)
@@ -24,12 +25,12 @@ async function detectOpencodeVersion() {
   }
 }
 
-export async function writeOnboardConfig(data) {
+export async function writeHarnessConfig(data) {
   header('Step 10, Writing onboarding metadata')
 
   const opencodeVersion = await detectOpencodeVersion()
   const cwd = data.cwd ?? process.cwd()
-  const target = path.join(cwd, '.opencode', 'opencode-onboard.json')
+  const target = configPath(cwd)
 
   // Read the existing file so load-bearing config (models, maxConcurrent)
   // is preserved across metadata refreshes when not explicitly provided.
@@ -64,7 +65,7 @@ export async function writeOnboardConfig(data) {
     ...existing,
     version: 2,
     generatedAt: new Date().toISOString(),
-    onboardVersion,
+    harnessVersion,
     opencodeVersion,
 
     platform: {
@@ -99,7 +100,7 @@ export async function writeOnboardConfig(data) {
   try {
     await fse.ensureDir(path.dirname(target))
     await fse.writeJson(target, payload, { spaces: 2 })
-    success('Wrote .opencode/opencode-onboard.json')
+    success('Wrote .opencode/harness.json')
     if (!opencodeVersion) warn('Could not detect opencode version, saved as null')
   } catch (err) {
     warn(`Could not write onboarding metadata: ${err.message}`)

@@ -15,7 +15,7 @@ import { npmUrl, packageName } from "@/lib/site";
  */
 
 const INSTALL = `npx ${packageName}@latest`;
-const REPO_URL = "https://github.com/PlainConceptsPlatform/opencode-onboard";
+const REPO_URL = "https://github.com/PlainConceptsPlatform/agent-harness";
 
 type Destination = {
   slug: string[];

@@ -1,6 +1,6 @@
 ---
 title: Getting started
-description: Install opencode-onboard, satisfy the prerequisites, and rerun individual steps.
+description: Install agent-harness, satisfy the prerequisites, and rerun individual steps.
 ---
 
 <Callout title="Requires Node.js 18 or higher" type="warn">
@@ -15,7 +15,7 @@ description: Install opencode-onboard, satisfy the prerequisites, and rerun indi
 ### Run the wizard
 
 ```bash
-npx @plainconceptsplatform/opencode-onboard@latest
+npx @plainconceptsplatform/agent-harness@latest
 ```
 
 Ten steps, run once. It keeps the current step visible plus the last two completed, so progress is
@@ -68,27 +68,46 @@ CLI checks are skipped for browser-based and `None` platforms.
 Setup and maintenance steps can run without the full wizard:
 
 ```bash
-npx @plainconceptsplatform/opencode-onboard clean
-npx @plainconceptsplatform/opencode-onboard platform
-npx @plainconceptsplatform/opencode-onboard copy
-npx @plainconceptsplatform/opencode-onboard openspec
-npx @plainconceptsplatform/opencode-onboard models
-npx @plainconceptsplatform/opencode-onboard optimization
-npx @plainconceptsplatform/opencode-onboard browser
-npx @plainconceptsplatform/opencode-onboard metadata
-npx @plainconceptsplatform/opencode-onboard join
-npx @plainconceptsplatform/opencode-onboard update
+npx @plainconceptsplatform/agent-harness clean
+npx @plainconceptsplatform/agent-harness platform
+npx @plainconceptsplatform/agent-harness copy
+npx @plainconceptsplatform/agent-harness openspec
+npx @plainconceptsplatform/agent-harness models
+npx @plainconceptsplatform/agent-harness optimization
+npx @plainconceptsplatform/agent-harness browser
+npx @plainconceptsplatform/agent-harness metadata
+npx @plainconceptsplatform/agent-harness join
+npx @plainconceptsplatform/agent-harness update
 ```
 
 Show the CLI help and all commands:
 
 ```bash
-npx @plainconceptsplatform/opencode-onboard --help
+npx @plainconceptsplatform/agent-harness --help
 ```
 
-When available, step commands reuse context from `.opencode/opencode-onboard.json`.
+When available, step commands reuse context from `.opencode/harness.json`.
 
-## Typical flow for reruns
+## Keeping the harness current
+
+A new release of agent-harness ships new commands, skills and plugins. To pull them into a
+project that already has the harness:
+
+```bash
+npx @plainconceptsplatform/agent-harness@latest update
+```
+
+`update` re-runs every file patch from `.opencode/harness.json` without asking anything. It
+tracks a hash of each file it manages in `.opencode/harness-managed.json`, so anything you have
+edited by hand is preserved rather than overwritten.
+
+<Callout type="warn" title="Upgrading from opencode-onboard v1">
+  v2 renamed the config files and the skill prefix (`ob-` → `pc-`), and it does not migrate v1
+  projects. The CLI detects one and refuses to run rather than half-patching it. Re-onboard on a
+  clean branch: remove `.opencode/` and `.agents/skills/ob-*`, then run the wizard again.
+</Callout>
+
+## Narrower reruns
 
 <Accordions>
 
@@ -97,20 +116,21 @@ When available, step commands reuse context from `.opencode/opencode-onboard.jso
   them, while preserving your `.agents/skills/` directory.
 </Accordion>
 
-<Accordion title="Picking up a new onboard release">
+<Accordion title="Picking up a new agent-harness release">
   Run `update` to refresh unchanged managed templates and re-apply marker-based patches without
   prompts. User-modified files, generated skills, project agents, configuration, and OpenSpec
-  history are preserved. Generated skills such as `ob-guardrails-project` are preserved.
-  Finish with `metadata` to refresh `.opencode/opencode-onboard.json`.
+  history are preserved. Generated skills such as `pc-guardrails-project` are preserved.
+  Finish with `metadata` to refresh `.opencode/harness.json`.
 </Accordion>
 
 <Accordion title="Reconfiguring the optimization tools">
-  Run `optimization` to reconfigure RTK, quota, caveman, codegraph, agentmemory or humanizer, and
-  the guardrails optimization markers.
+  Run `optimization` to reconfigure RTK, quota, Simple English, codegraph, agentmemory or
+  humanizer, and the guardrails optimization markers.
 </Accordion>
 
-<Accordion title="Joining a project someone else onboarded">
-  Run `join` to sync the latest onboarding metadata for your machine.
+<Accordion title="Joining a project that already has the harness">
+  Run `join`. It installs the local tooling the harness expects — platform CLIs, plugins, skills,
+  OpenSpec — and touches no committed file.
 </Accordion>
 
 </Accordions>

@@ -2,7 +2,7 @@
 # YAML rather than JSON because fumadocs-mdx 14 (used here) sends .json meta
 # through the JavaScript parser and fails to compile it; Foundations is on
 # fumadocs-mdx 11, where JSON meta works. The rendered sidebar is the same.
-title: opencode-onboard
+title: agent-harness
 pages:
   - "---Start here---"
   - index

@@ -2,7 +2,7 @@
 
 ## Project overview
 
-opencode-onboard is a Node.js CLI tool that prepares any codebase for AI agent workflows. It wires OpenCode, OpenSpec, codegraph, and agentmemory into a multi-agent development system via an interactive wizard. The CLI copies template files (skills, commands, agent configs) into a target project and patches them based on the user's chosen platforms (GitHub, Azure DevOps, Jira, GitLab, browser).
+agent-harness is a Node.js CLI tool that prepares any codebase for AI agent workflows. It wires OpenCode, OpenSpec, codegraph, and agentmemory into a multi-agent development system via an interactive wizard. The CLI copies template files (skills, commands, agent configs) into a target project and patches them based on the user's chosen platforms (GitHub, Azure DevOps, Jira, GitLab, browser).
 
 Key technologies: Node.js 18+, ESM (`"type": "module"`), pnpm, Vitest, ESLint flat config. No TypeScript, no build step, no bundler.
 
@@ -16,7 +16,7 @@ src/
   presets/                    JSON/MD data files that parameterize steps (platforms, models, skills, source, etc.)
   utils/                      Shared utilities (copy, exec, process, terminal, models-cache, models-pricing)
   content/                    Template files copied into target projects during onboarding
-    .agents/skills/           ob-* skills shipped with the CLI (plan-goal, make-engineer, repo-initialize, etc.)
+    .agents/skills/           pc-* skills shipped with the CLI (plan-goal, make-engineer, repo-initialize, etc.)
     .opencode/commands/       Slash command thin wrappers that load skills
     .opencode/                opencode.json, tui plugins, opencode config
     .opencode/plugins/        Server-side plugins (subagent monitor, tiers, system reminders)
@@ -26,7 +26,7 @@ src/
 docs/                         Landing page (static HTML/CSS/JS), deployed via GitHub Pages
 ```
 
-The core pattern: `src/content/.opencode/commands/*.md` are thin wrappers (just "Load the `ob-*` skill and follow every step defined in it."). The actual procedure lives in `src/content/.agents/skills/ob-*/SKILL.md`. This makes commands composable since any agent can load a skill mid-conversation.
+The core pattern: `src/content/.opencode/commands/*.md` are thin wrappers (just "Load the `pc-*` skill and follow every step defined in it."). The actual procedure lives in `src/content/.agents/skills/pc-*/SKILL.md`. This makes commands composable since any agent can load a skill mid-conversation.
 
 The copy step (`src/steps/copy/index.js`) resolves `CONTENT_DIR` relative to the source file, copies it to the target project, then patches files in-place based on platform selection (e.g., injecting gh/az/jira/glab CLI commands into skills and AGENTS.md).
 
@@ -45,7 +45,7 @@ pnpm test          # Run all tests (vitest run)
 pnpm test:watch    # Watch mode
 ```
 
-There is no dev server or build step. The CLI runs directly via `node src/index.js` or `npx @plainconceptsplatform/opencode-onboard`.
+There is no dev server or build step. The CLI runs directly via `node src/index.js` or `npx @plainconceptsplatform/agent-harness`.
 
 ## Testing
 
@@ -75,11 +75,11 @@ Source files in `src/steps/copy/` resolve `CONTENT_DIR` via `path.resolve(__dirn
 
 ### Template patching
 
-Patchers (`agents.js`, `commands.js`, `skills.js`) read template files from `src/content/`, modify them based on platform, and write to the target project. The integration tests verify these patchers against real templates. Markers like `<!-- OB-PLATFORM-WORKFLOW-START -->` / `<!-- OB-PLATFORM-WORKFLOW-END -->` are used for safe string replacement.
+Patchers (`agents.js`, `commands.js`, `skills.js`) read template files from `src/content/`, modify them based on platform, and write to the target project. The integration tests verify these patchers against real templates. Markers like `<!-- PC-PLATFORM-WORKFLOW-START -->` / `<!-- PC-PLATFORM-WORKFLOW-END -->` are used for safe string replacement.
 
 ### Skill loading
 
-Skills live in `.agents/skills/ob-*/SKILL.md` with YAML frontmatter (`name`, `description`, `license`). Commands in `.opencode/commands/*.md` are thin wrappers that say "Load the `ob-*` skill and follow every step defined in it." To convert a command to a skill, move the body to a SKILL.md, add frontmatter, and replace the command with the wrapper line.
+Skills live in `.agents/skills/pc-*/SKILL.md` with YAML frontmatter (`name`, `description`, `license`). Commands in `.opencode/commands/*.md` are thin wrappers that say "Load the `pc-*` skill and follow every step defined in it." To convert a command to a skill, move the body to a SKILL.md, add frontmatter, and replace the command with the wrapper line.
 
 ## Project-specific notes
 

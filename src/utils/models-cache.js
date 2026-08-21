@@ -1,9 +1,9 @@
 import fse from 'fs-extra'
-import os from 'os'
 import path from 'path'
 import { parseModels } from './models-pricing.js'
+import { modelsCacheDir } from './paths.js'
 
-const CACHE_DIR = path.join(os.homedir(), '.config', 'opencode-onboard');
+const CACHE_DIR = modelsCacheDir();
 const CACHE_FILE = path.join(CACHE_DIR, 'models-cache.json');
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const MODELS_URL = 'https://models.dev/api.json';

@@ -39,10 +39,10 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --filter opencode-onboard-docs
+        run: pnpm install --filter agent-harness-docs
 
       - name: Build docs
-        run: pnpm --filter opencode-onboard-docs build
+        run: pnpm --filter agent-harness-docs build
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

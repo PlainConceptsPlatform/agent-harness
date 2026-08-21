@@ -1,6 +1,6 @@
 # AGENTS.md
 
-<!-- OB-NOT-INITIALIZED -->
+<!-- PC-NOT-INITIALIZED -->
 
 # Agent operating guide
 
@@ -22,12 +22,12 @@ Before a non-trivial change, read these documents in order:
 
 Read each document once per session unless it changes or the task moves into a different area.
 
-Command aliases: OpenSpec skills may reference `/opsx-propose`, `/opsx-apply`, `/opsx-archive`, or `/opsx-explore`. Always substitute them with the `ob-plan-propose`, `ob-plan-apply`, `ob-plan-archive`, and `ob-plan-explore` skills respectively. User-facing command names are `/plan-propose`, `/plan-apply`, `/plan-archive`, and `/plan-explore`. Never mention the `opsx-` names to the user.
+Command aliases: OpenSpec skills may reference `/opsx-propose`, `/opsx-apply`, `/opsx-archive`, or `/opsx-explore`. Always substitute them with the `pc-plan-propose`, `pc-plan-apply`, `pc-plan-archive`, and `pc-plan-explore` skills respectively. User-facing command names are `/plan-propose`, `/plan-apply`, `/plan-archive`, and `/plan-explore`. Never mention the `opsx-` names to the user.
 
 ## Workflow ownership
 
-<!-- OB-PLATFORM-WORKFLOW-START -->
-<!-- OB-PLATFORM-WORKFLOW-END -->
+<!-- PC-PLATFORM-WORKFLOW-START -->
+<!-- PC-PLATFORM-WORKFLOW-END -->
 
 ## Planning and execution
 
@@ -40,7 +40,7 @@ Command aliases: OpenSpec skills may reference `/opsx-propose`, `/opsx-apply`, `
 
 Inspect `.opencode/agents/*.md` before spawning. Prefer the most specialized custom engineer. `fullstack-engineer` is `mode: primary`, the planning agent, and is not a spawned worker. If no specialist matches, tell the user to create one with `/make-engineer`. Spawn only engineers present in that directory.
 
-The `ob-plan-apply` skill is authoritative for subagent waves, dependency ordering, retries, and concurrency. Read `agents.maxConcurrent` from `.opencode/opencode-onboard.json` before spawning workers.
+The `pc-plan-apply` skill is authoritative for subagent waves, dependency ordering, retries, and concurrency. Read `agents.maxConcurrent` from `.opencode/harness.json` before spawning workers.
 
 ## Tool and repository safety
 
@@ -65,7 +65,7 @@ The `ob-plan-apply` skill is authoritative for subagent waves, dependency orderi
 
 ## Skills
 
-Skills live in `.agents/skills/`. Always installed: `@ob-guardrails-generic`, `@ob-guardrails-project`, and `@browser-automation`. The always-installed `ob-system-reminders` plugin loads each agent's `## Abilities` before work, guardrails first. Skills can require mandatory transitive loads. Keep `## Abilities` complete and do not treat entries as passive references.
+Skills live in `.agents/skills/`. Always installed: `@pc-guardrails-generic`, `@pc-guardrails-project`, and `@browser-automation`. The always-installed `pc-system-reminders` plugin loads each agent's `## Abilities` before work, guardrails first. Skills can require mandatory transitive loads. Keep `## Abilities` complete and do not treat entries as passive references.
 
-<!-- OB-PLATFORM-SKILLS-GUIDE-START -->
-<!-- OB-PLATFORM-SKILLS-GUIDE-END -->
+<!-- PC-PLATFORM-SKILLS-GUIDE-START -->
+<!-- PC-PLATFORM-SKILLS-GUIDE-END -->

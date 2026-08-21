@@ -3,11 +3,11 @@ import { execa } from 'execa'
 import fse from 'fs-extra'
 import path from 'node:path'
 import { fileURLToPath } from 'url'
-import { readOnboardConfig } from './shared.js'
+import { readHarnessConfig } from './shared.js'
 import { copyContentStep } from '../steps/copy/index.js'
 import { writeModelsToConfigs } from '../steps/models/write.js'
 import { patchGuardrails } from '../steps/optimization/patch-guardrails.js'
-import { writeOnboardConfig } from '../steps/metadata/index.js'
+import { writeHarnessConfig } from '../steps/metadata/index.js'
 import { exit } from '../utils/process.js'
 
 const SIMPLE_ENGLISH_ENTRY = {
@@ -25,9 +25,9 @@ function resolvePlatform(value, fallback = 'github') {
 }
 
 export async function runUpdate() {
-  const saved = await readOnboardConfig()
+  const saved = await readHarnessConfig()
   if (!saved?.platform) {
-    console.log(chalk.red('No opencode-onboard config found. Run the wizard first.'))
+    console.log(chalk.red('No agent-harness config found. Run the wizard first.'))
     exit(1)
     return
   }
@@ -68,7 +68,7 @@ export async function runUpdate() {
     humanizer: !!tools.humanizer,
   })
 
-  await writeOnboardConfig({
+  await writeHarnessConfig({
     ...ctx,
     backlogPlatform,
     repoPlatform,

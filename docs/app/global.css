@@ -107,7 +107,7 @@
 }
 
 /* ── Product accent ───────────────────────────────────────────────────────
-   opencode-onboard's coral replaces Platform blue as --primary; everything else
+   agent-harness's coral replaces Platform blue as --primary; everything else
    comes from the Platform ramp. Light mode uses a darkened coral: #f5495e on
    white is ~3.5:1 and fails WCAG AA for text, #cf1c33 is 5.4:1. */
 :root {

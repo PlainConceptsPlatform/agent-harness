@@ -1,8 +1,9 @@
 import crypto from 'node:crypto'
 import fse from 'fs-extra'
 import path from 'node:path'
+import { MANIFEST_FILE, OPENCODE_DIR } from './paths.js'
 
-const MANIFEST_RELATIVE_PATH = path.join('.opencode', 'opencode-onboard-managed.json')
+const MANIFEST_RELATIVE_PATH = path.join(OPENCODE_DIR, MANIFEST_FILE)
 
 function normalizeRelativePath(relativePath) {
   return relativePath.split(path.sep).join('/')

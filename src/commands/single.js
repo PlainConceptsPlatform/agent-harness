@@ -8,8 +8,8 @@ import { initOpenspec } from '../steps/openspec/index.js'
 import { tokenOptimizationStep } from '../steps/optimization/index.js'
 import { choosePlatform } from '../steps/platform/index.js'
 import { installBrowser } from '../steps/browser/index.js'
-import { writeOnboardConfig } from '../steps/metadata/index.js'
-import { readOnboardConfig } from './shared.js'
+import { writeHarnessConfig } from '../steps/metadata/index.js'
+import { readHarnessConfig } from './shared.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const platformsPreset = await fse.readJson(path.resolve(__dirname, '../presets/platforms.json'))
@@ -22,7 +22,7 @@ export function resolvePlatform(value, fallback = 'github') {
 }
 
 export async function runSingleCommand(command) {
-  const saved = await readOnboardConfig()
+  const saved = await readHarnessConfig()
   const ctx = {
     hasDesign: !!saved?.preexisting?.design,
     hasArchitecture: !!saved?.preexisting?.architecture,
@@ -59,7 +59,7 @@ export async function runSingleCommand(command) {
       await installBrowser()
     },
     metadata: async () => {
-      await writeOnboardConfig({
+      await writeHarnessConfig({
         ...ctx,
         backlogPlatform: resolvedBacklog,
         repoPlatform: resolvedRepo,

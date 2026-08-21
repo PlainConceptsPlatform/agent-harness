@@ -3,7 +3,7 @@ title: Agents and skills
 description: The line between how to work (agents) and what to know (skills).
 ---
 
-opencode-onboard draws a hard line between two concepts.
+agent-harness draws a hard line between two concepts.
 
 ## Agents: universal behaviors
 
@@ -29,7 +29,7 @@ Skills define *what to know*. They provide project rules, platform behavior and
 task-specific execution guidance. Agents auto-detect and load relevant skills:
 **you do not manually choose skills per prompt**.
 
-- `ob-guardrails-generic` is the mandatory baseline for every agent (git, secrets,
+- `pc-guardrails-generic` is the mandatory baseline for every agent (git, secrets,
   quality rules, plus the engineer workflow)
 - Baseline context rules and token-optimization guidance live in `AGENTS.md`
   (always in context), not in a skill
@@ -38,7 +38,7 @@ Default `fullstack-engineer` abilities:
 
 ```
 ## Abilities
-- Guardrails: @ob-guardrails-generic, @ob-guardrails-project
+- Guardrails: @pc-guardrails-generic, @pc-guardrails-project
 ```
 
 Users are expected to create additional skills and map them into abilities over
@@ -49,38 +49,38 @@ is automatically discoverable.
 
 | Skill | Purpose |
 | --- | --- |
-| `ob-guardrails-generic` | Foundation for user guardrails skills |
-| `ob-guardrails-project` | Project-specific guardrails, populated by `/make-guardrails` |
-| `ob-userstory-gh` | Parse a GitHub Issue URL into a structured work item |
-| `ob-userstory-az` | Parse an Azure DevOps work item URL |
-| `ob-userstory-jira` | Parse a Jira issue URL via the `acli` CLI |
-| `ob-userstory-browser` | Parse a work item from any URL via browser automation |
+| `pc-guardrails-generic` | Foundation for user guardrails skills |
+| `pc-guardrails-project` | Project-specific guardrails, populated by `/make-guardrails` |
+| `pc-userstory-gh` | Parse a GitHub Issue URL into a structured work item |
+| `pc-userstory-az` | Parse an Azure DevOps work item URL |
+| `pc-userstory-jira` | Parse a Jira issue URL via the `acli` CLI |
+| `pc-userstory-browser` | Parse a work item from any URL via browser automation |
 | `browser-automation` | Browser control via `@different-ai/opencode-browser` |
-| `ob-plan-explore` | Read-only exploration procedure behind `/plan-explore` |
-| `ob-plan-propose` | Proposal and task-enrichment procedure behind `/plan-propose` |
-| `ob-plan-apply` | Wave-implementation procedure behind `/plan-apply` |
-| `ob-plan-archive` | Archive procedure behind `/plan-archive` |
-| `ob-plan-goal` | Autonomous full-lifecycle pipeline behind `/plan-goal` |
-| `ob-plan-quick` | Quick task checklist behind `/plan-quick` |
-| `ob-ops-ship` | PR-creation procedure behind `/ops-ship` |
-| `ob-ops-evidence` | Evidence of a change, plus an idempotent verified issue/PR comment |
-| `ob-make-architecture` | `ARCHITECTURE.md` generation behind `/make-architecture` |
-| `ob-make-design` | `DESIGN.md` generation behind `/make-design` |
-| `ob-make-guardrails` | Guardrails generation behind `/make-guardrails` |
-| `ob-make-engineer` | Custom engineer creation behind `/make-engineer` |
-| `ob-make-evidence-scaffold` | Visual-evidence harness scaffold behind `/make-evidence-scaffold` |
-| `ob-make-user-model` | Tier model configuration behind `/make-user-model` |
-| `ob-repo-audit` | Read-only health audit across configured source roots |
-| `ob-repo-verify` | Current-branch verification and repair gate |
-| `ob-repo-initialize` | Project initialization behind `/repo-initialize` |
-| `ob-repo-onboard` | Guided project tour behind `/repo-onboard` |
-| `ob-repo-help` | The command reference displayed by `/repo-help` |
+| `pc-plan-explore` | Read-only exploration procedure behind `/plan-explore` |
+| `pc-plan-propose` | Proposal and task-enrichment procedure behind `/plan-propose` |
+| `pc-plan-apply` | Wave-implementation procedure behind `/plan-apply` |
+| `pc-plan-archive` | Archive procedure behind `/plan-archive` |
+| `pc-plan-goal` | Autonomous full-lifecycle pipeline behind `/plan-goal` |
+| `pc-plan-quick` | Quick task checklist behind `/plan-quick` |
+| `pc-ops-ship` | PR-creation procedure behind `/ops-ship` |
+| `pc-ops-evidence` | Evidence of a change, plus an idempotent verified issue/PR comment |
+| `pc-make-architecture` | `ARCHITECTURE.md` generation behind `/make-architecture` |
+| `pc-make-design` | `DESIGN.md` generation behind `/make-design` |
+| `pc-make-guardrails` | Guardrails generation behind `/make-guardrails` |
+| `pc-make-engineer` | Custom engineer creation behind `/make-engineer` |
+| `pc-make-evidence-scaffold` | Visual-evidence harness scaffold behind `/make-evidence-scaffold` |
+| `pc-make-user-model` | Tier model configuration behind `/make-user-model` |
+| `pc-repo-audit` | Read-only health audit across configured source roots |
+| `pc-repo-verify` | Current-branch verification and repair gate |
+| `pc-repo-initialize` | Project initialization behind `/repo-initialize` |
+| `pc-repo-onboard` | Guided project tour behind `/repo-onboard` |
+| `pc-repo-help` | The command reference displayed by `/repo-help` |
 
 Platform operations are injected during onboarding: pull request creation into
-`ob-ops-ship`, the archive PR flow into `ob-plan-archive`, issue and work-item
-evidence comments into `ob-ops-evidence`, and pull request review plus issue
+`pc-ops-ship`, the archive PR flow into `pc-plan-archive`, issue and work-item
+evidence comments into `pc-ops-evidence`, and pull request review plus issue
 creation directly into the `/ops-review` and `/ops-backlog` command files.
 
-Platform skills ship as suffixed variants (`ob-userstory-gh`, `ob-userstory-az`,
-`ob-userstory-jira`, `ob-userstory-browser`) and the installer copies only the
+Platform skills ship as suffixed variants (`pc-userstory-gh`, `pc-userstory-az`,
+`pc-userstory-jira`, `pc-userstory-browser`) and the installer copies only the
 matching one, renamed to its generic name.

@@ -29,10 +29,10 @@ describe("OpenCode config template", () => {
   })
 
   it("ships the always-on system reminder plugin", () => {
-    const plugin = fs.readFileSync(path.join(CONTENT_DIR, ".opencode", "plugins", "ob-system-reminders.js"), "utf-8")
+    const plugin = fs.readFileSync(path.join(CONTENT_DIR, ".opencode", "plugins", "pc-system-reminders.js"), "utf-8")
 
     expect(plugin).toContain("experimental.chat.messages.transform")
-    expect(plugin).toContain("ob-guardrails-generic")
+    expect(plugin).toContain("pc-guardrails-generic")
   })
 })
 
@@ -44,11 +44,11 @@ describe("planning skill templates", () => {
   it("ships repo audit and verification commands with their matching skills", () => {
     const auditCommand = fs.readFileSync(path.join(CONTENT_DIR, ".opencode", "commands", "repo-audit.md"), "utf-8")
     const verifyCommand = fs.readFileSync(path.join(CONTENT_DIR, ".opencode", "commands", "repo-verify.md"), "utf-8")
-    const audit = skill("ob-repo-audit")
-    const verify = skill("ob-repo-verify")
+    const audit = skill("pc-repo-audit")
+    const verify = skill("pc-repo-verify")
 
-    expect(auditCommand).toContain("Load the `ob-repo-audit` skill")
-    expect(verifyCommand).toContain("Load the `ob-repo-verify` skill")
+    expect(auditCommand).toContain("Load the `pc-repo-audit` skill")
+    expect(verifyCommand).toContain("Load the `pc-repo-verify` skill")
     expect(audit).toContain("without modifying files")
     expect(audit).toContain("fullstack-engineer.md")
     expect(verify).toContain("git diff")
@@ -58,7 +58,7 @@ describe("planning skill templates", () => {
   })
 
   it("keeps plan-explore as an openspec-explore facade", () => {
-    const explore = skill("ob-plan-explore")
+    const explore = skill("pc-plan-explore")
 
     expect(explore).toContain("Load `@openspec-explore` and follow every step defined in it.")
     expect(explore).not.toContain("requirement-model.md")
@@ -66,16 +66,16 @@ describe("planning skill templates", () => {
   })
 
   it("makes plan-goal exploration think before it validates code", () => {
-    const goal = skill("ob-plan-goal")
+    const goal = skill("pc-plan-goal")
 
-    expect(goal).toContain("Load `ob-plan-explore`")
+    expect(goal).toContain("Load `pc-plan-explore`")
     expect(goal).toContain("Require an in-memory `EXPLORATION_BRIEF`")
-    expect(goal).not.toContain("ob-goal-explore")
+    expect(goal).not.toContain("pc-goal-explore")
   })
 
   it("requires workers for annotated OpenSpec tasks", () => {
-    const apply = skill("ob-plan-apply")
-    const propose = skill("ob-plan-propose")
+    const apply = skill("pc-plan-apply")
+    const propose = skill("pc-plan-propose")
 
     expect(apply).toContain("never become sequential lead work")
     expect(apply).toContain("resolve every task's annotated worker")
@@ -86,29 +86,29 @@ describe("planning skill templates", () => {
   })
 
   it("keeps optional optimization guidance behind markers", () => {
-    const apply = skill("ob-plan-apply")
+    const apply = skill("pc-plan-apply")
 
-    expect(apply).toContain("<!-- OB-OPTIMIZATION-CODEGRAPH-START -->")
-    expect(apply).toContain("<!-- OB-OPTIMIZATION-MEMORY-START -->")
+    expect(apply).toContain("<!-- PC-OPTIMIZATION-CODEGRAPH-START -->")
+    expect(apply).toContain("<!-- PC-OPTIMIZATION-MEMORY-START -->")
     expect(apply).not.toContain("codegraph_explore")
     expect(apply).not.toContain("Agentmemory")
   })
 
   it("keeps phase procedures with their owning skills", () => {
-    const goal = skill("ob-plan-goal")
-    const apply = skill("ob-plan-apply")
-    const archive = skill("ob-plan-archive")
+    const goal = skill("pc-plan-goal")
+    const apply = skill("pc-plan-apply")
+    const archive = skill("pc-plan-archive")
 
     expect(goal).toContain("every task complete and `VERIFIED`")
     expect(goal).toContain("Require `ARCHIVED_OK` and the archive path")
     expect(apply).toContain("Every command must exit 0")
     expect(archive).toContain("run the archive once more and repeat the check")
-    expect(goal).toContain("then load `ob-repo-verify`")
+    expect(goal).toContain("then load `pc-repo-verify`")
   })
 
   it("keeps plan-goal as a compact orchestrator", () => {
-    const goal = skill("ob-plan-goal")
-    const output = skill("ob-plan-goal", "output.md")
+    const goal = skill("pc-plan-goal")
+    const output = skill("pc-plan-goal", "output.md")
 
     expect(goal.split("\n").length).toBeLessThan(120)
     expect(goal).toContain("Follow the [branching procedure](branching.md)")
@@ -117,16 +117,16 @@ describe("planning skill templates", () => {
   })
 
   it("keeps temporary artifacts inside the repository", () => {
-    const guardrails = skill("ob-guardrails-generic")
-    const evidence = skill("ob-ops-evidence")
+    const guardrails = skill("pc-guardrails-generic")
+    const evidence = skill("pc-ops-evidence")
 
     expect(guardrails).toContain("$REPO_ROOT/.opencode/.tmp/")
     expect(evidence).toContain("capturePlan")
   })
 
   it("requires evidence skill to write capturePlan and scaffold to be deprecated", () => {
-    const scaffold = skill("ob-make-evidence-scaffold")
-    const evidence = skill("ob-ops-evidence")
+    const scaffold = skill("pc-make-evidence-scaffold")
+    const evidence = skill("pc-ops-evidence")
 
     expect(scaffold).toContain("DEPRECATED")
     expect(evidence).toContain("capturePlan")

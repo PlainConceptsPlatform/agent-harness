@@ -5,10 +5,10 @@ import os from 'node:os'
 import fse from 'fs-extra'
 import { patchArchiveCommand } from './commands.js'
 
-// The archive procedure lives in the ob-plan-archive skill (the /plan-archive
+// The archive procedure lives in the pc-plan-archive skill (the /plan-archive
 // command is a thin wrapper that loads it), so platform content is injected
 // into the installed SKILL.md.
-const SKILL_REL_PATH = path.join('.agents', 'skills', 'ob-plan-archive', 'SKILL.md')
+const SKILL_REL_PATH = path.join('.agents', 'skills', 'pc-plan-archive', 'SKILL.md')
 
 describe('platform patching', () => {
   let tmpDir
@@ -29,7 +29,7 @@ describe('platform patching', () => {
     return dest
   }
 
-  it('patches ob-plan-archive skill for azure platform', async () => {
+  it('patches pc-plan-archive skill for azure platform', async () => {
     const dest = await copySkillTemplate()
 
     await patchArchiveCommand('azure', tmpDir)
@@ -39,7 +39,7 @@ describe('platform patching', () => {
     expect(content).not.toContain('gh pr list --repo {owner}/{repo} --state merged')
   })
 
-  it('patches ob-plan-archive skill for github platform', async () => {
+  it('patches pc-plan-archive skill for github platform', async () => {
     const dest = await copySkillTemplate()
 
     await patchArchiveCommand('github', tmpDir)
@@ -49,7 +49,7 @@ describe('platform patching', () => {
     expect(content).not.toContain('az repos pr list --repository {repo} --status completed')
   })
 
-  it('patches ob-plan-archive skill for none platform without throwing', async () => {
+  it('patches pc-plan-archive skill for none platform without throwing', async () => {
     const dest = await copySkillTemplate()
 
     await patchArchiveCommand('none', tmpDir)
@@ -60,7 +60,7 @@ describe('platform patching', () => {
     expect(content).not.toContain('az repos pr list --repository {repo} --status completed')
   })
 
-  it('patches ob-plan-archive skill for gitlab platform', async () => {
+  it('patches pc-plan-archive skill for gitlab platform', async () => {
     const dest = await copySkillTemplate()
 
     await patchArchiveCommand('gitlab', tmpDir)

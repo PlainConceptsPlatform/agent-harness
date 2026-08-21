@@ -1,24 +1,38 @@
 ---
 title: Introduction
-description: What opencode-onboard is, and what it sets up in your repository.
+description: What agent-harness is, and what the harness it installs consists of.
 ---
 
 Most codebases have no `AGENTS.md`, no architecture documentation that agents can
 read, and no defined workflow for picking up tasks. Agents end up improvising,
 producing inconsistent results.
 
-**opencode-onboard** fixes that in a single interactive wizard. It configures
-[OpenCode](https://opencode.ai) with [OpenSpec](https://github.com/fission-ai/openspec)
-for structured change management, native subagent waves for parallel agent
-execution, [codegraph](https://github.com/colbymchenry/codegraph) for code
-intelligence, and [agentmemory](https://github.com/rohitg00/agentmemory) for
-shared context across agent sessions. It also installs an agent team, platform
-skills, and slash commands: everything agents need to plan, implement, and ship.
+**agent-harness** is a CLI that installs a *harness* into your repository, then
+keeps it current. The harness is the set of files agents actually work from:
+slash commands, `pc-*` skills, an agent team, OpenCode plugins, an OpenSpec
+workspace, and generated `ARCHITECTURE.md` / `DESIGN.md`.
+
+It configures [OpenCode](https://opencode.ai) with
+[OpenSpec](https://github.com/fission-ai/openspec) for structured change
+management, native subagent waves for parallel agent execution,
+[codegraph](https://github.com/colbymchenry/codegraph) for code intelligence,
+and [agentmemory](https://github.com/rohitg00/agentmemory) for shared context
+across agent sessions.
+
+## Three verbs
+
+| Command | What it does |
+| --- | --- |
+| *(no argument)* | A wizard runs once, writes the harness, records your choices in `.opencode/harness.json` |
+| `update` | Re-applies the harness from those saved choices, no prompts, preserving files you have edited |
+| `join` | A new teammate installs the local tooling the harness expects, touching no committed file |
+
+The wizard is the first of those three, not the product.
 
 ## Install
 
 ```bash
-npx @plainconceptsplatform/opencode-onboard@latest
+npx @plainconceptsplatform/agent-harness@latest
 ```
 
 Requires Node.js 18 or higher. See [Getting started](/docs/getting-started) for

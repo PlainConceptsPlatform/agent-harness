@@ -3,11 +3,11 @@ import { createMDX } from 'fumadocs-mdx/next'
 
 const withMDX = createMDX()
 
-// Served from https://plainconceptsplatform.github.io/opencode-onboard/
+// Served from https://plainconceptsplatform.github.io/agent-harness/
 // (GitHub Pages project site). Set to '' if the site ever moves to its own domain.
-const basePath = '/opencode-onboard'
+const basePath = '/agent-harness'
 
-const PACKAGE_NAME = '@plainconceptsplatform/opencode-onboard'
+const PACKAGE_NAME = '@plainconceptsplatform/agent-harness'
 
 /**
  * The version shown in the nav, taken from the npm registry rather than the repo

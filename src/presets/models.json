@@ -51,7 +51,7 @@
     "fast": {
       "prompt": "Fast model:",
       "info": [
-        "FAST: light commands: /ob-pullrequest, /ob-explore, /ob-archive, status checks.",
+        "FAST: light commands: /pc-pullrequest, /pc-explore, /pc-archive, status checks.",
         "No heavy reasoning needed. Cheap and fast is the right call here."
       ],
       "suggestions": {
