@@ -1,7 +1,7 @@
 {
   "name": "@plainconceptsplatform/agent-harness",
-  "version": "2.0.0",
-  "description": "Installs and maintains an agent harness in any codebase. Wires OpenCode, OpenSpec, codegraph, and agentmemory into a multi-agent development workflow powered by native parallel subagents.",
+  "version": "2.0.1",
+  "description": "Installs the Plain Concepts Platform Harness into any codebase, and keeps it up to date. Wires OpenCode, OpenSpec, codegraph, and agentmemory into a multi-agent workflow that runs on native parallel subagents.",
   "keywords": [
     "opencode",
     "ai",
@@ -28,9 +28,9 @@
   },
   "files": [
     "src",
+    "src/content",
     "!src/**/*.test.js",
     "!src/**/__tests__",
-    "src/content",
     "!src/content/**/node_modules"
   ],
   "publishConfig": {

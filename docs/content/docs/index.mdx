@@ -1,33 +1,36 @@
 ---
 title: Introduction
-description: What agent-harness is, and what the harness it installs consists of.
+description: What agent-harness is, and what the Plain Concepts Platform Harness gives you.
 ---
 
-Most codebases have no `AGENTS.md`, no architecture documentation that agents can
-read, and no defined workflow for picking up tasks. Agents end up improvising,
-producing inconsistent results.
+Most codebases have no `AGENTS.md`, no architecture documentation an agent can
+read, and no defined workflow for picking up a task. So agents improvise, and you
+get a different answer every run.
 
-**agent-harness** is a CLI that installs a *harness* into your repository, then
-keeps it current. The harness is the set of files agents actually work from:
-slash commands, `pc-*` skills, an agent team, OpenCode plugins, an OpenSpec
-workspace, and generated `ARCHITECTURE.md` / `DESIGN.md`.
+**agent-harness** is the CLI that installs the **Plain Concepts Platform
+Harness** into a repository and keeps it up to date.
 
-It configures [OpenCode](https://opencode.ai) with
-[OpenSpec](https://github.com/fission-ai/openspec) for structured change
-management, native subagent waves for parallel agent execution,
+The harness is ours. We build it, our projects run on it, and this CLI is how it
+gets into a codebase. It is the set of files agents work from: slash commands,
+`pc-*` skills (the `pc-` is Plain Concepts), an agent team, OpenCode plugins, an
+OpenSpec workspace, and generated `ARCHITECTURE.md` and `DESIGN.md`.
+
+Underneath, it wires [OpenCode](https://opencode.ai) to
+[OpenSpec](https://github.com/fission-ai/openspec) for change management, native
+subagent waves for parallel work,
 [codegraph](https://github.com/colbymchenry/codegraph) for code intelligence,
-and [agentmemory](https://github.com/rohitg00/agentmemory) for shared context
-across agent sessions.
+and [agentmemory](https://github.com/rohitg00/agentmemory) for context that
+survives between sessions.
 
-## Three verbs
+## Three jobs
 
 | Command | What it does |
 | --- | --- |
-| *(no argument)* | A wizard runs once, writes the harness, records your choices in `.opencode/harness.json` |
-| `update` | Re-applies the harness from those saved choices, no prompts, preserving files you have edited |
-| `join` | A new teammate installs the local tooling the harness expects, touching no committed file |
+| *(no argument)* | Installs the harness. A wizard runs once and saves your answers to `.opencode/harness.json`. |
+| `update` | Reinstalls the harness from those saved answers, no questions asked. Keeps files you edited. |
+| `join` | Sets up a teammate's machine. Touches no committed file. |
 
-The wizard is the first of those three, not the product.
+You run the first once per repository, and `update` whenever we ship a release.
 
 ## Install
 

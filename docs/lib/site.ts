@@ -14,9 +14,9 @@ export const siteName = "agent-harness";
 
 /** Kept in sync with content/docs/index.mdx frontmatter. */
 export const siteDescription =
-  "Prepare any codebase for AI. Wires OpenCode, OpenSpec, codegraph, and agentmemory into a multi-agent development workflow powered by native parallel subagents.";
+  "Installs the Plain Concepts Platform Harness into any codebase, and keeps it up to date. Wires OpenCode, OpenSpec, codegraph, and agentmemory into a multi-agent workflow that runs on native parallel subagents.";
 
-/** The npm package users install. The `bin` it exposes is still `agent-harness`. */
+/** The npm package users install, whose `bin` is `agent-harness`. */
 export const packageName = "@plainconceptsplatform/agent-harness";
 
 export const npmUrl = `https://www.npmjs.com/package/${packageName}`;
