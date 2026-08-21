@@ -47,6 +47,14 @@ export async function patchOpencodeJson(cwd = process.cwd()) {
     parsed?.agent?.plan?.mode === 'primary' &&
     parsed?.agent?.plan?.permission?.edit === 'deny'
   )
+
+  // default_agent pointing at fullstack-engineer is now invalid: it became a
+  // subagent when build and plan took over as the only primaries, so opencode
+  // has no valid default to open a session with. A deliberate choice of build
+  // or plan is left alone; anything else is repointed at plan, so a session
+  // starts read-only.
+  const currentDefault = parsed?.default_agent
+  const needsDefaultAgent = currentDefault !== 'plan' && currentDefault !== 'build'
   const needsSkillPermission = parsed?.permission?.skill !== 'allow'
   const missingSharedPermissions = SHARED_PERMISSIONS.filter(
     ([key, value]) => parsed?.permission?.[key] !== value,
@@ -61,7 +69,7 @@ export async function patchOpencodeJson(cwd = process.cwd()) {
     parsed?.compaction?.prune === true
   )
 
-  if (!needsAgentOverride && !needsSkillPermission && missingSharedPermissions.length === 0 && !needsSkillsPaths && !needsCompaction) {
+  if (!needsAgentOverride && !needsDefaultAgent && !needsSkillPermission && missingSharedPermissions.length === 0 && !needsSkillsPaths && !needsCompaction) {
     return { patched: false }
   }
 
@@ -77,6 +85,9 @@ export async function patchOpencodeJson(cwd = process.cwd()) {
     text = applyModify(text, ['agent', 'build', 'mode'], 'primary')
     text = applyModify(text, ['agent', 'plan', 'mode'], 'primary')
     text = applyModify(text, ['agent', 'plan', 'permission', 'edit'], 'deny')
+  }
+  if (needsDefaultAgent) {
+    text = applyModify(text, ['default_agent'], 'plan')
   }
   if (needsSkillPermission) text = applyModify(text, ['permission', 'skill'], 'allow')
   for (const [key, value] of missingSharedPermissions) {
@@ -102,6 +113,9 @@ export async function patchOpencodeJson(cwd = process.cwd()) {
   await fse.writeFile(opencodePath, text, 'utf-8')
   if (needsAgentOverride) {
     success('Set build/plan as the primary agents in opencode.jsonc (plan is read-only)')
+  }
+  if (needsDefaultAgent) {
+    success(`default_agent -> plan${currentDefault ? ` (was ${currentDefault})` : ''}`)
   }
   if (needsSkillPermission) {
     success('Allowed skill loading in opencode.jsonc')

@@ -49,6 +49,37 @@ describe('patchOpencodeJson()', () => {
     expect(config.agent.plan.permission.edit).toBe('deny')
   })
 
+  // fullstack-engineer became a subagent when build and plan took over as the
+  // only primaries, so a default_agent pointing at it leaves opencode with no
+  // valid agent to open a session with.
+  it('repoints a default_agent left on fullstack-engineer', async () => {
+    fs.writeFileSync(
+      path.join(tmpDir, 'opencode.jsonc'),
+      JSON.stringify({ default_agent: 'fullstack-engineer' }, null, 2),
+    )
+
+    await patchOpencodeJson()
+
+    expect(readConfig().default_agent).toBe('plan')
+  })
+
+  it('defaults a config that never had one to plan', async () => {
+    await patchOpencodeJson()
+
+    expect(readConfig().default_agent).toBe('plan')
+  })
+
+  it('leaves a deliberate choice of build alone', async () => {
+    fs.writeFileSync(
+      path.join(tmpDir, 'opencode.jsonc'),
+      JSON.stringify({ default_agent: 'build' }, null, 2),
+    )
+
+    await patchOpencodeJson()
+
+    expect(readConfig().default_agent).toBe('build')
+  })
+
   it('creates the file with agent block when missing', async () => {
     await patchOpencodeJson()
 
@@ -93,6 +124,7 @@ describe('patchOpencodeJson()', () => {
       path.join(tmpDir, 'opencode.jsonc'),
       JSON.stringify({
         $schema: 'https://opencode.ai/config.json',
+        default_agent: 'plan',
         agent: {
           build: { mode: 'primary' },
           plan: { mode: 'primary', permission: { edit: 'deny' } },

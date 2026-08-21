@@ -6,7 +6,6 @@ The agent file is exactly this structure: frontmatter plus one identity paragrap
 ---
 description: <one sentence naming the persona + top 3-5 detected technologies>
 mode: subagent
-color: <pick: primary|secondary|accent|error|info: avoid colors used by existing agents; warning is reserved for the build and plan primaries>
 permission:
   edit: allow
   bash: allow
@@ -62,7 +61,7 @@ Rules:
 
 After writing the agent file, verify:
 
-1. Frontmatter exists: starts with `---`, has `description`, `mode: subagent`, `color`, `permission` block.
+1. Frontmatter exists: starts with `---`, has `description`, `mode: subagent`, `permission` block. No `color`: the `pc-subagent-tiers` plugin derives one from the agent name at startup.
 2. No `model:` field in the frontmatter. The `pc-subagent-tiers` plugin injects it.
 3. `## Abilities` is the only `##` heading. No other `##` sections exist in the file.
 4. One identity paragraph before `## Abilities`: 2-3 sentences max, not multiple paragraphs.

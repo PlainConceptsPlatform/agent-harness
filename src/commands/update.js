@@ -7,7 +7,9 @@ import { readHarnessConfig } from './shared.js'
 import { copyContentStep } from '../steps/copy/index.js'
 import { writeModelsToConfigs } from '../steps/models/write.js'
 import { patchGuardrails } from '../steps/optimization/patch-guardrails.js'
+import { reconcileTools } from '../steps/optimization/detect.js'
 import { writeHarnessConfig } from '../steps/metadata/index.js'
+import { info } from '../utils/exec.js'
 import { exit } from '../utils/process.js'
 
 const SIMPLE_ENGLISH_ENTRY = {
@@ -58,7 +60,17 @@ export async function runUpdate() {
     await writeModelsToConfigs({ buildModel: saved.models.build })
   }
 
-  const tools = saved.tools ?? {}
+  // Reconcile against what is actually installed before patching guardrails.
+  // The saved flags drift: a project can be running the codegraph and
+  // agentmemory MCP servers with harness.json still recording them as false,
+  // and patchGuardrails would then empty those marker sections and strip the
+  // guidance for tools the project genuinely uses.
+  const tools = reconcileTools(saved.tools ?? {})
+  const gained = Object.keys(tools).filter(k => tools[k] && !saved.tools?.[k])
+  if (gained.length > 0) {
+    info(`Detected installed tools missing from harness.json: ${gained.join(', ')}`)
+  }
+
   await migrateCavemanSkill(tools)
   await patchGuardrails({
     rtk: !!tools.rtk,

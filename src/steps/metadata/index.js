@@ -59,6 +59,10 @@ export async function writeHarnessConfig(data) {
     ),
     codegraph: !!(optionalTools.codegraph?.optedIn ?? optionalTools.codegraph),
     memory: !!(optionalTools.memory?.optedIn ?? optionalTools.memory),
+    // humanizer was missing here, so a selection never survived a metadata
+    // write and patchGuardrails always saw it as off, leaving its marker
+    // section empty however the project was actually set up.
+    humanizer: !!(optionalTools.humanizer?.optedIn ?? optionalTools.humanizer),
   }
 
   const payload = {

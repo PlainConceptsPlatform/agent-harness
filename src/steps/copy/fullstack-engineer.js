@@ -1,6 +1,7 @@
 import fse from 'fs-extra'
 import path from 'path'
 import { success } from '../../utils/exec.js'
+import { agentColor } from '../../utils/agent-color.js'
 
 const FULLSTACK_FILE = 'fullstack-engineer.md'
 const FULLSTACK_DESCRIPTION = 'Default engineer that accumulates skills from all created persona engineers. Use as fallback when no specialist matches: but prefer spawning a specific engineer for deterministic results.'
@@ -59,7 +60,9 @@ export async function generateFullstackEngineer({ cwd = process.cwd(), updateMod
     // subagent, not primary: build.md and plan.md are the primaries, and
     // pc-subagent-tiers generates both from this file on every startup.
     'mode: subagent',
-    'color: warning',
+    // warning is reserved for plan, so fullstack takes its name-derived hex
+    // like every other subagent.
+    `color: ${agentColor('fullstack-engineer')}`,
     'permission:',
     '  edit: allow',
     '  bash: allow',

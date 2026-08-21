@@ -97,6 +97,13 @@ describe("PcSubagentTiers primaries", () => {
     expect(cfg.agent.plan.permission.edit).toBe("deny")
   })
 
+  it("gives build and plan their reserved theme colours", async () => {
+    await run()
+
+    expect(frontmatter("build.md")).toContain("color: primary")
+    expect(frontmatter("plan.md")).toContain("color: warning")
+  })
+
   it("skips the primaries when fullstack-engineer.md is absent", async () => {
     fs.rmSync(path.join(agentsDir, "fullstack-engineer.md"))
 
@@ -149,6 +156,41 @@ describe("PcSubagentTiers engineer templates", () => {
       expect(fm).toContain("mode: subagent")
       expect(fm).toContain(`model: p/${tier}`)
     }
+  })
+
+  it("replaces a hand-picked theme colour with the derived hex", async () => {
+    fs.writeFileSync(
+      path.join(agentsDir, "frontend-engineer.md"),
+      "---\ndescription: Frontend.\nmode: subagent\ncolor: info\n---\n\nYou are a frontend engineer.\n",
+    )
+
+    await run()
+
+    const fm = frontmatter("frontend-engineer.md")
+    expect(fm).not.toContain("color: info")
+    expect(fm).toMatch(/color: #[0-9A-F]{6}/)
+  })
+
+  it("leaves a deliberate hex alone", async () => {
+    fs.writeFileSync(
+      path.join(agentsDir, "frontend-engineer.md"),
+      "---\ndescription: Frontend.\nmode: subagent\ncolor: #123456\n---\n\nYou are a frontend engineer.\n",
+    )
+
+    await run()
+
+    expect(frontmatter("frontend-engineer.md")).toContain("color: #123456")
+  })
+
+  it("adds a colour when the template has none", async () => {
+    fs.writeFileSync(
+      path.join(agentsDir, "butterfly-engineer.md"),
+      "---\ndescription: Butterfly.\nmode: subagent\n---\n\nYou are a butterfly engineer.\n",
+    )
+
+    await run()
+
+    expect(frontmatter("butterfly-engineer.md")).toMatch(/color: #[0-9A-F]{6}/)
   })
 
   it("does not generate tier variants for fullstack itself", async () => {
