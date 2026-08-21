@@ -6,6 +6,7 @@ import { runUpdate } from './commands/update.js'
 import { runSingleCommand } from './commands/single.js'
 import { runWizard } from './commands/wizard.js'
 import { exit } from './utils/process.js'
+import { runMigrateCommand } from './commands/migrate.js'
 import { findLegacyInstall } from './utils/legacy-check.js'
 
 function printHelp(version) {
@@ -17,6 +18,7 @@ function printHelp(version) {
   console.log()
   console.log('Commands:')
   console.log('  update          Bring the harness up to date from saved config (no prompts)')
+  console.log('  migrate         Move a v1 (opencode-onboard) project to v2, keeping your content')
   console.log('  join            Set up a teammate\'s machine (checks & local installs only)')
   console.log('  clean           Run AI files cleanup step')
   console.log('  platform        Run platform selection step')
@@ -59,16 +61,23 @@ async function refuseLegacyInstall() {
   console.log('and it does not migrate v1 projects. Continuing would leave the harness')
   console.log('half-patched without reporting an error.')
   console.log()
-  console.log('Re-onboard on a clean branch instead:')
-  console.log(chalk.dim('  git switch -c chore/agent-harness'))
-  console.log(chalk.dim('  rm -rf .opencode .agents/skills/ob-*'))
-  console.log(chalk.dim('  npx @plainconceptsplatform/agent-harness'))
+  console.log('Migrate it, keeping your generated skills and custom engineers:')
+  console.log(chalk.dim('  npx @plainconceptsplatform/agent-harness migrate'))
+  console.log(chalk.dim('  npx @plainconceptsplatform/agent-harness update'))
+  console.log()
+  console.log(chalk.dim('Add --dry-run to see what migrate would change first.'))
   return true
 }
 
 // Ctrl-C out of an @inquirer prompt throws ExitPromptError; that is a normal
 // cancellation, not a crash, so it must not exit non-zero.
 async function main() {
+  // migrate is the way out of a v1 project, so it must run before the guard
+  // that refuses v1 projects.
+  if (args[0] === 'migrate') {
+    await runMigrateCommand(args.slice(1))
+    return
+  }
   if (await refuseLegacyInstall()) {
     exit(1)
     return

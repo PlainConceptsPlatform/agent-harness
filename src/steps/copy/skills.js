@@ -21,7 +21,7 @@ const BACKLOG_PLATFORM_SKILLS = {
 // Platform-specific skills are renamed to their generic form on install.
 // The -gh / -az / -jira / -gl suffix is only needed here to keep all variants in source.
 // After install only one platform is present so no suffix is needed.
-const SKILL_RENAME = {
+export const SKILL_RENAME = {
   'pc-userstory-gh':      'pc-userstory',
   'pc-userstory-az':      'pc-userstory',
   'pc-userstory-jira':    'pc-userstory',
@@ -38,7 +38,7 @@ function shouldInstallSkill(skill, backlogPlatform, _repoPlatform) {
 // these must be preserved when they have already been generated (detected
 // by the <!-- Last updated: marker). Without this check, the update would
 // wipe project-specific guardrails, risk assessments, etc.
-const GENERATABLE_SKILLS = new Set([
+export const GENERATABLE_SKILLS = new Set([
   'pc-guardrails-project',
   'pc-merge-risk-assess',
 ])
