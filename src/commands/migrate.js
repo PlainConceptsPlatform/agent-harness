@@ -235,7 +235,11 @@ export async function runMigrate({ cwd = process.cwd(), force = false, dryRun = 
   // 4. Rewrite identifiers everywhere that survives, so preserved skills and
   //    custom agents stop pointing at names that no longer exist.
   let rewritten = 0
-  for (const dir of [skillsDir, opencodeDir, path.join(cwd, 'openspec')]) {
+  // .github/workflows is included because GitHub Agentic Workflow definitions
+  // call the skills by name (skill("pc-repo-audit")), so a stale ob- name there
+  // fails at run time in CI rather than locally. Their compiled .lock.yml files
+  // embed the same prompt text, so recompile with `gh aw compile` afterwards.
+  for (const dir of [skillsDir, opencodeDir, path.join(cwd, 'openspec'), path.join(cwd, '.github', 'workflows')]) {
     if (!await fse.pathExists(dir)) continue
     for (const file of await collectTextFiles(dir)) {
       const before = await fse.readFile(file, 'utf-8')
@@ -280,6 +284,18 @@ export async function runMigrate({ cwd = process.cwd(), force = false, dryRun = 
   console.log()
   console.log(chalk.bold('Next: run update to install the current harness.'))
   console.log(chalk.dim('  npx @plainconceptsplatform/agent-harness@latest update'))
+
+  // The .md definitions were rewritten above, but the compiled .lock.yml files
+  // embed the same prompt text and are what CI actually runs.
+  if (await fse.pathExists(path.join(cwd, '.github', 'workflows'))) {
+    const locks = (await fse.readdir(path.join(cwd, '.github', 'workflows')).catch(() => []))
+      .filter(f => f.endsWith('.lock.yml'))
+    if (locks.length > 0) {
+      console.log()
+      console.log(chalk.bold(`Then recompile ${locks.length} agentic workflow(s), whose .lock.yml still holds the old skill names:`))
+      console.log(chalk.dim('  gh aw compile'))
+    }
+  }
 
   return { migrated: true, plan, rewritten, demoted }
 }

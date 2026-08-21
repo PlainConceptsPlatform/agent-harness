@@ -83,6 +83,12 @@ async function seedV1Project(root) {
   }
   await fse.outputFile(path.join(oc, 'tui', 'ob-subagents.tsx'), '// shipped panel\n')
 
+  // An agentic workflow definition that calls a skill by name.
+  await fse.outputFile(
+    path.join(root, '.github', 'workflows', 'agent-audit.md'),
+    '1. Call skill("ob-repo-audit"), then run `/repo-audit`.\n',
+  )
+
   // An archived change is history; a live spec is current documentation.
   await fse.outputFile(
     path.join(root, 'openspec', 'changes', 'archive', '2026-01-01-thing', 'proposal.md'),
@@ -210,6 +216,16 @@ describe('runMigrate() state and identifiers', () => {
     await runMigrate({ cwd })
 
     expect(await read('openspec', 'specs', 'infra', 'spec.md')).toContain('pc-repo-verify')
+  })
+
+  // GitHub Agentic Workflow definitions call skills by name, so a stale ob-
+  // name here fails in CI rather than locally.
+  it('rewrites agentic workflow definitions', async () => {
+    await runMigrate({ cwd })
+
+    const wf = await read('.github', 'workflows', 'agent-audit.md')
+    expect(wf).toContain('skill("pc-repo-audit")')
+    expect(wf).not.toContain('ob-repo-audit')
   })
 
   it('does not corrupt {blob-url}', async () => {
