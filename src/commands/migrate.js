@@ -141,7 +141,19 @@ export async function planMigration(cwd = process.cwd()) {
   const agentFiles = await fse.readdir(agentsDir).catch(() => [])
   const staleVariants = agentFiles.filter(f => /^[\w-]+-engineer\.(build|fast|plan)\.md$/.test(f))
 
-  return { moves, deletes, skillsToRename, skillsToDrop, staleVariants }
+  // Plugins and the TUI panel are shipped code, and update installs the pc-*
+  // copies alongside rather than over the ob-* ones. Left in place, both
+  // generations load: two tier plugins writing the same variant files and two
+  // monitors writing the same run state.
+  const stalePlugins = []
+  for (const dir of ['plugins', 'tui']) {
+    const full = path.join(cwd, OPENCODE_DIR, dir)
+    for (const file of await fse.readdir(full).catch(() => [])) {
+      if (file.startsWith('ob-')) stalePlugins.push(path.join(dir, file))
+    }
+  }
+
+  return { moves, deletes, skillsToRename, skillsToDrop, staleVariants, stalePlugins }
 }
 
 export async function runMigrate({ cwd = process.cwd(), force = false, dryRun = false } = {}) {
@@ -175,6 +187,9 @@ export async function runMigrate({ cwd = process.cwd(), force = false, dryRun = 
   }
   if (plan.staleVariants.length > 0) {
     info(`${plan.staleVariants.length} tier variant(s) removed, regenerated at startup`)
+  }
+  if (plan.stalePlugins.length > 0) {
+    info(`${plan.stalePlugins.length} ob- plugin/tui file(s) removed, replaced by pc-* on update`)
   }
 
   if (dryRun) {
@@ -213,6 +228,9 @@ export async function runMigrate({ cwd = process.cwd(), force = false, dryRun = 
   // 3. Stale tier variants: the plugin rebuilds these from the base templates.
   const agentsDir = path.join(opencodeDir, 'agents')
   for (const file of plan.staleVariants) await fse.remove(path.join(agentsDir, file))
+
+  // 3b. Stale plugins and TUI panel, so only one generation loads.
+  for (const relative of plan.stalePlugins) await fse.remove(path.join(opencodeDir, relative))
 
   // 4. Rewrite identifiers everywhere that survives, so preserved skills and
   //    custom agents stop pointing at names that no longer exist.
@@ -256,6 +274,9 @@ export async function runMigrate({ cwd = process.cwd(), force = false, dryRun = 
 
   success(`Renamed ${plan.moves.length} state file(s), kept ${plan.skillsToRename.length} project-owned skill(s)`)
   success(`Rewrote identifiers in ${rewritten} file(s), demoted ${demoted} agent(s) to subagent`)
+  if (plan.stalePlugins.length > 0) {
+    success(`Removed ${plan.stalePlugins.length} superseded plugin/tui file(s)`)
+  }
   console.log()
   console.log(chalk.bold('Next: run update to install the current harness.'))
   console.log(chalk.dim('  npx @plainconceptsplatform/agent-harness@latest update'))

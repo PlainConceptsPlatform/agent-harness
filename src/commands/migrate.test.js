@@ -76,6 +76,13 @@ async function seedV1Project(root) {
   // The one string a naive ob- replace corrupts.
   await fse.outputFile(path.join(oc, 'commands', 'ops-ship.md'), 'gh pr comment --body ({blob-url})\n')
 
+  // Shipped plugins and the TUI panel: update installs pc-* alongside these
+  // rather than over them, so migrate has to clear them.
+  for (const name of ['ob-subagent-tiers.js', 'ob-subagent-monitor.js', 'ob-system-reminders.js']) {
+    await fse.outputFile(path.join(oc, 'plugins', name), '// shipped plugin\n')
+  }
+  await fse.outputFile(path.join(oc, 'tui', 'ob-subagents.tsx'), '// shipped panel\n')
+
   // An archived change is history; a live spec is current documentation.
   await fse.outputFile(
     path.join(root, 'openspec', 'changes', 'archive', '2026-01-01-thing', 'proposal.md'),
@@ -93,7 +100,11 @@ const exists = (...p) => fse.pathExists(path.join(cwd, ...p))
 beforeEach(async () => {
   cwd = await fse.mkdtemp(path.join(os.tmpdir(), 'pc-migrate-'))
   await seedV1Project(cwd)
-  execa.mockClear()
+  // mockReset, not mockClear: the force test queues a mockResolvedValueOnce
+  // that force short-circuits past, so an unconsumed "dirty" reply would leak
+  // into the next test and make it look like migrate silently did nothing.
+  execa.mockReset()
+  execa.mockResolvedValue({ exitCode: 0, stdout: '' })
 })
 
 afterEach(async () => {
@@ -259,6 +270,24 @@ describe('runMigrate() guards', () => {
     expect(result).toMatchObject({ migrated: false, dryRun: true })
     expect(await exists('.opencode', 'opencode-onboard.json')).toBe(true)
     expect(await exists('.agents', 'skills', 'ob-guardrails-project')).toBe(true)
+  })
+})
+
+describe('runMigrate() superseded plugins', () => {
+  // Two tier plugins loading at once would both write the same variant files,
+  // and two monitors would both write the run state.
+  it('removes the ob- plugins and TUI panel', async () => {
+    await runMigrate({ cwd })
+
+    for (const name of ['ob-subagent-tiers.js', 'ob-subagent-monitor.js', 'ob-system-reminders.js']) {
+      expect(await exists('.opencode', 'plugins', name)).toBe(false)
+    }
+    expect(await exists('.opencode', 'tui', 'ob-subagents.tsx')).toBe(false)
+  })
+
+  it('reports them in the plan', async () => {
+    const plan = await planMigration(cwd)
+    expect(plan.stalePlugins).toHaveLength(4)
   })
 })
 
