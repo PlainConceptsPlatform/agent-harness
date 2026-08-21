@@ -66,7 +66,8 @@ function mixedPlatformContent(backlogPlatform, repoPlatform, key) {
 function replaceBetween(content, start, end, replacement) {
   if (!content.includes(start) || !content.includes(end)) return content
   const pattern = new RegExp(`${start}[\\s\\S]*?${end}`)
-  return content.replace(pattern, `${start}\n${replacement.trim()}\n${end}`)
+  // Replacer function so $&, $' and $` in injected content stay literal.
+  return content.replace(pattern, () => `${start}\n${replacement.trim()}\n${end}`)
 }
 
 export async function patchAgentsMd(ctx) {

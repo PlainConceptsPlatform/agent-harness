@@ -23,7 +23,8 @@ function replaceMarkerSection(content, startMarker, endMarker, replacement) {
   if (!content.includes(startMarker) || !content.includes(endMarker)) return content
   const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   const pattern = new RegExp(`${escape(startMarker)}[\\s\\S]*?${escape(endMarker)}`)
-  return content.replace(pattern, `${startMarker}\n${replacement}\n${endMarker}`)
+  // Replacer function so $&, $' and $` in injected content stay literal.
+  return content.replace(pattern, () => `${startMarker}\n${replacement}\n${endMarker}`)
 }
 
 async function patchOptionalToolGuidance(destSkillsDir, selections) {

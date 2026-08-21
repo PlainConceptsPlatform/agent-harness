@@ -48,7 +48,11 @@ function patchFile(relativePath, startMarker, endMarker, content, platform, cwd 
   if (!fileContent.includes(startMarker) || !fileContent.includes(endMarker)) return
 
   const pattern = new RegExp(`${startMarker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\\s\\S]*?${endMarker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`)
-  fileContent = fileContent.replace(pattern, `${startMarker}\n${content.trim()}\n${endMarker}`)
+  // Replacer function, not a replacement string: the injected fragments contain
+  // shell quoting like $'...' and a string replacement expands $' as "everything
+  // after the match", silently truncating the command. That is how the ops-ship
+  // screenshot comment lost its entire --body argument.
+  fileContent = fileContent.replace(pattern, () => `${startMarker}\n${content.trim()}\n${endMarker}`)
   fse.writeFileSync(targetPath, `${fileContent.replace(/\s*$/, '')}\n`, 'utf-8')
   success(`${relativePath} content injected for platform: ${platform}`)
 }
