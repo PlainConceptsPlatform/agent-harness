@@ -1,6 +1,6 @@
 ---
 title: Getting started
-description: Install agent-harness, satisfy the prerequisites, and rerun individual steps.
+description: Install the harness, satisfy the prerequisites, and keep it up to date.
 ---
 
 <Callout title="Requires Node.js 18 or higher" type="warn">
@@ -102,9 +102,9 @@ tracks a hash of each file it manages in `.opencode/harness-managed.json`, so an
 edited by hand is preserved rather than overwritten.
 
 <Callout type="warn" title="Upgrading from opencode-onboard v1">
-  v2 renamed the config files and the skill prefix (`ob-` → `pc-`), and it does not migrate v1
-  projects. The CLI detects one and refuses to run rather than half-patching it. Re-onboard on a
-  clean branch: remove `.opencode/` and `.agents/skills/ob-*`, then run the wizard again.
+  v2 renamed the config files and the skill prefix (`ob-` became `pc-`), and it does not migrate
+  v1 projects. The CLI detects one and refuses to run rather than half-patching it. Re-onboard on
+  a clean branch: remove `.opencode/` and `.agents/skills/ob-*`, then run the wizard again.
 </Callout>
 
 ## Narrower reruns
@@ -129,8 +129,8 @@ edited by hand is preserved rather than overwritten.
 </Accordion>
 
 <Accordion title="Joining a project that already has the harness">
-  Run `join`. It installs the local tooling the harness expects — platform CLIs, plugins, skills,
-  OpenSpec — and touches no committed file.
+  Run `join`. It installs the local tooling the harness expects (platform CLIs, plugins, skills,
+  OpenSpec) and touches no committed file.
 </Accordion>
 
 </Accordions>

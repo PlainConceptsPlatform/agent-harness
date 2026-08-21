@@ -1,11 +1,13 @@
 # skills/
 
-Skills **about** this CLI, for any AI agent that has to operate it.
+Skills **about** this CLI, for any AI agent that has to operate it. The CLI
+installs the Plain Concepts Platform Harness; these help an agent drive the CLI.
 
 These are not the skills the CLI installs. Those live in
 [`src/content/.agents/skills/`](../src/content/.agents/skills) under the `pc-`
-prefix and are copied into a target repository during install. The skills here
-never ship inside the npm package — they document the CLI itself.
+prefix, and the CLI copies them into a target repository during install. The
+skills here never ship inside the npm package, because they document the CLI
+itself.
 
 | Skill | Use it when |
 | --- | --- |

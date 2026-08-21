@@ -4,7 +4,7 @@
 
 # 🧰 agent-harness
 
-**Installs and maintains an agent harness in any codebase. Wires [OpenCode](https://opencode.ai), [OpenSpec](https://github.com/fission-ai/openspec), [codegraph](https://github.com/colbymchenry/codegraph), and [agentmemory](https://github.com/rohitg00/agentmemory) into a multi-agent development workflow powered by native parallel subagents.**
+**Installs the Plain Concepts Platform Harness into any codebase, and keeps it up to date. Wires [OpenCode](https://opencode.ai), [OpenSpec](https://github.com/fission-ai/openspec), [codegraph](https://github.com/colbymchenry/codegraph), and [agentmemory](https://github.com/rohitg00/agentmemory) into a multi-agent workflow that runs on native parallel subagents.**
 
 GitHub, Azure DevOps, Jira, GitLab, browser-based backlog, or combinations (for example, Jira backlog plus GitHub repository, or browser backlog plus GitLab repository).
 
@@ -19,19 +19,23 @@ GitHub, Azure DevOps, Jira, GitLab, browser-based backlog, or combinations (for 
 
 ## What is this?
 
-Most codebases have no `AGENTS.md`, no architecture documentation that agents can read, and no defined workflow for picking up tasks. Agents end up improvising, producing inconsistent results.
+Most codebases have no `AGENTS.md`, no architecture documentation an agent can read, and no defined workflow for picking up a task. So agents improvise, and you get a different answer every run.
 
-**agent-harness** is a CLI that installs a *harness* into your repository, then keeps it current. The harness is the set of files agents actually work from: slash commands, `pc-*` skills, an agent team, OpenCode plugins, an OpenSpec workspace, and generated `ARCHITECTURE.md` / `DESIGN.md`. It configures OpenCode with OpenSpec for structured change management, native subagent waves for parallel execution, codegraph for code intelligence, and agentmemory for shared context across sessions.
+**agent-harness** is the CLI that installs the **Plain Concepts Platform Harness** into a repository and keeps it up to date.
 
-Three verbs cover its whole life cycle:
+The harness is ours. We build it, our projects run on it, and this CLI is how it gets into a codebase. It is the set of files agents work from: slash commands, `pc-*` skills (the `pc-` is Plain Concepts), an agent team, OpenCode plugins, an OpenSpec workspace, and generated `ARCHITECTURE.md` and `DESIGN.md`.
 
-| | |
+Underneath, it wires OpenCode to OpenSpec for change management, native subagent waves for parallel work, codegraph for code intelligence, and agentmemory for context that survives between sessions.
+
+The CLI has three jobs:
+
+| Command | What it does |
 | --- | --- |
-| **install** | `npx @plainconceptsplatform/agent-harness` — a wizard runs once, writes the harness, records your choices in `.opencode/harness.json` |
-| **update** | `npx @plainconceptsplatform/agent-harness update` — re-applies the harness from those saved choices, with no prompts, preserving files you have edited |
-| **join** | `npx @plainconceptsplatform/agent-harness join` — a new teammate installs the local tooling the harness expects, touching no committed file |
+| `npx @plainconceptsplatform/agent-harness` | Installs the harness. A wizard runs once and saves your answers to `.opencode/harness.json`. |
+| `npx @plainconceptsplatform/agent-harness update` | Reinstalls the harness from those saved answers, no questions asked. Keeps files you edited. |
+| `npx @plainconceptsplatform/agent-harness join` | Sets up a teammate's machine. Touches no committed file. |
 
-The wizard is the first of those three, not the product.
+You run the first one once per repository, and the second whenever we ship a release.
 
 <div align="center">
 <img src="https://raw.githubusercontent.com/PlainConceptsPlatform/agent-harness/refs/heads/main/docs/public/assets/demo.gif" alt="agent-harness demo" width="700" />
@@ -76,7 +80,7 @@ A new release of agent-harness ships new commands, skills and plugins. To pull t
 npx @plainconceptsplatform/agent-harness@latest update
 ```
 
-`update` re-runs every file patch from `.opencode/harness.json` without asking anything. It tracks a hash of each file it manages in `.opencode/harness-managed.json`, so anything you have edited by hand is preserved rather than overwritten, and generated skills such as `pc-guardrails-project` are left alone.
+`update` re-runs every file patch from `.opencode/harness.json` and asks nothing. It keeps a hash of each file it manages in `.opencode/harness-managed.json`, so it leaves your hand edits alone and reports them as preserved. It also skips generated skills like `pc-guardrails-project`, whose contents came from a `/make-*` command rather than from us.
 
 Reach for individual steps when you want something narrower:
 
@@ -86,7 +90,7 @@ Reach for individual steps when you want something narrower:
 - `metadata` last, to refresh `.opencode/harness.json`
 - `join` if you are new to a project that already has the harness and want the local tooling it expects
 
-> **Upgrading from `opencode-onboard` v1?** v2 renamed the config files and the skill prefix (`ob-` → `pc-`) and does not migrate v1 projects. The CLI detects one and refuses to run rather than half-patching it. Re-onboard on a clean branch: remove `.opencode/` and `.agents/skills/ob-*`, then run the wizard again.
+> **Upgrading from `opencode-onboard` v1?** v2 renamed the config files and the skill prefix (`ob-` became `pc-`), and it does not migrate v1 projects. The CLI detects one and refuses to run rather than half-patching it. Re-onboard on a clean branch: remove `.opencode/` and `.agents/skills/ob-*`, then run the wizard again.
 
 ---
 
@@ -121,7 +125,7 @@ OpenCode asks if this is a greenfield or brownfield project. For brownfield proj
 
 Custom slash commands are installed into `.opencode/commands/` and are available directly in OpenCode.
 
-Commands that other commands (or agents) need to execute are thin wrappers around `pc-*` skills in `.agents/skills/` — the command handles user invocation and arguments, the skill holds the procedure. OpenCode has no mechanism for a command to run another command, but any agent can load a skill mid-conversation, which is what makes pipelines like `/plan-goal` composable.
+Commands that other commands (or agents) need to execute are thin wrappers around `pc-*` skills in `.agents/skills/`. The command handles user invocation and arguments, and the skill holds the procedure. OpenCode has no mechanism for a command to run another command, but any agent can load a skill mid-conversation, which is what makes pipelines like `/plan-goal` composable.
 
 | Command | Description |
 | ------- | ----------- |
@@ -165,7 +169,7 @@ fullstack-engineer     primary planning agent, accumulates all skills (user-faci
 *-engineer             user-created specialists, spawned by the lead for parallel implementation
 ```
 
-`fullstack-engineer` is `mode: primary` — it's the user's planning session agent, not a spawned worker. Project-specific specialization comes from user-created custom engineers via `/make-engineer`. During `/plan-apply`, the lead inspects the engineers that actually exist in `.opencode/agents/` and spawns matching specialists. `fullstack-engineer` is never assigned to tasks — if no specialist matches, the user should create one.
+`fullstack-engineer` is `mode: primary`, so it is the user's planning session agent rather than a spawned worker. Project-specific specialization comes from user-created custom engineers via `/make-engineer`. During `/plan-apply`, the lead inspects the engineers that actually exist in `.opencode/agents/` and spawns matching specialists. `fullstack-engineer` is never assigned to tasks. If no specialist matches, the user should create one.
 
 ### Skills, platform knowledge
 
@@ -371,7 +375,7 @@ The CLI is organized around the ten wizard steps: one directory per step under `
 
 Data the CLI reads lives in two places, split by kind:
 
-**`src/presets/`** — JSON that shapes the wizard's questions and defaults:
+**`src/presets/`** holds JSON that shapes the wizard's questions and defaults:
 
 - `source.json` controls source-scope prompt options
 - `platforms.json` controls platform labels, CLI checks, and backlog-only flags
@@ -381,13 +385,13 @@ Data the CLI reads lives in two places, split by kind:
 - `quota.json` controls opencode-quota defaults
 - `browser.json` controls opencode-browser installer automation
 
-**`src/fragments/`** — Markdown injected into the installed harness, one directory per marker family: `archive/`, `guardrails/`, `ops-backlog/`, `ops-evidence/`, `ops-review/`, `ops-ship/`. Each file is the platform-specific body that replaces a `<!-- PC-PLATFORM-*-START -->` block.
+**`src/fragments/`** holds Markdown injected into the installed harness, one directory per marker family: `archive/`, `guardrails/`, `ops-backlog/`, `ops-evidence/`, `ops-review/`, `ops-ship/`. Each file is the platform-specific body that replaces a `<!-- PC-PLATFORM-*-START -->` block.
 
-**`src/content/`** is the payload itself: everything copied verbatim into the target repository.
+**`src/content/`** is the payload itself, meaning everything copied verbatim into the target repository.
 
 Every filename the harness writes into a project is declared once in `src/utils/paths.js`. Change it there, and remember the OpenCode plugins under `src/content/.opencode/plugins/` read those same names at runtime.
 
-`skills/` holds skills *about this CLI*, for agents that have to operate it — see [skills/README.md](./skills/README.md). They are not published to npm and are distinct from the `pc-*` skills in `src/content/` that get installed into your project.
+`skills/` holds skills *about this CLI*, for agents that have to operate it. See [skills/README.md](./skills/README.md). They are not published to npm, and they are separate from the `pc-*` skills in `src/content/` that get installed into your project.
 
 ```bash
 git clone https://github.com/PlainConceptsPlatform/agent-harness.git
