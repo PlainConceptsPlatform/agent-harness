@@ -5,3 +5,5 @@ harness-managed.json
 source-roots.json
 tmp/
 *-engineer.*.md
+agents/build.md
+agents/plan.md

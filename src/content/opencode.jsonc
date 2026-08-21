@@ -23,9 +23,17 @@
   "skills": {
     "paths": [".agents/skills"]
   },
-  "default_agent": "fullstack-engineer",
+  // build and plan are the only primaries. The pc-subagent-tiers plugin
+  // regenerates .opencode/agents/{build,plan}.md from fullstack-engineer.md on
+  // every startup and overrides these two entries with the resolved tier model,
+  // so what is here is only the floor if the plugin cannot run. Every engineer
+  // is mode: subagent and reached through task(), never picked by a human.
+  "default_agent": "build",
   "agent": {
-    "build": { "disable": true },
-    "plan": { "disable": true }
+    "build": { "mode": "primary" },
+    "plan": {
+      "mode": "primary",
+      "permission": { "edit": "deny" }
+    }
   }
 }

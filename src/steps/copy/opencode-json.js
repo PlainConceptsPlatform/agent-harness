@@ -33,9 +33,19 @@ export async function patchOpencodeJson(cwd = process.cwd()) {
     return { patched: false, reason: 'parse error' }
   }
 
-  const needsAgentDisable = !(
-    parsed?.agent?.build?.disable === true &&
-    parsed?.agent?.plan?.disable === true
+  // build and plan are overridden, not disabled. Earlier versions disabled them
+  // and pointed default_agent at fullstack-engineer; now they are the only two
+  // primaries and pc-subagent-tiers regenerates their agent files from
+  // fullstack-engineer.md. A repo patched by an earlier version still carries
+  // `disable: true`, which would hide both agents, so that flag is cleared here.
+  const hasStaleDisable = (
+    parsed?.agent?.build?.disable !== undefined ||
+    parsed?.agent?.plan?.disable !== undefined
+  )
+  const needsAgentOverride = hasStaleDisable || !(
+    parsed?.agent?.build?.mode === 'primary' &&
+    parsed?.agent?.plan?.mode === 'primary' &&
+    parsed?.agent?.plan?.permission?.edit === 'deny'
   )
   const needsSkillPermission = parsed?.permission?.skill !== 'allow'
   const missingSharedPermissions = SHARED_PERMISSIONS.filter(
@@ -51,14 +61,22 @@ export async function patchOpencodeJson(cwd = process.cwd()) {
     parsed?.compaction?.prune === true
   )
 
-  if (!needsAgentDisable && !needsSkillPermission && missingSharedPermissions.length === 0 && !needsSkillsPaths && !needsCompaction) {
+  if (!needsAgentOverride && !needsSkillPermission && missingSharedPermissions.length === 0 && !needsSkillsPaths && !needsCompaction) {
     return { patched: false }
   }
 
   // Apply edits sequentially so offsets stay correct
-  if (needsAgentDisable) {
-    text = applyModify(text, ['agent', 'build', 'disable'], true)
-    text = applyModify(text, ['agent', 'plan', 'disable'], true)
+  if (needsAgentOverride) {
+    // undefined removes the key, clearing the disable left by earlier versions.
+    if (parsed?.agent?.build?.disable !== undefined) {
+      text = applyModify(text, ['agent', 'build', 'disable'], undefined)
+    }
+    if (parsed?.agent?.plan?.disable !== undefined) {
+      text = applyModify(text, ['agent', 'plan', 'disable'], undefined)
+    }
+    text = applyModify(text, ['agent', 'build', 'mode'], 'primary')
+    text = applyModify(text, ['agent', 'plan', 'mode'], 'primary')
+    text = applyModify(text, ['agent', 'plan', 'permission', 'edit'], 'deny')
   }
   if (needsSkillPermission) text = applyModify(text, ['permission', 'skill'], 'allow')
   for (const [key, value] of missingSharedPermissions) {
@@ -82,8 +100,8 @@ export async function patchOpencodeJson(cwd = process.cwd()) {
   }
 
   await fse.writeFile(opencodePath, text, 'utf-8')
-  if (needsAgentDisable) {
-    success('Disabled built-in build/plan agents in opencode.jsonc')
+  if (needsAgentOverride) {
+    success('Set build/plan as the primary agents in opencode.jsonc (plan is read-only)')
   }
   if (needsSkillPermission) {
     success('Allowed skill loading in opencode.jsonc')

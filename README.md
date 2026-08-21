@@ -164,12 +164,14 @@ Agents define _how to work_. They are universal personas (same behavior across p
 Current baseline uses a generic execution model:
 
 ```
-lead                   lead/orchestrator, planning, pull request lifecycle
-fullstack-engineer     primary planning agent, accumulates all skills (user-facing, not spawned)
-*-engineer             user-created specialists, spawned by the lead for parallel implementation
+build                  primary. Implements. Full write access. The default.
+plan                   primary. Same body as build, but cannot edit files.
+fullstack-engineer     subagent. The body build and plan share, and the fallback worker.
+*-engineer             subagent. User-created specialists, spawned for parallel implementation.
+*-engineer.<tier>      subagent. The same specialist pinned to a plan/build/fast model.
 ```
 
-`fullstack-engineer` is `mode: primary`, so it is the user's planning session agent rather than a spawned worker. Project-specific specialization comes from user-created custom engineers via `/make-engineer`. During `/plan-apply`, the lead inspects the engineers that actually exist in `.opencode/agents/` and spawns matching specialists. `fullstack-engineer` is never assigned to tasks. If no specialist matches, the user should create one.
+`build` and `plan` are the only agents a human selects, and they are overrides of opencode's own two primaries rather than new names. The `pc-subagent-tiers` plugin regenerates both from `fullstack-engineer.md` on every startup, so they always carry the current abilities, each on its own tier model. `plan` differs from `build` in one frontmatter line: `edit: deny`. It can still read the tree, shell out to git and openspec, and spawn engineers, so planning works and cannot write. Everything else is `mode: subagent` and reached through `task()`, never picked from the agent list. Project-specific specialization comes from user-created engineers via `/make-engineer`. During `/plan-apply` the lead inspects the engineers that actually exist in `.opencode/agents/` and spawns matching specialists. Prefer a specialist over `fullstack-engineer`; if none matches, create one.
 
 ### Skills, platform knowledge
 
@@ -289,7 +291,8 @@ your-project/
 │   ├── opencode.json                ← default model + plugin config
 │   ├── harness.json                 ← harness config: platform, models, maxConcurrentAgents
 │   ├── harness-managed.json         ← hashes of every managed file, so "update" spares your edits
-│   ├── agents/                      ← fullstack-engineer (primary, planning) + user-created *-engineer files
+│   ├── agents/                      ← build.md + plan.md (generated primaries), fullstack-engineer,
+│   │                                   and user-created *-engineer files (all subagents)
 │   ├── tui.json                     ← registers the Subagents sidebar panel
 │   ├── tui/
 │   │   └── pc-subagents.tsx         ← TUI plugin: live Subagents panel in the sidebar

@@ -1,11 +1,44 @@
 // pc-subagent-tiers: on startup, reads *-engineer.md templates and creates
-// tier variant files with the resolved model. Variants are gitignored and
-// regenerated every startup. Model resolution: user override > team config.
+// tier variant files with the resolved model, plus the two primary agents the
+// user actually talks to. Everything generated here is gitignored and rebuilt
+// every startup. Model resolution: user override > team config.
+//
+// Agent topology:
+//   build.md / plan.md      mode: primary   the only agents a human selects.
+//                                           Both are fullstack-engineer with a
+//                                           tier model; plan cannot edit.
+//   fullstack-engineer.md   mode: subagent  the shared body of build and plan,
+//                                           and the fallback worker.
+//   *-engineer.md           mode: subagent  specialists, spawned by task().
+//   *-engineer.<tier>.md    mode: subagent  the same specialist pinned to a tier.
+//
+// Overriding opencode's built-in build and plan (rather than disabling them, as
+// earlier versions did) means the agent picker offers exactly two entries and
+// both carry our prompt and abilities.
 
 import fs from "node:fs/promises"
 import path from "node:path"
 
 const TIERS = ["build", "fast", "plan"]
+
+// The two primaries, and the tier each takes its model from. plan denies edit
+// so a planning session cannot mutate the tree; bash stays allowed because the
+// planning skills shell out to git and openspec to read state.
+const PRIMARIES = {
+  build: {
+    tier: "build",
+    description: "Implement changes in this repository. Full write access, spawns specialist engineers for parallel work.",
+    permission: null,
+  },
+  plan: {
+    tier: "plan",
+    description: "Explore and plan without touching the tree. Read-only: proposes work for build to carry out.",
+    permission: { edit: "deny" },
+  },
+}
+
+const FULLSTACK_NAME = "fullstack-engineer"
+const FULLSTACK_TEMPLATE = `${FULLSTACK_NAME}.md`
 
 export const PcSubagentTiers = async ({ directory }) => {
   const root = directory || process.cwd()
@@ -35,11 +68,12 @@ export const PcSubagentTiers = async ({ directory }) => {
     try {
       const entries = await fs.readdir(agentsDir)
       return {
-        templates: entries.filter(f => /^[\w-]+-engineer\.md$/.test(f) && f !== 'fullstack-engineer.md').map(f => f.replace(/\.md$/, "")),
+        templates: entries.filter(f => /^[\w-]+-engineer\.md$/.test(f) && f !== FULLSTACK_TEMPLATE).map(f => f.replace(/\.md$/, "")),
         variantFiles: entries.filter(f => /^[\w-]+-engineer\.(build|fast|plan)\.md$/.test(f)),
+        hasFullstack: entries.includes(FULLSTACK_TEMPLATE),
       }
     } catch {
-      return { templates: [], variantFiles: [] }
+      return { templates: [], variantFiles: [], hasFullstack: false }
     }
   }
 
@@ -61,11 +95,13 @@ export const PcSubagentTiers = async ({ directory }) => {
     return `---\n${fm}\n---${templateContent.slice(fmMatch[0].length)}`
   }
 
-  // Ensure template files have mode: primary and no stale model: line. Base
-  // engineer templates must never declare a model: models are resolved at
-  // startup per-tier and injected into variant files only. A stale model:
-  // (e.g. from a prior `stampAgentModels` run) is stripped here so the base
-  // agent falls back to the session-level model in opencode.jsonc.
+  // Ensure template files are mode: subagent with no stale model: line. Only
+  // build and plan are primary; every engineer is reached through task(), never
+  // picked by a human, so a primary engineer would just clutter the picker.
+  // Templates must never declare a model either: models resolve per tier at
+  // startup and are injected into generated files only, so a stale model: (from
+  // a prior `stampAgentModels` run, or from when these were primary) is
+  // stripped and the agent falls back to the session model in opencode.jsonc.
   function normalizeTemplate(templateContent) {
     const fmMatch = templateContent.match(/^---\r?\n([\s\S]*?)\r?\n---/)
     if (!fmMatch) return templateContent
@@ -73,8 +109,8 @@ export const PcSubagentTiers = async ({ directory }) => {
     let fm = fmMatch[1]
     let changed = false
 
-    if (!/^mode:\s*primary/m.test(fm)) {
-      fm = /^mode:/m.test(fm) ? fm.replace(/^mode:.*$/m, 'mode: primary') : `mode: primary\n${fm}`
+    if (!/^mode:\s*subagent/m.test(fm)) {
+      fm = /^mode:/m.test(fm) ? fm.replace(/^mode:.*$/m, 'mode: subagent') : `mode: subagent\n${fm}`
       changed = true
     }
     if (/^model:/m.test(fm)) {
@@ -89,6 +125,32 @@ export const PcSubagentTiers = async ({ directory }) => {
 
   function descriptionOf(templateContent) {
     return templateContent.match(/^description:\s*(.+)$/m)?.[1]?.trim() ?? null
+  }
+
+  // Build a primary from the fullstack body: same identity and the same
+  // ## Abilities block, with our own frontmatter on top. The body is taken
+  // verbatim so /make-engineer only has to maintain fullstack-engineer.md and
+  // both primaries inherit whatever it lists.
+  function buildPrimary(name, spec, fullstackContent, model) {
+    const body = fullstackContent.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '').trim()
+
+    const lines = [
+      '---',
+      `description: ${spec.description}`,
+      'mode: primary',
+    ]
+    if (model) lines.push(`model: ${model}`)
+    lines.push('color: warning')
+    lines.push('permission:')
+    // plan denies edit; everything else stays allowed so the planning skills can
+    // still read the tree, shell out to git and openspec, and spawn engineers.
+    lines.push(`  edit: ${spec.permission?.edit ?? 'allow'}`)
+    for (const key of ['bash', 'read', 'glob', 'grep', 'question', 'todowrite', 'task', 'skill']) {
+      lines.push(`  ${key}: ${spec.permission?.[key] ?? 'allow'}`)
+    }
+    lines.push('---')
+
+    return `${lines.join('\n')}\n\n${body}\n`
   }
 
   // Skip writing if the file already has identical content.
@@ -108,7 +170,43 @@ export const PcSubagentTiers = async ({ directory }) => {
       try {
         const models = await resolveModels()
         const available = TIERS.filter(t => models[t])
-        const { templates, variantFiles } = await scanEngineers()
+        const { templates, variantFiles, hasFullstack } = await scanEngineers()
+
+        // build.md and plan.md are regenerated from fullstack-engineer.md every
+        // startup, which is also how an edit to fullstack propagates to both.
+        // normalizeTemplate runs on it too, so a repo carrying the old
+        // mode: primary fullstack is migrated in place on first launch.
+        if (hasFullstack) {
+          const fullstackPath = path.join(agentsDir, FULLSTACK_TEMPLATE)
+          const rawFullstack = await fs.readFile(fullstackPath, "utf-8")
+          const fullstack = normalizeTemplate(rawFullstack)
+          if (fullstack !== rawFullstack) {
+            await writeIfChanged(fullstackPath, fullstack)
+            console.error(`[pc-subagent-tiers] Normalized ${FULLSTACK_TEMPLATE} (mode: subagent)`)
+          }
+
+          for (const [name, spec] of Object.entries(PRIMARIES)) {
+            const model = models[spec.tier]
+            await writeIfChanged(
+              path.join(agentsDir, `${name}.md`),
+              buildPrimary(name, spec, fullstack, model),
+            )
+            if (cfg?.agent) {
+              // Override opencode's built-in agent of the same name rather than
+              // disabling it, so the picker shows ours with our model.
+              cfg.agent[name] = {
+                ...cfg.agent[name],
+                mode: 'primary',
+                description: spec.description,
+                ...(model ? { model } : {}),
+                ...(spec.permission ? { permission: { ...cfg.agent[name]?.permission, ...spec.permission } } : {}),
+              }
+            }
+          }
+          console.error(`[pc-subagent-tiers] Wrote primaries: build (${models.build ?? 'session model'}), plan (${models.plan ?? 'session model'})`)
+        } else {
+          console.error(`[pc-subagent-tiers] ${FULLSTACK_TEMPLATE} missing: build and plan not generated`)
+        }
 
         const templateContents = await Promise.all(
           templates.map(async name => {
@@ -117,7 +215,7 @@ export const PcSubagentTiers = async ({ directory }) => {
             // If the template had the wrong mode or a stale model:, persist the fix to disk
             if (content !== rawContent) {
               await writeIfChanged(path.join(agentsDir, `${name}.md`), content)
-              console.error(`[pc-subagent-tiers] Normalized ${name}.md (mode: primary, model: removed)`)
+              console.error(`[pc-subagent-tiers] Normalized ${name}.md (mode: subagent, model: removed)`)
             }
             return { name, content }
           })
@@ -144,11 +242,15 @@ export const PcSubagentTiers = async ({ directory }) => {
         await Promise.all(variantsToWrite.map(v => writeIfChanged(v.path, v.content)))
 
         if (cfg?.agent) {
-          // Ensure base templates are always mode: primary in-memory
+          // Ensure base templates are always mode: subagent in-memory. A repo
+          // upgraded from an earlier version may still have primary in config.
           for (const { name } of templateContents) {
             if (cfg.agent[name]) {
-              cfg.agent[name].mode = 'primary'
+              cfg.agent[name].mode = 'subagent'
             }
+          }
+          if (cfg.agent[FULLSTACK_NAME]) {
+            cfg.agent[FULLSTACK_NAME].mode = 'subagent'
           }
           for (const { name, tier, templateContent } of variantsToWrite) {
             const base = cfg.agent[name]

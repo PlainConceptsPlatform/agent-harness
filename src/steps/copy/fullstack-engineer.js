@@ -4,7 +4,7 @@ import { success } from '../../utils/exec.js'
 
 const FULLSTACK_FILE = 'fullstack-engineer.md'
 const FULLSTACK_DESCRIPTION = 'Default engineer that accumulates skills from all created persona engineers. Use as fallback when no specialist matches: but prefer spawning a specific engineer for deterministic results.'
-const FULLSTACK_IDENTITY = 'You are the default engineer, mostly used by the user for architecture and planning. You are more complete but less accurate than specialized engineers, prefer spawning a specialist when one matches the task domain.'
+const FULLSTACK_IDENTITY = 'You are the default engineer, and your body is what the build and plan agents run. You are more complete but less accurate than specialized engineers, so prefer spawning a specialist when one matches the task domain.'
 
 // The reminder plugin owns ability bootstrap. Remove the old prompt-level
 // directive when regenerating so it cannot duplicate the plugin reminder.
@@ -56,7 +56,9 @@ export async function generateFullstackEngineer({ cwd = process.cwd(), updateMod
   const frontmatter = [
     '---',
     `description: ${FULLSTACK_DESCRIPTION}`,
-    'mode: primary',
+    // subagent, not primary: build.md and plan.md are the primaries, and
+    // pc-subagent-tiers generates both from this file on every startup.
+    'mode: subagent',
     'color: warning',
     'permission:',
     '  edit: allow',

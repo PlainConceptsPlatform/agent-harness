@@ -9,12 +9,15 @@ description: The files and directories agent-harness writes into your project.
   <File name="DESIGN.md" annotation="Prompt for agents to fill in from your design system" />
   <Folder name=".opencode" defaultOpen>
     <File name="opencode.json" annotation="Default model and plugin config" />
-    <File name="harness.json" annotation="Onboarding metadata and runtime config" />
+    <File name="harness.json" annotation="Harness config: platform, models, concurrency" />
+    <File name="harness-managed.json" annotation="Hashes of managed files, so update spares your edits" />
     <File name="source-roots.json" annotation="Which roots agents analyse" />
     <File name="tui.json" annotation="Registers the Subagents sidebar panel" />
     <Folder name="agents">
-      <File name="fullstack-engineer.md" annotation="Primary planning agent" />
-      <File name="*-engineer.md" annotation="Your specialists, from /make-engineer" />
+      <File name="build.md" annotation="Primary. Generated from fullstack every startup" />
+      <File name="plan.md" annotation="Primary. Same body as build, but cannot edit" />
+      <File name="fullstack-engineer.md" annotation="Subagent. The body build and plan share" />
+      <File name="*-engineer.md" annotation="Subagents. Your specialists, from /make-engineer" />
     </Folder>
     <Folder name="commands" annotation="The /repo-*, /plan-*, /ops-* and /make-* commands" />
     <Folder name="tui">

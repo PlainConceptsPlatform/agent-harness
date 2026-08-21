@@ -33,7 +33,7 @@ Present as a table:
 Then explain the agent selection model:
 - Primary agents appear in Tab and handle direct user interaction
 - Subagent engineers are spawned by the lead for parallel implementation waves
-- Specialist engineers are preferred when their domain matches the task; `fullstack-engineer` is the user's planning agent (`mode: primary`), not a spawned worker. If no specialist matches, create one with `/make-engineer`.
+- Specialist engineers are preferred when their domain matches the task. `build` and `plan` are the only agents the user selects, and both run the `fullstack-engineer` body; `plan` cannot edit files. Everything else is `mode: subagent` and spawned. If no specialist matches, create one with `/make-engineer`.
 
 ## Step 3: Command reference
 

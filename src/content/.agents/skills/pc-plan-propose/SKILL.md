@@ -58,7 +58,7 @@ Load `@openspec-propose` skill and follow its instructions to generate proposal.
    - `description:` from the YAML frontmatter: the engineer's specialization summary
    - `## Abilities` section: the skills listed under Development, Testing, Infrastructure (e.g. `@nodejs-backend`, `@secure-nextjs-api-routes`)
    Build a map of `agent-name -> { description, abilities }`.
-2. For each task, compare the task text and domain against every engineer's description AND abilities. Pick the engineer whose combined profile most closely matches. `fullstack-engineer` is `mode: primary` (the user's planning agent), not a spawned worker. If no specialist matches a task, leave the agent field blank and record the missing specialization in the proposal. An annotated OpenSpec task needs a real subagent; never substitute the lead or an obsolete generic agent name.
+2. For each task, compare the task text and domain against every engineer's description AND abilities. Pick the engineer whose combined profile most closely matches. `fullstack-engineer` is the fallback worker and the body behind `build` and `plan`; prefer a real specialist over it, and never annotate a task with `build` or `plan`, which are the user's own primaries. If no specialist matches a task, leave the agent field blank and record the missing specialization in the proposal. An annotated OpenSpec task needs a real subagent; never substitute the lead or an obsolete generic agent name.
 3. Pick a tier, derive `depends_on`, derive `touches`, and annotate each task line. Follow the [task annotation](task-annotation.md) reference for the full tier selection guide, dependency derivation, touches derivation, and annotation format with examples.
 
 ## Step 3: Show the plan and ask for confirmation (stop)

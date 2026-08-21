@@ -34,6 +34,9 @@ export const IGNORED_ENTRIES = [
   MANIFEST_FILE,
   'source-roots.json',
   '*-engineer.*.md',
+  // Regenerated from fullstack-engineer.md by pc-subagent-tiers every startup.
+  'agents/build.md',
+  'agents/plan.md',
 ]
 
 export function configPath(cwd = process.cwd()) {

@@ -1,6 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
+import { parse as parseJsonc } from "jsonc-parser"
 import { describe, expect, it } from "vitest"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -13,7 +14,7 @@ describe("OpenCode config template", () => {
   })
 
   it("pins external OpenCode plugins", () => {
-    const config = JSON.parse(fs.readFileSync(path.join(CONTENT_DIR, "opencode.jsonc"), "utf-8"))
+    const config = parseJsonc(fs.readFileSync(path.join(CONTENT_DIR, "opencode.jsonc"), "utf-8"))
     const packageConfig = JSON.parse(fs.readFileSync(path.join(CONTENT_DIR, ".opencode", "package.json"), "utf-8"))
     const quota = JSON.parse(fs.readFileSync(path.join(__dirname, "presets", "quota.json"), "utf-8"))
 
