@@ -75,6 +75,16 @@ async function seedV1Project(root) {
   )
   // The one string a naive ob- replace corrupts.
   await fse.outputFile(path.join(oc, 'commands', 'ops-ship.md'), 'gh pr comment --body ({blob-url})\n')
+
+  // An archived change is history; a live spec is current documentation.
+  await fse.outputFile(
+    path.join(root, 'openspec', 'changes', 'archive', '2026-01-01-thing', 'proposal.md'),
+    'Guardrails checked: `@ob-guardrails-project`.\n',
+  )
+  await fse.outputFile(
+    path.join(root, 'openspec', 'specs', 'infra', 'spec.md'),
+    'Applies the `ob-repo-verify` gate.\n',
+  )
 }
 
 const read = (...p) => fse.readFile(path.join(cwd, ...p), 'utf-8')
@@ -173,6 +183,22 @@ describe('runMigrate() state and identifiers', () => {
     expect(agents).toContain('<!-- PC-PLATFORM-WORKFLOW-START -->')
     expect(agents).toContain('.opencode/harness.json')
     expect(agents).not.toContain('OB-PLATFORM')
+  })
+
+  // Those proposals really did reference ob-* when they were written; rewriting
+  // them would make the audit trail say something that was never true.
+  it('leaves archived openspec changes verbatim', async () => {
+    await runMigrate({ cwd })
+
+    const archived = await read('openspec', 'changes', 'archive', '2026-01-01-thing', 'proposal.md')
+    expect(archived).toContain('@ob-guardrails-project')
+    expect(archived).not.toContain('@pc-guardrails-project')
+  })
+
+  it('does rewrite live openspec specs', async () => {
+    await runMigrate({ cwd })
+
+    expect(await read('openspec', 'specs', 'infra', 'spec.md')).toContain('pc-repo-verify')
   })
 
   it('does not corrupt {blob-url}', async () => {

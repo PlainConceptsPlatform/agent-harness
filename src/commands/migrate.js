@@ -5,7 +5,7 @@ import { execa } from 'execa'
 import { fileURLToPath } from 'node:url'
 import { GENERATABLE_SKILLS, SKILL_RENAME } from '../steps/copy/skills.js'
 import { header, info, success, warn } from '../utils/exec.js'
-import { CONFIG_FILE, MANIFEST_FILE, OPENCODE_DIR, USER_CONFIG_FILE, RUN_STATE_FILE } from '../utils/paths.js'
+import { CONFIG_FILE, MANIFEST_FILE, OPENCODE_DIR, USER_CONFIG_FILE } from '../utils/paths.js'
 import { exit } from '../utils/process.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -22,6 +22,11 @@ const STATE_DELETES = ['.ob-run.json']
 
 const TEXT_EXTENSIONS = new Set(['.md', '.mdx', '.json', '.jsonc', '.js', '.ts', '.tsx', '.yaml', '.yml', '.txt'])
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', 'out', '.next', 'coverage'])
+
+// Archived OpenSpec changes are an audit trail: those proposals really did
+// reference ob-* skills when they were written. Rewriting them would make the
+// record say something that was never true, so the archive is left verbatim.
+const ARCHIVE_SEGMENTS = ['openspec', 'changes', 'archive']
 
 /**
  * The skills this package ships, expressed under the old `ob-` prefix.
@@ -49,11 +54,21 @@ function isGeneratable(legacyName) {
   return GENERATABLE_SKILLS.has(`pc-${legacyName.slice(3)}`)
 }
 
+function isArchived(filePath) {
+  // Split on both separators: path.join yields backslashes on Windows, and a
+  // separator-blind check here would let the archive be rewritten there only.
+  const parts = filePath.split(/[\\/]/)
+  const at = parts.indexOf(ARCHIVE_SEGMENTS[0])
+  if (at === -1) return false
+  return ARCHIVE_SEGMENTS.every((segment, i) => parts[at + i] === segment)
+}
+
 async function collectTextFiles(dir, acc = []) {
   const entries = await fse.readdir(dir, { withFileTypes: true }).catch(() => [])
   for (const entry of entries) {
     if (SKIP_DIRS.has(entry.name)) continue
     const full = path.join(dir, entry.name)
+    if (isArchived(full)) continue
     if (entry.isDirectory()) {
       await collectTextFiles(full, acc)
     } else if (TEXT_EXTENSIONS.has(path.extname(entry.name)) || entry.name === '.gitignore') {
