@@ -5,11 +5,10 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import { code, commandExists, header, info, loading, success, warn } from '../../utils/exec.js'
 import { installQuota } from './quota.js'
-import { installCaveman } from './caveman.js'
+import { installSimpleEnglish } from './simple-english.js'
 import { installCodegraph } from './codegraph.js'
 import { installMemory } from './memory.js'
 import { installHumanizer } from './humanizer.js'
-import { enableCavemanGuidance } from './caveman-guidance.js'
 import { patchGuardrails } from './patch-guardrails.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -97,17 +96,13 @@ export async function tokenOptimizationStep(options = {}) {
     ? await installQuota({ skipHeader: true, skipPrompt: true })
     : { optedIn: false, installed: false }
 
-  const caveman = has('caveman')
-    ? await installCaveman({
+  const simpleEnglish = has('simpleEnglish')
+    ? await installSimpleEnglish({
       skipHeader: true,
       skipPrompt: true,
       installScope,
     })
     : { optedIn: false, installed: false }
-
-  const cavemanGuidance = has('caveman')
-    ? await enableCavemanGuidance(caveman)
-    : { enabled: false }
 
   const codegraph = has('codegraph')
     ? await installCodegraph({ skipHeader: true, installScope })
@@ -130,14 +125,14 @@ export async function tokenOptimizationStep(options = {}) {
     rtk: rtk.available,
     codegraph: codegraph.optedIn,
     memory: memory.optedIn,
-    caveman: caveman.installed,
+    simpleEnglish: simpleEnglish.installed,
     humanizer: humanizer.optedIn,
   })
 
   if (selected.length === 0) warn('No token optimization tools selected')
   else success('Token optimization step completed')
 
-  return { rtk, quota, caveman, cavemanGuidance, codegraph, memory, humanizer }
+  return { rtk, quota, simpleEnglish, codegraph, memory, humanizer }
 }
 
 async function syncSkillsLock() {

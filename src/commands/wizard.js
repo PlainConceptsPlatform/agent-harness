@@ -88,7 +88,7 @@ export async function runWizard(version) {
   const selectedModels = await chooseModels()
 
   const tokenOpt = await tokenOptimizationStep({ ctx })
-  const { rtk, quota, caveman, cavemanGuidance } = tokenOpt
+  const { rtk, quota, simpleEnglish, codegraph, memory, humanizer } = tokenOpt
 
   await installBrowser(ctx)
 
@@ -101,8 +101,7 @@ export async function runWizard(version) {
     installScope,
     additionalSkillsProvider: 'npx-skills',
     ...selectedModels,
-    optionalTools: { rtk, quota, caveman },
-    cavemanGuidance,
+    optionalTools: { rtk, quota, simpleEnglish, codegraph, memory, humanizer },
   })
 
   const toGenerate = [

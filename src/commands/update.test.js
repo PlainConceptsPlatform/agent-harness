@@ -32,4 +32,5 @@ describe('runUpdate()', () => {
     expect(copyContentStep.mock.calls[0][1].forceOverwrite).toBeUndefined()
     expect(patchGuardrails).toHaveBeenCalledWith(expect.objectContaining({ humanizer: true }))
   })
+
 })

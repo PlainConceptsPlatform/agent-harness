@@ -93,6 +93,16 @@ describe('copy utils', () => {
       expect(await fse.pathExists(path.join(dest, '.bootstrap', 'secret.md'))).toBe(false)
     })
 
+    it('excludes plugin test files from generated projects', async () => {
+      const pluginPath = path.join(src, '.opencode', 'plugins', 'example.test.js')
+      await fse.ensureDir(path.dirname(pluginPath))
+      await fse.writeFile(pluginPath, 'test source')
+
+      await copyContent(src, dest, 'github')
+
+      expect(await fse.pathExists(path.join(dest, '.opencode', 'plugins', 'example.test.js'))).toBe(false)
+    })
+
     it('does not overwrite existing files', async () => {
       await fse.writeFile(path.join(src, 'AGENTS.md'), 'new content')
       await fse.writeFile(path.join(dest, 'AGENTS.md'), 'original content')

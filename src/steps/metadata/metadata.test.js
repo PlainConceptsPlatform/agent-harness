@@ -59,7 +59,7 @@ describe('writeOnboardConfig()', () => {
       planModel: 'plan-model',
       buildModel: 'build-model',
       fastModel: 'fast-model',
-      optionalTools: { rtk: { optedIn: true }, caveman: { optedIn: true } },
+      optionalTools: { rtk: { optedIn: true }, simpleEnglish: { optedIn: true } },
       cwd: tmpDir,
     })
 
@@ -72,7 +72,7 @@ describe('writeOnboardConfig()', () => {
     expect(payload.models.build).toBe('build-model')
     expect(payload.agents.maxConcurrent).toBe(4)
     expect(payload.tools.rtk).toBe(true)
-    expect(payload.tools.caveman).toBe(true)
+    expect(payload.tools.simpleEnglish).toBe(true)
     expect(payload.preexisting.design).toBe(true)
     expect(payload.preexisting.architecture).toBe(false)
     expect(payload.preexisting.openspec).toBe(true)
@@ -178,6 +178,17 @@ describe('writeOnboardConfig()', () => {
     const payload = lastPayload()
     expect(payload.models.build).toBe('new')
     expect(payload.agents.maxConcurrent).toBe(4)
+  })
+
+  it('migrates the legacy caveman selection to Simple English', async () => {
+    execa.mockResolvedValue({ exitCode: 0, stdout: '1', stderr: '' })
+    fse.readJson.mockResolvedValueOnce({ tools: { caveman: true } })
+
+    await writeOnboardConfig({ backlogPlatform: 'github', repoPlatform: 'github', sourceMode: 'current', sourceRoots: [], cwd: tmpDir })
+
+    const payload = lastPayload()
+    expect(payload.tools.simpleEnglish).toBe(true)
+    expect(payload.tools.caveman).toBeUndefined()
   })
 
   it('preserves unknown project metadata during refresh', async () => {

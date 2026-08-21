@@ -7,7 +7,7 @@ vi.mock('../../utils/exec.js', () => ({
   success: vi.fn(),
 }))
 
-import { patchOpencodeJson } from './opencode-json.js'
+import { patchOpencodeJson, patchOpencodePackage } from './opencode-json.js'
 
 let tmpDir
 
@@ -35,6 +35,7 @@ describe('patchOpencodeJson()', () => {
     expect(config.$schema).toBe('https://opencode.ai/config.json')
     expect(config.permission.question).toBe('allow')
     expect(config.permission.todowrite).toBe('allow')
+    expect(config.permission.skill).toBe('allow')
     expect(config.skills.paths).toEqual(['.agents/skills'])
   })
 
@@ -58,7 +59,7 @@ describe('patchOpencodeJson()', () => {
     expect(config.skills.paths).toEqual(['.agents/skills'])
   })
 
-  it('does not write when agents are disabled and skill permissions are present', async () => {
+  it('does not write when agents are disabled and skill loading is allowed', async () => {
     fs.writeFileSync(
       path.join(tmpDir, 'opencode.jsonc'),
       JSON.stringify({
@@ -67,7 +68,7 @@ describe('patchOpencodeJson()', () => {
         permission: {
           question: 'allow',
           todowrite: 'allow',
-          skill: { 'ob-*': 'allow', 'openspec-*': 'allow' },
+          skill: 'allow',
         },
         skills: { paths: ['.agents/skills'] },
         compaction: { auto: true, prune: true },
@@ -78,7 +79,7 @@ describe('patchOpencodeJson()', () => {
     expect(result.patched).toBe(false)
   })
 
-  it('adds skill permissions when only they are missing', async () => {
+  it('allows all skills when only skill permission is missing', async () => {
     fs.writeFileSync(
       path.join(tmpDir, 'opencode.jsonc'),
       JSON.stringify({
@@ -92,17 +93,14 @@ describe('patchOpencodeJson()', () => {
     expect(result.patched).toBe(true)
 
     const config = readConfig()
-    expect(config.permission.skill['ob-*']).toBe('allow')
-    expect(config.permission.skill['openspec-*']).toBe('allow')
-    expect(config.permission.skill['internal-*']).toBe('deny')
+    expect(config.permission.skill).toBe('allow')
   })
 
   it('creates skill permissions when the file is missing', async () => {
     await patchOpencodeJson()
 
     const config = readConfig()
-    expect(config.permission.skill['ob-*']).toBe('allow')
-    expect(config.permission.skill['openspec-*']).toBe('allow')
+    expect(config.permission.skill).toBe('allow')
     expect(config.permission.question).toBe('allow')
     expect(config.permission.todowrite).toBe('allow')
     expect(config.skills.paths).toEqual(['.agents/skills'])
@@ -141,7 +139,7 @@ describe('patchOpencodeJson()', () => {
         permission: {
           question: 'allow',
           todowrite: 'allow',
-          skill: { 'ob-*': 'allow', 'openspec-*': 'allow' },
+          skill: 'allow',
         },
       }, null, 2),
     )
@@ -162,7 +160,7 @@ describe('patchOpencodeJson()', () => {
         permission: {
           question: 'allow',
           todowrite: 'allow',
-          skill: { 'ob-*': 'allow', 'openspec-*': 'allow' },
+          skill: 'allow',
         },
         skills: { paths: ['/custom/skills'] },
       }, null, 2),
@@ -173,5 +171,32 @@ describe('patchOpencodeJson()', () => {
 
     const config = readConfig()
     expect(config.skills.paths).toEqual(['/custom/skills', '.agents/skills'])
+  })
+})
+
+describe('patchOpencodePackage()', () => {
+  it('updates only the shipped OpenCode plugin dependencies', async () => {
+    const packagePath = path.join(tmpDir, '.opencode', 'package.json')
+    fs.mkdirSync(path.dirname(packagePath), { recursive: true })
+    fs.writeFileSync(packagePath, JSON.stringify({
+      dependencies: {
+        '@opencode-ai/plugin': '1.17.13',
+        '@opentui/core': '0.3.4',
+        '@opentui/solid': '0.3.4',
+        'solid-js': '1.9.10',
+        custom: '1.0.0',
+      },
+    }))
+
+    await patchOpencodePackage()
+
+    const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf-8'))
+    expect(packageJson.dependencies).toEqual({
+      '@opencode-ai/plugin': '1.18.19',
+      '@opentui/core': '0.5.6',
+      '@opentui/solid': '0.5.6',
+      'solid-js': '1.9.12',
+      custom: '1.0.0',
+    })
   })
 })

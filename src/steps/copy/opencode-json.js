@@ -3,16 +3,11 @@ import { applyEdits, modify, parse } from 'jsonc-parser'
 import path from 'node:path'
 import { success } from '../../utils/exec.js'
 
-// Skill loads must never hit an "ask" prompt: /plan-goal and the userstory
-// flows load ob-* / openspec-* skills unattended (loop-engineering).
+// The reminder plugin loads every agent ability before work, including
+// user-installed skills outside the ob-* and openspec-* namespaces.
 const SHARED_PERMISSIONS = [
   ['question', 'allow'],
   ['todowrite', 'allow'],
-]
-
-const SKILL_PERMISSIONS = [
-  ['ob-*', 'allow'],
-  ['openspec-*', 'allow'],
 ]
 
 function applyModify(text, jsonPath, value) {
@@ -42,9 +37,7 @@ export async function patchOpencodeJson(cwd = process.cwd()) {
     parsed?.agent?.build?.disable === true &&
     parsed?.agent?.plan?.disable === true
   )
-  const missingSkillPermissions = SKILL_PERMISSIONS.filter(
-    ([pattern, value]) => parsed?.permission?.skill?.[pattern] !== value,
-  )
+  const needsSkillPermission = parsed?.permission?.skill !== 'allow'
   const missingSharedPermissions = SHARED_PERMISSIONS.filter(
     ([key, value]) => parsed?.permission?.[key] !== value,
   )
@@ -58,7 +51,7 @@ export async function patchOpencodeJson(cwd = process.cwd()) {
     parsed?.compaction?.prune === true
   )
 
-  if (!needsAgentDisable && missingSkillPermissions.length === 0 && missingSharedPermissions.length === 0 && !needsSkillsPaths && !needsCompaction) {
+  if (!needsAgentDisable && !needsSkillPermission && missingSharedPermissions.length === 0 && !needsSkillsPaths && !needsCompaction) {
     return { patched: false }
   }
 
@@ -67,9 +60,7 @@ export async function patchOpencodeJson(cwd = process.cwd()) {
     text = applyModify(text, ['agent', 'build', 'disable'], true)
     text = applyModify(text, ['agent', 'plan', 'disable'], true)
   }
-  for (const [pattern, value] of missingSkillPermissions) {
-    text = applyModify(text, ['permission', 'skill', pattern], value)
-  }
+  if (needsSkillPermission) text = applyModify(text, ['permission', 'skill'], 'allow')
   for (const [key, value] of missingSharedPermissions) {
     text = applyModify(text, ['permission', key], value)
   }
@@ -94,8 +85,8 @@ export async function patchOpencodeJson(cwd = process.cwd()) {
   if (needsAgentDisable) {
     success('Disabled built-in build/plan agents in opencode.jsonc')
   }
-  if (missingSkillPermissions.length > 0) {
-    success('Allowed ob-*/openspec-* skill loading in opencode.jsonc')
+  if (needsSkillPermission) {
+    success('Allowed skill loading in opencode.jsonc')
   }
   if (missingSharedPermissions.length > 0) {
     success('Allowed question/todowrite tools in opencode.jsonc')
@@ -107,5 +98,32 @@ export async function patchOpencodeJson(cwd = process.cwd()) {
     success('Enabled context pruning (compaction.prune) in opencode.jsonc')
   }
 
+  return { patched: true }
+}
+
+const OPENCODE_PACKAGE_DEPENDENCIES = {
+  '@opencode-ai/plugin': '1.18.19',
+  '@opentui/core': '0.5.6',
+  '@opentui/solid': '0.5.6',
+  'solid-js': '1.9.12',
+}
+
+export async function patchOpencodePackage(cwd = process.cwd()) {
+  const packagePath = path.join(cwd, '.opencode', 'package.json')
+  if (!await fse.pathExists(packagePath)) return { patched: false }
+
+  const packageJson = await fse.readJson(packagePath).catch(() => null)
+  if (!packageJson?.dependencies) return { patched: false }
+
+  let patched = false
+  for (const [name, version] of Object.entries(OPENCODE_PACKAGE_DEPENDENCIES)) {
+    if (!(name in packageJson.dependencies) || packageJson.dependencies[name] === version) continue
+    packageJson.dependencies[name] = version
+    patched = true
+  }
+  if (!patched) return { patched: false }
+
+  await fse.writeJson(packagePath, packageJson, { spaces: 2 })
+  success('Updated OpenCode plugin dependencies in .opencode/package.json')
   return { patched: true }
 }

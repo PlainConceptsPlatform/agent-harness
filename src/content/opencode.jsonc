@@ -18,10 +18,7 @@
   "permission": {
     "question": "allow",
     "todowrite": "allow",
-    "skill": {
-      "ob-*": "allow",
-      "openspec-*": "allow"
-    }
+    "skill": "allow"
   },
   "skills": {
     "paths": [".agents/skills"]

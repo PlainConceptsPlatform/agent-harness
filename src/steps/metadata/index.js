@@ -48,10 +48,14 @@ export async function writeOnboardConfig(data) {
   const maxConcurrent = clampConcurrency(data.maxConcurrentAgents ?? existing?.agents?.maxConcurrent ?? 3)
 
   const optionalTools = data.optionalTools ?? existing?.tools ?? {}
+  const { caveman: _caveman, ...existingTools } = existing?.tools ?? {}
   const tools = {
     rtk: !!(optionalTools.rtk?.optedIn ?? optionalTools.rtk),
     quota: !!(optionalTools.quota?.optedIn ?? optionalTools.quota),
-    caveman: !!(optionalTools.caveman?.optedIn ?? optionalTools.caveman),
+    simpleEnglish: !!(
+      optionalTools.simpleEnglish?.optedIn ?? optionalTools.simpleEnglish ??
+      optionalTools.caveman?.optedIn ?? optionalTools.caveman
+    ),
     codegraph: !!(optionalTools.codegraph?.optedIn ?? optionalTools.codegraph),
     memory: !!(optionalTools.memory?.optedIn ?? optionalTools.memory),
   }
@@ -82,7 +86,7 @@ export async function writeOnboardConfig(data) {
       roots: data.sourceRoots ?? [],
     },
 
-    tools: { ...existing?.tools, ...tools },
+    tools: { ...existingTools, ...tools },
 
     preexisting: {
       ...existing?.preexisting,

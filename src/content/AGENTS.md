@@ -65,7 +65,7 @@ The `ob-plan-apply` skill is authoritative for subagent waves, dependency orderi
 
 ## Skills
 
-Skills live in `.agents/skills/`. Always installed: `@ob-guardrails-generic`, `@ob-guardrails-project`, and `@browser-automation`. Agents load them via `@skill-name` in their `## Abilities` section.
+Skills live in `.agents/skills/`. Always installed: `@ob-guardrails-generic`, `@ob-guardrails-project`, and `@browser-automation`. The always-installed `ob-system-reminders` plugin loads each agent's `## Abilities` before work, guardrails first. Skills can require mandatory transitive loads. Keep `## Abilities` complete and do not treat entries as passive references.
 
 <!-- OB-PLATFORM-SKILLS-GUIDE-START -->
 <!-- OB-PLATFORM-SKILLS-GUIDE-END -->

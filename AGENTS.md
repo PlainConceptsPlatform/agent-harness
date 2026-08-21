@@ -19,7 +19,7 @@ src/
     .agents/skills/           ob-* skills shipped with the CLI (plan-goal, make-engineer, repo-initialize, etc.)
     .opencode/commands/       Slash command thin wrappers that load skills
     .opencode/                opencode.json, tui plugins, opencode config
-    .opencode/plugins/        Server-side plugins (ob-subagent-monitor, ob-subagent-tiers)
+    .opencode/plugins/        Server-side plugins (subagent monitor, tiers, system reminders)
     AGENTS.md                 Template AGENTS.md installed into target projects
     ARCHITECTURE.md            Template architecture doc
     DESIGN.md                 Template design doc

@@ -7,8 +7,8 @@ import { exit } from "../../utils/process.js"
 import { patchAgentGuidance, patchAgentsMd } from "./agents.js"
 import { patchArchiveCommand, patchOpsShip, patchOpsReview, patchOpsBacklog, patchOpsEvidence } from "./commands.js"
 import { installSkills } from "./skills.js"
-import { generateFullstackEngineer } from "./fullstack-engineer.js"
-import { patchOpencodeJson } from "./opencode-json.js"
+import { generateFullstackEngineer, removeLegacyStartupDirectives } from "./fullstack-engineer.js"
+import { patchOpencodeJson, patchOpencodePackage } from "./opencode-json.js"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const CONTENT_DIR = path.resolve(__dirname, "../../content")
@@ -63,6 +63,7 @@ export async function copyContentStep(platform, ctx = {}) {
     await patchOpsReview({ backlogPlatform, repoPlatform })
     await patchOpsBacklog({ backlogPlatform, repoPlatform })
     await patchOpencodeJson()
+    await patchOpencodePackage()
     if (!ctx.updateMode) await patchAgentsMd(ctx)
 
     if (!ctx.skipSkills) {
@@ -77,6 +78,7 @@ export async function copyContentStep(platform, ctx = {}) {
     await patchOpsShip({ backlogPlatform, repoPlatform })
     await patchOpsEvidence({ backlogPlatform, repoPlatform })
     await generateFullstackEngineer({ updateMode: ctx.updateMode })
+    await removeLegacyStartupDirectives()
     await recordManagedContent(CONTENT_DIR, dest, { updateMode: ctx.updateMode })
     success("Files copied to project root")
   } catch (err) {

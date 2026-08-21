@@ -62,7 +62,7 @@ Typical flow for reruns:
 
 - Run `clean` if you want to reset old AI files
 - Run `copy` if templates or skills changed in a new onboard release
-- Run `optimization` if you want to reconfigure RTK, quota, caveman, codegraph, agentmemory, or humanizer, and the guardrails optimization markers
+- Run `optimization` if you want to reconfigure RTK, quota, Simple English, codegraph, agentmemory, or humanizer, and the guardrails optimization markers
 - Run `metadata` last to refresh `.opencode/opencode-onboard.json`
 - Run `join` if you are a new member of an existing onboarded project and want to sync the latest onboarding metadata
 
@@ -81,7 +81,7 @@ The CLI runs a 10-step onboarding wizard. It keeps the current step visible, plu
 | **5. Copy scaffolding** | Copies agents, built-in skills, bootstrap documentation, writes source-roots metadata, applies AGENTS bootstrap patching, copies `skills-lock.json`, then runs `npx skills` |
 | **6. Initialize OpenSpec** | Runs `npx @fission-ai/openspec init` silently for structured change management |
 | **7. Choose models** | Fetches live model list from [models.dev](https://models.dev), lets you pick plan, build, and fast models with cost indicators and canonical pricing |
-| **8. Token optimization tools** | Optional and recommended. One checklist step for RTK check, opencode-quota setup, caveman install, codegraph install, agentmemory install, humanizer install, and token-optimization rule injection into guardrails |
+| **8. Token optimization tools** | Optional and recommended. One checklist step for RTK check, opencode-quota setup, Simple English install, codegraph install, agentmemory install, humanizer install, and token-optimization rule injection into guardrails |
 | **9. Install browser plugin** | Installs `@different-ai/opencode-browser` globally for agent browser automation |
 | **10. Write onboarding metadata** | Writes `.opencode/opencode-onboard.json` with selected setup details |
 
@@ -267,7 +267,8 @@ your-project/
 │   ├── tui/
 │   │   └── ob-subagents.tsx         ← TUI plugin: live Subagents panel in the sidebar
 │   └── plugins/
-│       └── ob-subagent-monitor.js   ← server plugin: writes subagent state → .opencode/.ob-run.json
+│       ├── ob-subagent-monitor.js   ← server plugin: writes subagent state → .opencode/.ob-run.json
+│       └── ob-system-reminders.js   ← loads every agent ability and its mandatory transitive skills
 └── .agents/
     └── skills/
         ├── ob-guardrails-generic/  ← foundation for user guardrails
@@ -276,7 +277,7 @@ your-project/
         └── browser-automation/
 ```
 
-Platform skills ship as suffixed variants (`ob-userstory-gh`, `ob-userstory-az`, `ob-userstory-jira`, `ob-userstory-browser`) and the installer copies only the matching one, renamed to its generic name. Platform operations (ship, review, backlog) are injected directly into the `/ops-*` command files from `src/presets/ops-*/` during onboarding. Source-roots metadata lands in `.opencode/source-roots.json`. Token-optimization guidance is injected into `ob-guardrails-generic` marker blocks during onboarding.
+Platform skills ship as suffixed variants (`ob-userstory-gh`, `ob-userstory-az`, `ob-userstory-jira`, `ob-userstory-browser`) and the installer copies only the matching one, renamed to its generic name. Platform operations (ship, review, backlog) are injected directly into the `/ops-*` command files from `src/presets/ops-*/` during onboarding. Source-roots metadata lands in `.opencode/source-roots.json`. The always-shipped reminder plugin loads every agent ability, guardrails first, and repeats mandatory skill loads after compaction. Token-optimization guidance is injected into `ob-guardrails-generic` marker blocks during onboarding.
 
 ---
 
@@ -349,7 +350,7 @@ Wizard choices and defaults live in `src/presets/` where possible:
 - `platforms.json` controls platform labels, CLI checks, and backlog-only flags
 - `clean.json` controls AI file detection and preservation
 - `models.json` controls model role prompts and agent assignments
-- `optimization.json` controls RTK, quota, caveman, codegraph, agentmemory, and humanizer checklist defaults
+- `optimization.json` controls RTK, quota, Simple English, codegraph, agentmemory, and humanizer checklist defaults
 - `quota.json` controls opencode-quota defaults
 - `browser.json` controls opencode-browser installer automation
 

@@ -31,4 +31,20 @@ describe('patchGuardrails optional tool sections', () => {
     expect(content).not.toContain('Use Agentmemory MCP tools')
     expect(content).not.toContain('stale memory guidance')
   })
+
+  it('migrates caveman guidance to the selected Simple English skill', async () => {
+    const guardrailsDir = path.join(tmpDir, '.agents', 'skills', 'ob-guardrails-generic')
+    fs.mkdirSync(guardrailsDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(guardrailsDir, 'SKILL.md'),
+      '<!-- OB-GUARDRAILS-CAVEMAN-START -->\nlegacy guidance\n<!-- OB-GUARDRAILS-CAVEMAN-END -->\n',
+    )
+
+    await patchGuardrails({ simpleEnglish: true }, { cwd: tmpDir })
+
+    const content = fs.readFileSync(path.join(guardrailsDir, 'SKILL.md'), 'utf-8')
+    expect(content).toContain('OB-GUARDRAILS-SIMPLE-ENGLISH-START')
+    expect(content).toContain('skill("simple-english")')
+    expect(content).not.toContain('legacy guidance')
+  })
 })

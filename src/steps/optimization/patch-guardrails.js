@@ -10,7 +10,7 @@ const MARKER_SECTIONS = {
   rtk: 'RTK',
   codegraph: 'CODEGRAPH',
   memory: 'MEMORY',
-  caveman: 'CAVEMAN',
+  simpleEnglish: 'SIMPLE-ENGLISH',
   humanizer: 'HUMANIZER',
 }
 
@@ -68,10 +68,23 @@ export async function patchGuardrails(selections = {}, { cwd = process.cwd() } =
 
   if (await fse.pathExists(guardrailsPath)) {
     let content = await fse.readFile(guardrailsPath, 'utf-8')
+    content = replaceMarkerSection(
+      content,
+      '<!-- OB-GUARDRAILS-CAVEMAN-START -->',
+      '<!-- OB-GUARDRAILS-CAVEMAN-END -->',
+      '',
+    ).replace(
+      '<!-- OB-GUARDRAILS-CAVEMAN-START -->\n\n<!-- OB-GUARDRAILS-CAVEMAN-END -->',
+      '<!-- OB-GUARDRAILS-SIMPLE-ENGLISH-START -->\n<!-- OB-GUARDRAILS-SIMPLE-ENGLISH-END -->',
+    ).replace(
+      '1. Load ALL skills listed under your own `## Abilities` now (Guardrails first, then the rest), by calling the `skill` tool once per `@skill-name`.',
+      '1. The `ob-system-reminders` plugin has already loaded the skills listed under your `## Abilities`, guardrails first.',
+    )
     for (const [key, markerSuffix] of Object.entries(MARKER_SECTIONS)) {
       let sectionContent = ''
       if (selections[key]) {
-        const presetPath = path.join(GUARDRAILS_PRESET_DIR, `${key}.md`)
+        const presetName = key === 'simpleEnglish' ? 'simple-english' : key
+        const presetPath = path.join(GUARDRAILS_PRESET_DIR, `${presetName}.md`)
         if (await fse.pathExists(presetPath)) {
           sectionContent = (await fse.readFile(presetPath, 'utf-8')).trim()
         }

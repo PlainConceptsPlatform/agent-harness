@@ -1,4 +1,5 @@
 import chalk from 'chalk'
+import { execa } from 'execa'
 import fse from 'fs-extra'
 import path from 'node:path'
 import { fileURLToPath } from 'url'
@@ -8,6 +9,12 @@ import { writeModelsToConfigs } from '../steps/models/write.js'
 import { patchGuardrails } from '../steps/optimization/patch-guardrails.js'
 import { writeOnboardConfig } from '../steps/metadata/index.js'
 import { exit } from '../utils/process.js'
+
+const SIMPLE_ENGLISH_ENTRY = {
+  source: 'AminBlg/SimpleEnglish',
+  sourceType: 'github',
+  skillPath: 'skills/simple-english/SKILL.md',
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const platformsPreset = await fse.readJson(path.resolve(__dirname, '../presets/platforms.json'))
@@ -52,9 +59,10 @@ export async function runUpdate() {
   }
 
   const tools = saved.tools ?? {}
+  await migrateCavemanSkill(tools)
   await patchGuardrails({
     rtk: !!tools.rtk,
-    caveman: !!tools.caveman,
+    simpleEnglish: !!(tools.simpleEnglish || tools.caveman),
     codegraph: !!tools.codegraph,
     memory: !!tools.memory,
     humanizer: !!tools.humanizer,
@@ -76,4 +84,26 @@ export async function runUpdate() {
   console.log(chalk.bold.green('  Update complete!'))
   console.log(chalk.bold.green('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'))
   console.log()
+}
+
+async function migrateCavemanSkill(tools) {
+  if (!tools.caveman || tools.simpleEnglish) return
+
+  const lockPath = path.join(process.cwd(), 'skills-lock.json')
+  const lock = await fse.readJson(lockPath).catch(() => ({ version: 1, skills: {} }))
+  lock.skills ??= {}
+  delete lock.skills.caveman
+  lock.skills['simple-english'] = SIMPLE_ENGLISH_ENTRY
+  await fse.writeJson(lockPath, lock, { spaces: 2 })
+  await fse.remove(path.join(process.cwd(), '.agents', 'skills', 'caveman'))
+
+  const result = await execa('npx', ['skills', 'experimental_install', '--yes'], {
+    cwd: process.cwd(),
+    reject: false,
+    stdio: 'pipe',
+    timeout: 600000,
+  })
+  if (result.exitCode !== 0) {
+    console.log(chalk.yellow('Simple English was added to skills-lock.json but could not be installed. Run npx skills experimental_install --yes.'))
+  }
 }

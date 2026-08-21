@@ -6,7 +6,7 @@ license: MIT
 
 Create one file only: `.opencode/agents/{persona}-engineer.md`. The `ob-subagent-tiers` plugin creates tier variants (`.build.md`, `.fast.md`, `.plan.md`) at startup, so you never write those.
 
-Fidelity to the [template](template.md) is the whole job. The file contains frontmatter plus one identity paragraph plus the fixed startup directive plus the `## Abilities` section. No other `##` headings. No expertise notes, architecture details, conventions, file maps, or workflow steps. Those belong in skills. Always set `mode: primary`. Never write `model:`. Only reference skills installed in the project's `.agents/skills/` directory.
+Fidelity to the [template](template.md) is the whole job. The file contains frontmatter plus one identity paragraph plus the `## Abilities` section. No other `##` headings. No expertise notes, architecture details, conventions, file maps, or workflow steps. Those belong in skills. Always set `mode: primary`. Never write `model:`. Only reference skills installed in the project's `.agents/skills/` directory.
 
 Skills first: you must complete Step 4 (present the form, discover skills for every detected signal and architecture, let the user confirm the set, then install 5-10 skills) before writing any file.
 
@@ -178,7 +178,7 @@ Follow the [template](template.md) reference for the full structure, description
 
 After writing the agent file, run both checks from the [template](template.md) reference:
 
-1. Structural validation: verify frontmatter, no `model:` field, `## Abilities` is the only `##` heading, one identity paragraph, startup directive present, abilities categorized, one file only.
+1. Structural validation: verify frontmatter, no `model:` field, `## Abilities` is the only `##` heading, one identity paragraph, abilities categorized, one file only.
 2. Skill reference validation: verify every `@skill-name` in `## Abilities` exists in `.agents/skills/` and in `skills-lock.json`.
 
 If either check fails, fix the file and re-validate.
@@ -194,8 +194,8 @@ After creating the persona engineer and validating its references, additively me
 3. Read the current `fullstack-engineer.md`.
 4. Parse its existing `## Abilities` section to find which skills are already listed.
 5. Append-only: add only skills that are not already in the file (dedup by skill name).
-6. Preserve the frontmatter (mode, color, permissions, model if stamped), the startup directive line, the identity paragraph, and all existing ability lines.
-7. If the startup directive line is missing (older file), add it verbatim between the identity paragraph and `## Abilities`.
+6. Preserve the frontmatter (mode, color, permissions, model if stamped), the identity paragraph, and all existing ability lines.
+7. Remove any old startup directive line. The `ob-system-reminders` plugin loads abilities for every session.
 8. Write the file back.
 
 Merge new skills into existing categories. If a new skill belongs to "Development" and that line already exists, append to it. If a new category is needed, add it. Do not overwrite the Abilities section.

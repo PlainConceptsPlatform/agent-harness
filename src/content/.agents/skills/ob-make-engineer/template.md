@@ -1,6 +1,6 @@
 # Agent file template
 
-The agent file is exactly this structure: frontmatter plus one identity paragraph plus the fixed startup directive plus the `## Abilities` section. No other sections. No other content.
+The agent file is exactly this structure: frontmatter plus one identity paragraph plus the `## Abilities` section. No other sections. No other content.
 
 ```markdown
 ---
@@ -17,8 +17,6 @@ permission:
 
 <One paragraph: "You are a {persona} engineer specializing in {top technologies}. You own all work in {scope/files}." Keep it to 2-3 sentences max.>
 
-**Startup - before doing anything else:** load every skill listed under `## Abilities` by calling the `skill` tool once per `@skill-name` (Guardrails first). These are mandatory instructions to read and apply, not passive references.
-
 ## Abilities
 - Guardrails: @ob-guardrails-generic, @ob-guardrails-project
 - Development: <@installed-skill-1>, <@installed-skill-2>, ...
@@ -26,7 +24,7 @@ permission:
 - Infrastructure: <@installed-skill-for-devops>, ...
 ```
 
-That is the entire file: frontmatter, one identity paragraph, the fixed startup directive (copy it verbatim), and the `## Abilities` section. Replace every `<...>` placeholder with real values from your research. Remove any ability category line that has no skills assigned (besides Guardrails which is always present).
+That is the entire file: frontmatter, one identity paragraph, and the `## Abilities` section. The always-installed `ob-system-reminders` plugin loads the listed skills for every session. Replace every `<...>` placeholder with real values from your research. Remove any ability category line that has no skills assigned (besides Guardrails which is always present).
 
 ## Description quality bar
 
@@ -51,7 +49,6 @@ Rules:
 - State the persona and specialization in one sentence
 - State what files or layers the engineer owns in one sentence
 - Never exceed 3 sentences
-- Immediately after the identity paragraph, include the fixed startup directive line verbatim. It is the only paragraph allowed besides the identity paragraph, and it must not be reworded.
 
 ## Category rules
 
@@ -68,10 +65,9 @@ After writing the agent file, verify:
 1. Frontmatter exists: starts with `---`, has `description`, `mode: primary`, `color`, `permission` block.
 2. No `model:` field in the frontmatter. The `ob-subagent-tiers` plugin injects it.
 3. `## Abilities` is the only `##` heading. No other `##` sections exist in the file.
-4. One identity paragraph before the startup directive: 2-3 sentences max, not multiple paragraphs.
-5. Startup directive present: the fixed `**Startup - before doing anything else:** ...` line appears verbatim between the identity paragraph and `## Abilities`.
-6. Abilities are categorized: each line starts with `- Guardrails:`, `- Development:`, `- Testing:`, or `- Infrastructure:`. No bare `@skill-name` lines.
-7. One file only: no `.build.md`, `.fast.md`, or `.plan.md` variant was created.
+4. One identity paragraph before `## Abilities`: 2-3 sentences max, not multiple paragraphs.
+5. Abilities are categorized: each line starts with `- Guardrails:`, `- Development:`, `- Testing:`, or `- Infrastructure:`. No bare `@skill-name` lines.
+6. One file only: no `.build.md`, `.fast.md`, or `.plan.md` variant was created.
 
 If any check fails, rewrite the file to match the template exactly.
 

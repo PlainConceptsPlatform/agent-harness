@@ -21,10 +21,6 @@ function ensurePlugin(config) {
   if (!config.plugin.includes(PLUGIN)) config.plugin.push(PLUGIN)
 }
 
-function addIfMissing(target, key, value) {
-  if (!(key in target)) target[key] = value
-}
-
 export async function installQuota(options = {}) {
   if (!options.skipHeader) header('Installing opencode-quota')
 
@@ -108,9 +104,7 @@ export async function installQuota(options = {}) {
       ? await fse.readJson(quotaPath)
       : {}
 
-    for (const [key, value] of Object.entries(quotaPreset.defaults)) {
-      addIfMissing(quotaConfig, key, value)
-    }
+    Object.assign(quotaConfig, quotaPreset.defaults)
 
     await fse.ensureDir(quotaDir)
     await fse.writeJson(quotaPath, quotaConfig, { spaces: 2 })

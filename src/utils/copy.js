@@ -15,6 +15,10 @@ const NEVER_OVERWRITE = [
 
 const MARKER_COMMANDS = new Set(['.opencode/commands/ops-review.md', '.opencode/commands/ops-backlog.md'])
 
+function isTemplateTest(relativePath) {
+  return relativePath.split(path.sep).join('/').startsWith('.opencode/plugins/') && relativePath.endsWith('.test.js')
+}
+
 export function isManagedContentPath(relativePath) {
   const normalized = relativePath.split(path.sep).join('/')
   if (normalized.startsWith('.opencode/plugins/')) return true
@@ -43,6 +47,7 @@ export async function copyContent(contentDir, destDir, platform, ctx = {}) {
       const rel = path.relative(contentDir, src)
       const parts = rel.split(path.sep)
       if (parts.some(part => ALWAYS_EXCLUDE.includes(part))) return false
+      if (isTemplateTest(rel)) return false
       if (ctx.hasDesign && rel === 'DESIGN.md') return false
       if (ctx.hasArchitecture && rel === 'ARCHITECTURE.md') return false
       // User-owned config files are never overwritten, even with forceOverwrite.
@@ -72,6 +77,7 @@ export async function recordManagedContent(contentDir, destDir, { updateMode = f
         await walk(sourcePath)
         continue
       }
+      if (isTemplateTest(relativePath)) continue
       if (!isManagedContentPath(relativePath)) continue
 
       const destinationPath = path.join(destDir, relativePath)

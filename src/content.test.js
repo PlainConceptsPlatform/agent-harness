@@ -21,10 +21,18 @@ describe("OpenCode config template", () => {
       "@different-ai/opencode-browser@4.6.1",
       "@mohak34/opencode-notifier@0.2.8",
     ])
-    expect(packageConfig.dependencies["@opencode-ai/plugin"]).toBe("1.17.13")
+    expect(packageConfig.dependencies["@opencode-ai/plugin"]).toBe("1.18.19")
+    expect(packageConfig.dependencies["@opentui/core"]).toBe("0.5.6")
     expect(packageConfig.dependencies["@different-ai/opencode-browser"]).toBe("4.6.1")
     expect(packageConfig.dependencies["@mohak34/opencode-notifier"]).toBe("0.2.8")
     expect(quota.plugin).toBe("@slkiser/opencode-quota@4.2.0")
+  })
+
+  it("ships the always-on system reminder plugin", () => {
+    const plugin = fs.readFileSync(path.join(CONTENT_DIR, ".opencode", "plugins", "ob-system-reminders.js"), "utf-8")
+
+    expect(plugin).toContain("experimental.chat.messages.transform")
+    expect(plugin).toContain("ob-guardrails-generic")
   })
 })
 
