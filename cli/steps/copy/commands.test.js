@@ -22,7 +22,7 @@ describe('platform patching', () => {
   })
 
   async function copySkillTemplate() {
-    const source = path.join(process.cwd(), 'src', 'content', SKILL_REL_PATH)
+    const source = path.join(process.cwd(), 'harness', SKILL_REL_PATH)
     const dest = path.join(tmpDir, SKILL_REL_PATH)
     await fse.ensureDir(path.dirname(dest))
     await fse.copyFile(source, dest)
@@ -36,7 +36,7 @@ describe('platform patching', () => {
     const rel = path.join('.agents', 'skills', 'pc-ops-ship', 'SKILL.md')
     const dest = path.join(tmpDir, rel)
     await fse.ensureDir(path.dirname(dest))
-    await fse.copyFile(path.join(process.cwd(), 'src', 'content', rel), dest)
+    await fse.copyFile(path.join(process.cwd(), 'harness', rel), dest)
 
     await patchOpsShip('github', tmpDir)
 

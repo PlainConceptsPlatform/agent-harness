@@ -17,7 +17,7 @@ describe('platform patching', () => {
   })
 
   it('patches AGENTS.md for none mode with raw-conversation workflow', async () => {
-    const source = path.join(process.cwd(), 'src', 'content', 'AGENTS.md')
+    const source = path.join(process.cwd(), 'harness', 'AGENTS.md')
     const dest = path.join(tmpDir, 'AGENTS.md')
     await fse.copyFile(source, dest)
 
@@ -29,7 +29,7 @@ describe('platform patching', () => {
   })
 
   it('preserves the operating-guide structure and platform markers', async () => {
-    const source = path.join(process.cwd(), 'src', 'content', 'AGENTS.md')
+    const source = path.join(process.cwd(), 'harness', 'AGENTS.md')
     const dest = path.join(tmpDir, 'AGENTS.md')
     await fse.copyFile(source, dest)
 

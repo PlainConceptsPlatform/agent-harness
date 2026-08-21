@@ -11,7 +11,7 @@ import { generateFullstackEngineer, removeLegacyStartupDirectives } from "./full
 import { patchOpencodeJson, patchOpencodePackage } from "./opencode-json.js"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const CONTENT_DIR = path.resolve(__dirname, "../../content")
+const CONTENT_DIR = path.resolve(__dirname, "../../../harness")
 
 export async function copyContentStep(platform, ctx = {}) {
   header("Step 5, Copying agent-harness files")

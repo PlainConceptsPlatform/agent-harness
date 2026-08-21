@@ -9,7 +9,7 @@ import { CONFIG_FILE, MANIFEST_FILE, OPENCODE_DIR, USER_CONFIG_FILE } from '../u
 import { exit } from '../utils/process.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const CONTENT_SKILLS_DIR = path.resolve(__dirname, '../content/.agents/skills')
+const CONTENT_SKILLS_DIR = path.resolve(__dirname, '../../harness/.agents/skills')
 
 // State files, old name to new. The run-state file is deleted rather than moved:
 // it is live wave state owned by the monitor plugin and is rebuilt on demand.

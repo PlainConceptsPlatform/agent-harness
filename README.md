@@ -307,7 +307,7 @@ your-project/
         └── browser-automation/
 ```
 
-Platform skills ship as suffixed variants (`pc-userstory-gh`, `pc-userstory-az`, `pc-userstory-jira`, `pc-userstory-browser`) and the installer copies only the matching one, renamed to its generic name. Platform operations (ship, review, backlog) are injected directly into the `/ops-*` command files from `src/fragments/ops-*/` during onboarding. Source-roots metadata lands in `.opencode/source-roots.json`. The always-shipped reminder plugin loads every agent ability, guardrails first, and repeats mandatory skill loads after compaction. Token-optimization guidance is injected into `pc-guardrails-generic` marker blocks during onboarding.
+Platform skills ship as suffixed variants (`pc-userstory-gh`, `pc-userstory-az`, `pc-userstory-jira`, `pc-userstory-browser`) and the installer copies only the matching one, renamed to its generic name. Platform operations (ship, review, backlog) are injected directly into the `/ops-*` command files from `cli/fragments/ops-*/` during onboarding. Source-roots metadata lands in `.opencode/source-roots.json`. The always-shipped reminder plugin loads every agent ability, guardrails first, and repeats mandatory skill loads after compaction. Token-optimization guidance is injected into `pc-guardrails-generic` marker blocks during onboarding.
 
 ---
 
@@ -374,11 +374,22 @@ Long unattended agent sessions can consume significant tokens. Set these control
 
 ## Development
 
-The CLI is organized around the ten wizard steps: one directory per step under `src/steps/`, each owning its prompts and its file writes, with `src/commands/` holding the top-level entry points (`wizard`, `update`, `join`, `single`).
+The repository splits along one line: **`harness/` is the product, `cli/` is the machinery that installs it.**
+
+```
+harness/   what lands in your repository, copied verbatim
+cli/       the installer: commands, wizard steps, presets, fragments
+skills/    skills about this CLI, for agents that operate it
+docs/      the documentation site
+```
+
+Browse `harness/` to see what the Plain Concepts Platform Harness actually is, without reading a line of installer code.
+
+Inside `cli/`, the layout follows the ten wizard steps: one directory per step under `cli/steps/`, each owning its prompts and its file writes, with `cli/commands/` holding the top-level entry points (`wizard`, `update`, `join`, `migrate`, `single`).
 
 Data the CLI reads lives in two places, split by kind:
 
-**`src/presets/`** holds JSON that shapes the wizard's questions and defaults:
+**`cli/presets/`** holds JSON that shapes the wizard's questions and defaults:
 
 - `source.json` controls source-scope prompt options
 - `platforms.json` controls platform labels, CLI checks, and backlog-only flags
@@ -388,13 +399,11 @@ Data the CLI reads lives in two places, split by kind:
 - `quota.json` controls opencode-quota defaults
 - `browser.json` controls opencode-browser installer automation
 
-**`src/fragments/`** holds Markdown injected into the installed harness, one directory per marker family: `archive/`, `guardrails/`, `ops-backlog/`, `ops-evidence/`, `ops-review/`, `ops-ship/`. Each file is the platform-specific body that replaces a `<!-- PC-PLATFORM-*-START -->` block.
+**`cli/fragments/`** holds Markdown injected into the installed harness, one directory per marker family: `archive/`, `guardrails/`, `ops-backlog/`, `ops-evidence/`, `ops-review/`, `ops-ship/`. Each file is the platform-specific body that replaces a `<!-- PC-PLATFORM-*-START -->` block.
 
-**`src/content/`** is the payload itself, meaning everything copied verbatim into the target repository.
+Every filename the harness writes into a project is declared once in `cli/utils/paths.js`. Change it there, and remember the OpenCode plugins under `harness/.opencode/plugins/` read those same names at runtime.
 
-Every filename the harness writes into a project is declared once in `src/utils/paths.js`. Change it there, and remember the OpenCode plugins under `src/content/.opencode/plugins/` read those same names at runtime.
-
-`skills/` holds skills *about this CLI*, for agents that have to operate it. See [skills/README.md](./skills/README.md). They are not published to npm, and they are separate from the `pc-*` skills in `src/content/` that get installed into your project.
+`skills/` holds skills *about this CLI*, for agents that have to operate it. See [skills/README.md](./skills/README.md). They are not published to npm, and they are separate from the `pc-*` skills in `harness/` that get installed into your project.
 
 ```bash
 git clone https://github.com/PlainConceptsPlatform/agent-harness.git
@@ -402,7 +411,7 @@ cd agent-harness
 pnpm install
 
 # Run the CLI locally
-node src/index.js
+node cli/index.js
 
 # Run tests
 pnpm test

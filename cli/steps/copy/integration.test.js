@@ -18,7 +18,7 @@ import { patchOpsShip, patchOpsReview, patchOpsBacklog, patchOpsEvidence } from 
 import { resolvePlatform } from '../../commands/single.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const CONTENT_DIR = path.resolve(__dirname, '../../content')
+const CONTENT_DIR = path.resolve(__dirname, '../../../harness')
 const REAL_AGENTS_MD = fs.readFileSync(path.join(CONTENT_DIR, 'AGENTS.md'), 'utf-8')
 const REAL_OB_INIT_MD = fs.readFileSync(path.join(CONTENT_DIR, '.agents', 'skills', 'pc-repo-initialize', 'SKILL.md'), 'utf-8')
 

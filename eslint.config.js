@@ -9,14 +9,14 @@ export default [
       'dist/**',
       'docs/.next/**',
       'docs/out/**',
-      'src/content/**/node_modules/**',
-      'src/content/.opencode/package-lock.json',
-      'src/content/**/*.tsx',
+      'harness/**/node_modules/**',
+      'harness/.opencode/package-lock.json',
+      'harness/**/*.tsx',
     ],
   },
   js.configs.recommended,
   {
-    files: ['src/**/*.js', '*.js'],
+    files: ['cli/**/*.js', '*.js'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
@@ -57,7 +57,7 @@ export default [
     }
   },
   {
-    files: ['src/**/*.test.js'],
+    files: ['cli/**/*.test.js'],
     languageOptions: {
       globals: {
         ...globals.node,
@@ -68,7 +68,7 @@ export default [
     },
   },
   {
-    files: ['src/content/**/*.js'],
+    files: ['harness/**/*.js'],
     languageOptions: {
       globals: {
         ...globals.node,

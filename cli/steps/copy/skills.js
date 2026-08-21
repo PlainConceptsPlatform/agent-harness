@@ -5,8 +5,8 @@ import { info, success } from '../../utils/exec.js'
 import { canUpdateManagedFile, readUpdateManifest, recordManagedFile, writeUpdateManifest } from '../../utils/update-manifest.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const CONTENT_SKILLS_DIR = path.resolve(__dirname, '../../content/.agents/skills')
-const CONTENT_SKILLS_LOCK = path.resolve(__dirname, '../../content/skills-lock.json')
+const CONTENT_SKILLS_DIR = path.resolve(__dirname, '../../../harness/.agents/skills')
+const CONTENT_SKILLS_LOCK = path.resolve(__dirname, '../../../harness/skills-lock.json')
 
 // Userstory skills parse backlog work items: selected by backlogPlatform only.
 // Mixing the two axes here installs the wrong variant on mixed setups, because

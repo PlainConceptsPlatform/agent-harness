@@ -13,6 +13,6 @@
         "enable": true
     },
     "include": [
-        "src/**/*.js"
+        "cli/**/*.js"
     ]
 }

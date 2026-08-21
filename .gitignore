@@ -1,5 +1,5 @@
 /node_modules
 /.vscode
 /test
-/src/content/.opencode/node_modules
+/harness/.opencode/node_modules
 /openspec

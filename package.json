@@ -24,14 +24,14 @@
   "author": "Plain Concepts",
   "type": "module",
   "bin": {
-    "agent-harness": "./src/index.js"
+    "agent-harness": "./cli/index.js"
   },
   "files": [
-    "src",
-    "src/content",
-    "!src/**/*.test.js",
-    "!src/**/__tests__",
-    "!src/content/**/node_modules"
+    "cli",
+    "harness",
+    "!cli/**/*.test.js",
+    "!harness/**/*.test.js",
+    "!harness/**/node_modules"
   ],
   "publishConfig": {
     "access": "public",

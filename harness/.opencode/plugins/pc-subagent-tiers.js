@@ -48,7 +48,7 @@ const PRIMARIES = {
 // avoid collisions by hand, which does not survive more than a few agents.
 const THEME_COLORS = new Set(["primary", "secondary", "accent", "success", "warning", "error", "info"])
 
-// Mirrors src/utils/agent-color.js in the CLI, duplicated because a plugin has
+// Mirrors cli/utils/agent-color.js in the CLI, duplicated because a plugin has
 // to stand alone in the consumer repo. agent-color.test.js asserts the two stay
 // in step; change one and change the other.
 //

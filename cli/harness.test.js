@@ -5,7 +5,7 @@ import { parse as parseJsonc } from "jsonc-parser"
 import { describe, expect, it } from "vitest"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const CONTENT_DIR = path.join(__dirname, "content")
+const CONTENT_DIR = path.resolve(__dirname, "../harness")
 
 describe("OpenCode config template", () => {
   it("ships the project config as root JSONC", () => {

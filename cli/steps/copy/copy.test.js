@@ -27,7 +27,7 @@ describe('copyContentStep()', () => {
     await copyContentStep('github')
 
     expect(copyContentMock).toHaveBeenCalledWith(
-      expect.stringContaining('content'),
+      expect.stringContaining('harness'),
       process.cwd(),
       'github',
       {}
@@ -40,7 +40,7 @@ describe('copyContentStep()', () => {
     await copyContentStep('azure')
 
     expect(copyContentMock).toHaveBeenCalledWith(
-      expect.stringContaining('content'),
+      expect.stringContaining('harness'),
       process.cwd(),
       'azure',
       {}
@@ -53,7 +53,7 @@ describe('copyContentStep()', () => {
     await copyContentStep('none')
 
     expect(copyContentMock).toHaveBeenCalledWith(
-      expect.stringContaining('content'),
+      expect.stringContaining('harness'),
       process.cwd(),
       'none',
       {}

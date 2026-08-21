@@ -6,7 +6,7 @@ import path from 'node:path'
  *
  * These filenames are a contract with every repo the harness has been
  * installed into: the CLI writes them, and the opencode plugins shipped in
- * src/content/.opencode/plugins/ read them back at runtime. Changing a name
+ * harness/.opencode/plugins/ read them back at runtime. Changing a name
  * here means changing it in that payload too, or the plugins go blind.
  *
  * They are deliberately named for the harness rather than for the CLI, so a
