@@ -50,7 +50,7 @@ describe('fixCodegraphConfig()', () => {
   it('handles JSONC comments and preserves them', async () => {
     fs.writeFileSync(path.join(tmpDir, 'opencode.jsonc'), `{
   // Keep this project setting
-  "default_agent": "fullstack-engineer",
+  "default_agent": "build",
   "mcpServers": {
     "codegraph": { "command": ["codegraph", "serve", "--mcp"] }
   }
@@ -61,7 +61,7 @@ describe('fixCodegraphConfig()', () => {
 
     const content = fs.readFileSync(path.join(tmpDir, 'opencode.jsonc'), 'utf-8')
     expect(content).toContain('Keep this project setting')
-    expect(content).toContain('"default_agent": "fullstack-engineer"')
+    expect(content).toContain('"default_agent": "build"')
     expect(content).toContain('"codegraph"')
   })
 

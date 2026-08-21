@@ -26,12 +26,38 @@ function readConfig() {
 }
 
 describe('patchOpencodeJson()', () => {
+  // Repos onboarded by 2.0.x carry `disable: true` on both agents. Leaving it
+  // would hide build and plan entirely, since disable wins over mode.
+  it('clears the disable flag left by earlier versions', async () => {
+    fs.writeFileSync(
+      path.join(tmpDir, 'opencode.jsonc'),
+      JSON.stringify({
+        $schema: 'https://opencode.ai/config.json',
+        default_agent: 'fullstack-engineer',
+        agent: { build: { disable: true }, plan: { disable: true } },
+      }, null, 2),
+    )
+
+    const result = await patchOpencodeJson()
+    expect(result.patched).toBe(true)
+
+    const config = readConfig()
+    expect(config.agent.build.disable).toBeUndefined()
+    expect(config.agent.plan.disable).toBeUndefined()
+    expect(config.agent.build.mode).toBe('primary')
+    expect(config.agent.plan.mode).toBe('primary')
+    expect(config.agent.plan.permission.edit).toBe('deny')
+  })
+
   it('creates the file with agent block when missing', async () => {
     await patchOpencodeJson()
 
     const config = readConfig()
-    expect(config.agent.build.disable).toBe(true)
-    expect(config.agent.plan.disable).toBe(true)
+    expect(config.agent.build.mode).toBe('primary')
+    expect(config.agent.plan.mode).toBe('primary')
+    expect(config.agent.plan.permission.edit).toBe('deny')
+    expect(config.agent.build.disable).toBeUndefined()
+    expect(config.agent.plan.disable).toBeUndefined()
     expect(config.$schema).toBe('https://opencode.ai/config.json')
     expect(config.permission.question).toBe('allow')
     expect(config.permission.todowrite).toBe('allow')
@@ -52,19 +78,25 @@ describe('patchOpencodeJson()', () => {
     await patchOpencodeJson()
 
     const config = readConfig()
-    expect(config.agent.build.disable).toBe(true)
-    expect(config.agent.plan.disable).toBe(true)
+    expect(config.agent.build.mode).toBe('primary')
+    expect(config.agent.plan.mode).toBe('primary')
+    expect(config.agent.plan.permission.edit).toBe('deny')
+    expect(config.agent.build.disable).toBeUndefined()
+    expect(config.agent.plan.disable).toBeUndefined()
     expect(config.model).toBe('anthropic/claude-sonnet-4-5')
     expect(config.plugin).toEqual(['some-plugin'])
     expect(config.skills.paths).toEqual(['.agents/skills'])
   })
 
-  it('does not write when agents are disabled and skill loading is allowed', async () => {
+  it('does not write when build/plan are already overridden and skill loading is allowed', async () => {
     fs.writeFileSync(
       path.join(tmpDir, 'opencode.jsonc'),
       JSON.stringify({
         $schema: 'https://opencode.ai/config.json',
-        agent: { build: { disable: true }, plan: { disable: true } },
+        agent: {
+          build: { mode: 'primary' },
+          plan: { mode: 'primary', permission: { edit: 'deny' } },
+        },
         permission: {
           question: 'allow',
           todowrite: 'allow',
@@ -84,7 +116,10 @@ describe('patchOpencodeJson()', () => {
       path.join(tmpDir, 'opencode.jsonc'),
       JSON.stringify({
         $schema: 'https://opencode.ai/config.json',
-        agent: { build: { disable: true }, plan: { disable: true } },
+        agent: {
+          build: { mode: 'primary' },
+          plan: { mode: 'primary', permission: { edit: 'deny' } },
+        },
         permission: { skill: { 'internal-*': 'deny' } },
       }, null, 2),
     )
@@ -119,7 +154,7 @@ describe('patchOpencodeJson()', () => {
 
     const content = fs.readFileSync(path.join(tmpDir, 'opencode.jsonc'), 'utf-8')
     expect(content).toContain('This is a comment')
-    expect(content).toContain('"disable": true')
+    expect(content).toContain('"mode": "primary"')
   })
 
   it('returns patched:false on parse error', async () => {
@@ -135,7 +170,10 @@ describe('patchOpencodeJson()', () => {
       path.join(tmpDir, 'opencode.jsonc'),
       JSON.stringify({
         $schema: 'https://opencode.ai/config.json',
-        agent: { build: { disable: true }, plan: { disable: true } },
+        agent: {
+          build: { mode: 'primary' },
+          plan: { mode: 'primary', permission: { edit: 'deny' } },
+        },
         permission: {
           question: 'allow',
           todowrite: 'allow',
@@ -156,7 +194,10 @@ describe('patchOpencodeJson()', () => {
       path.join(tmpDir, 'opencode.jsonc'),
       JSON.stringify({
         $schema: 'https://opencode.ai/config.json',
-        agent: { build: { disable: true }, plan: { disable: true } },
+        agent: {
+          build: { mode: 'primary' },
+          plan: { mode: 'primary', permission: { edit: 'deny' } },
+        },
         permission: {
           question: 'allow',
           todowrite: 'allow',

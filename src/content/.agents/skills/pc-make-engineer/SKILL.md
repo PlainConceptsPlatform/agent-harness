@@ -4,9 +4,9 @@ description: Create a custom engineer agent via persona-driven interactive desig
 license: MIT
 ---
 
-Create one file only: `.opencode/agents/{persona}-engineer.md`. The `pc-subagent-tiers` plugin creates tier variants (`.build.md`, `.fast.md`, `.plan.md`) at startup, so you never write those.
+Create one file only: `.opencode/agents/{persona}-engineer.md`. The `pc-subagent-tiers` plugin creates tier variants (`.build.md`, `.fast.md`, `.plan.md`) at startup, so you never write those. It also generates `build.md` and `plan.md`, the only two primary agents: never create or edit those either.
 
-Fidelity to the [template](template.md) is the whole job. The file contains frontmatter plus one identity paragraph plus the `## Abilities` section. No other `##` headings. No expertise notes, architecture details, conventions, file maps, or workflow steps. Those belong in skills. Always set `mode: primary`. Never write `model:`. Only reference skills installed in the project's `.agents/skills/` directory.
+Fidelity to the [template](template.md) is the whole job. The file contains frontmatter plus one identity paragraph plus the `## Abilities` section. No other `##` headings. No expertise notes, architecture details, conventions, file maps, or workflow steps. Those belong in skills. Always set `mode: subagent`. Engineers are reached through `task()`, never picked by a human, so a primary engineer would only clutter the agent picker. Never write `model:`. Only reference skills installed in the project's `.agents/skills/` directory.
 
 Skills first: you must complete Step 4 (present the form, discover skills for every detected signal and architecture, let the user confirm the set, then install 5-10 skills) before writing any file.
 
@@ -185,7 +185,7 @@ If either check fails, fix the file and re-validate.
 
 ## Step 7: Update fullstack-engineer.md abilities
 
-The `fullstack-engineer.md` is `mode: primary`, the planning session agent, not a spawned worker. Having all skills here is fine since it does planning, not parallel implementation.
+`fullstack-engineer.md` is `mode: subagent`, but it is also the body that `pc-subagent-tiers` copies into `build.md` and `plan.md` on every startup. So every skill listed here reaches both primary agents, which is why it accumulates all of them: it plans and delegates rather than doing parallel implementation itself.
 
 After creating the persona engineer and validating its references, additively merge new skills into fullstack:
 
@@ -216,4 +216,4 @@ Report:
 - Skills that failed validation or install (list each with reason)
 - `fullstack-engineer.md` updated (additive, list new skills added)
 - How to use: "This agent will be spawned by the lead during `/plan-apply` for tasks matching its specialty."
-- "Restart opencode for the `pc-subagent-tiers` plugin to pick up the new engineer."
+- "Restart opencode for the `pc-subagent-tiers` plugin to pick up the new engineer and rebuild `build.md` and `plan.md` from the updated fullstack abilities."
