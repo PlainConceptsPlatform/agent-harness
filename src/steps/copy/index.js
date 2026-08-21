@@ -14,7 +14,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const CONTENT_DIR = path.resolve(__dirname, "../../content")
 
 export async function copyContentStep(platform, ctx = {}) {
-  header("Step 5, Copying opencode-onboard files")
+  header("Step 5, Copying agent-harness files")
 
   const dest = process.cwd()
 
@@ -72,7 +72,7 @@ export async function copyContentStep(platform, ctx = {}) {
         updateMode: ctx.updateMode,
       })
     }
-    // These patch SKILL.md files (ob-plan-archive, ob-ops-ship, ob-ops-evidence),
+    // These patch SKILL.md files (pc-plan-archive, pc-ops-ship, pc-ops-evidence),
     // so they must run after installSkills has copied the skills into the project.
     await patchArchiveCommand({ backlogPlatform, repoPlatform })
     await patchOpsShip({ backlogPlatform, repoPlatform })

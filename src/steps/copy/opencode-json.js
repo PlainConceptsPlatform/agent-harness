@@ -4,7 +4,7 @@ import path from 'node:path'
 import { success } from '../../utils/exec.js'
 
 // The reminder plugin loads every agent ability before work, including
-// user-installed skills outside the ob-* and openspec-* namespaces.
+// user-installed skills outside the pc-* and openspec-* namespaces.
 const SHARED_PERMISSIONS = [
   ['question', 'allow'],
   ['todowrite', 'allow'],

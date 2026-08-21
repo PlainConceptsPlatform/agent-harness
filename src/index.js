@@ -6,17 +6,18 @@ import { runUpdate } from './commands/update.js'
 import { runSingleCommand } from './commands/single.js'
 import { runWizard } from './commands/wizard.js'
 import { exit } from './utils/process.js'
+import { findLegacyInstall } from './utils/legacy-check.js'
 
 function printHelp(version) {
-  console.log(`opencode-onboard v${version}`)
+  console.log(`agent-harness v${version}`)
   console.log()
   console.log('Usage:')
-  console.log('  npx @plainconceptsplatform/opencode-onboard             Run full onboarding wizard')
-  console.log('  npx @plainconceptsplatform/opencode-onboard <command>   Run a single step command')
+  console.log('  npx @plainconceptsplatform/agent-harness             Install the harness (full wizard)')
+  console.log('  npx @plainconceptsplatform/agent-harness <command>   Run a single step command')
   console.log()
   console.log('Commands:')
-  console.log('  join            New team member setup (checks & local installs only)')
-  console.log('  update          Re-apply all file patches from saved config (no prompts)')
+  console.log('  update          Bring the harness up to date from saved config (no prompts)')
+  console.log('  join            Set up a teammate\'s machine (checks & local installs only)')
   console.log('  clean           Run AI files cleanup step')
   console.log('  platform        Run platform selection step')
   console.log('  copy            Run content copy step')
@@ -41,35 +42,59 @@ if (args.includes('-h') || args.includes('--help')) {
   exit()
 }
 
-if (args.length > 0) {
-  try {
-    if (args[0] === 'join') {
-      await runJoin()
-    } else if (args[0] === 'update') {
-      await runUpdate()
-    } else {
-      const ok = await runSingleCommand(args[0])
-      if (!ok) {
-        console.log(chalk.red(`Unknown command: ${args[0]}`))
-        console.log()
-        printHelp(version)
-        exit(1)
-      }
-    }
-  } catch (err) {
-    if (err.name === 'ExitPromptError') {
-      console.log()
-      console.log(chalk.yellow('Cancelled.'))
-    } else {
-      console.error(chalk.red('\nUnexpected error:'), err.message)
-      exit(1)
-    }
+async function refuseLegacyInstall() {
+  const legacy = await findLegacyInstall()
+  if (!legacy) return false
+
+  console.log(chalk.red('This project was set up by opencode-onboard v1.'))
+  console.log()
+  if (legacy.files.length > 0) console.log(chalk.dim(`  config:  ${legacy.files.join(', ')}`))
+  if (legacy.skills.length > 0) {
+    const shown = legacy.skills.slice(0, 3).join(', ')
+    const rest = legacy.skills.length > 3 ? `, +${legacy.skills.length - 3} more` : ''
+    console.log(chalk.dim(`  skills:  ${shown}${rest}`))
   }
-  exit()
+  console.log()
+  console.log('agent-harness v2 renamed both the config files and the skill prefix,')
+  console.log('and it does not migrate v1 projects. Continuing would leave the harness')
+  console.log('half-patched without reporting an error.')
+  console.log()
+  console.log('Re-onboard on a clean branch instead:')
+  console.log(chalk.dim('  git switch -c chore/agent-harness'))
+  console.log(chalk.dim('  rm -rf .opencode .agents/skills/ob-*'))
+  console.log(chalk.dim('  npx @plainconceptsplatform/agent-harness'))
+  return true
+}
+
+// Ctrl-C out of an @inquirer prompt throws ExitPromptError; that is a normal
+// cancellation, not a crash, so it must not exit non-zero.
+async function main() {
+  if (await refuseLegacyInstall()) {
+    exit(1)
+    return
+  }
+  if (args.length === 0) {
+    await runWizard(version)
+    return
+  }
+  if (args[0] === 'join') {
+    await runJoin()
+    return
+  }
+  if (args[0] === 'update') {
+    await runUpdate()
+    return
+  }
+  if (!await runSingleCommand(args[0])) {
+    console.log(chalk.red(`Unknown command: ${args[0]}`))
+    console.log()
+    printHelp(version)
+    exit(1)
+  }
 }
 
 try {
-  await runWizard(version)
+  await main()
 } catch (err) {
   if (err.name === 'ExitPromptError') {
     console.log()
@@ -79,3 +104,4 @@ try {
     exit(1)
   }
 }
+exit()

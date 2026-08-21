@@ -5,7 +5,7 @@ import { success, warn } from '../../utils/exec.js'
 
 /**
  * Writes the selected build model as the default model in opencode.jsonc.
- * Per-tier models (plan/build/fast) are recorded in opencode-onboard.json (models)
+ * Per-tier models (plan/build/fast) are recorded in harness.json (models)
  * by the metadata step, then consumed by the agent-variant generator and /plan-apply.
  *
  * opencode tolerates JSONC (comments, trailing commas) in its config, so this

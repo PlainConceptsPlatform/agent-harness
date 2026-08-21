@@ -42,10 +42,10 @@ function removeConfirmLine(content, line) {
   return content.split('\n').filter(l => l.trim() !== line.trim()).join('\n')
 }
 
-const PLATFORM_WORKFLOW_START = '<!-- OB-PLATFORM-WORKFLOW-START -->'
-const PLATFORM_WORKFLOW_END = '<!-- OB-PLATFORM-WORKFLOW-END -->'
-const PLATFORM_SKILLS_GUIDE_START = '<!-- OB-PLATFORM-SKILLS-GUIDE-START -->'
-const PLATFORM_SKILLS_GUIDE_END = '<!-- OB-PLATFORM-SKILLS-GUIDE-END -->'
+const PLATFORM_WORKFLOW_START = '<!-- PC-PLATFORM-WORKFLOW-START -->'
+const PLATFORM_WORKFLOW_END = '<!-- PC-PLATFORM-WORKFLOW-END -->'
+const PLATFORM_SKILLS_GUIDE_START = '<!-- PC-PLATFORM-SKILLS-GUIDE-START -->'
+const PLATFORM_SKILLS_GUIDE_END = '<!-- PC-PLATFORM-SKILLS-GUIDE-END -->'
 
 function platformContent(platform, key) {
   const p = agentsContent.platform[platform] ?? agentsContent.platform.github
@@ -70,7 +70,7 @@ function replaceBetween(content, start, end, replacement) {
 }
 
 export async function patchAgentsMd(ctx) {
-  const obInitSkillPath = path.join(process.cwd(), '.agents', 'skills', 'ob-repo-initialize', 'SKILL.md')
+  const obInitSkillPath = path.join(process.cwd(), '.agents', 'skills', 'pc-repo-initialize', 'SKILL.md')
   if (!await fse.pathExists(obInitSkillPath)) return
 
   let content = await fse.readFile(obInitSkillPath, 'utf-8')
@@ -87,7 +87,7 @@ export async function patchAgentsMd(ctx) {
     if (!enabled) continue
     const result = skipStepBlock(content, title, note)
     if (!result.matched) {
-      warn(`ob-repo-initialize SKILL.md step "${title}" not found: template drift? Skipping this patch.`)
+      warn(`pc-repo-initialize SKILL.md step "${title}" not found: template drift? Skipping this patch.`)
       continue
     }
     content = result.content
@@ -98,7 +98,7 @@ export async function patchAgentsMd(ctx) {
   if (patches.length > 0) {
     await fse.writeFile(obInitSkillPath, content, 'utf-8')
     for (const msg of patches) info(msg)
-    success('ob-repo-initialize SKILL.md patched for existing project state')
+    success('pc-repo-initialize SKILL.md patched for existing project state')
   }
 }
 

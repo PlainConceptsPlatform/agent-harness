@@ -1,9 +1,9 @@
 import { execa } from 'execa'
 import fse from 'fs-extra'
-import path from 'node:path'
+import { configPath } from '../utils/paths.js'
 
-export async function readOnboardConfig() {
-  const cfgPath = path.join(process.cwd(), '.opencode', 'opencode-onboard.json')
+export async function readHarnessConfig() {
+  const cfgPath = configPath()
   if (!await fse.pathExists(cfgPath)) return null
   try {
     return await fse.readJson(cfgPath)

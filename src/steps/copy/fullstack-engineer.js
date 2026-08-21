@@ -72,7 +72,7 @@ export async function generateFullstackEngineer({ cwd = process.cwd(), updateMod
   const identity = existingIdentity ?? FULLSTACK_IDENTITY
 
   const abilities = existingAbilities ?? [
-    '- Guardrails: @ob-guardrails-generic, @ob-guardrails-project',
+    '- Guardrails: @pc-guardrails-generic, @pc-guardrails-project',
   ].join('\n')
 
   const content = `${frontmatter.join('\n')}\n\n${identity}\n\n## Abilities\n${abilities}\n`

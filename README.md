@@ -1,19 +1,19 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/PlainConceptsPlatform/opencode-onboard/refs/heads/main/docs/public/assets/logo.png" alt="opencode-onboard" width="160" />
+<img src="https://raw.githubusercontent.com/PlainConceptsPlatform/agent-harness/refs/heads/main/docs/public/assets/logo.png" alt="agent-harness" width="160" />
 
-# 🧰 opencode-onboard
+# 🧰 agent-harness
 
-**Prepare any codebase for AI. Wires [OpenCode](https://opencode.ai), [OpenSpec](https://github.com/fission-ai/openspec), [codegraph](https://github.com/colbymchenry/codegraph), and [agentmemory](https://github.com/rohitg00/agentmemory) into a multi-agent development workflow powered by native parallel subagents.**
+**Installs and maintains an agent harness in any codebase. Wires [OpenCode](https://opencode.ai), [OpenSpec](https://github.com/fission-ai/openspec), [codegraph](https://github.com/colbymchenry/codegraph), and [agentmemory](https://github.com/rohitg00/agentmemory) into a multi-agent development workflow powered by native parallel subagents.**
 
 GitHub, Azure DevOps, Jira, GitLab, browser-based backlog, or combinations (for example, Jira backlog plus GitHub repository, or browser backlog plus GitLab repository).
 
-**[plainconceptsplatform.github.io/opencode-onboard](https://plainconceptsplatform.github.io/opencode-onboard)**
+**[plainconceptsplatform.github.io/agent-harness](https://plainconceptsplatform.github.io/agent-harness)**
 
-[![npm version](https://img.shields.io/npm/v/@plainconceptsplatform/opencode-onboard?style=flat-square&color=black)](https://www.npmjs.com/package/@plainconceptsplatform/opencode-onboard)
-[![npm downloads](https://img.shields.io/npm/dm/@plainconceptsplatform/opencode-onboard?style=flat-square&color=black)](https://www.npmjs.com/package/@plainconceptsplatform/opencode-onboard)
-[![license](https://img.shields.io/npm/l/@plainconceptsplatform/opencode-onboard?style=flat-square&color=black)](./LICENSE)
-[![node](https://img.shields.io/node/v/@plainconceptsplatform/opencode-onboard?style=flat-square&color=black)](https://nodejs.org)
+[![npm version](https://img.shields.io/npm/v/@plainconceptsplatform/agent-harness?style=flat-square&color=black)](https://www.npmjs.com/package/@plainconceptsplatform/agent-harness)
+[![npm downloads](https://img.shields.io/npm/dm/@plainconceptsplatform/agent-harness?style=flat-square&color=black)](https://www.npmjs.com/package/@plainconceptsplatform/agent-harness)
+[![license](https://img.shields.io/npm/l/@plainconceptsplatform/agent-harness?style=flat-square&color=black)](./LICENSE)
+[![node](https://img.shields.io/node/v/@plainconceptsplatform/agent-harness?style=flat-square&color=black)](https://nodejs.org)
 
 </div>
 
@@ -21,16 +21,26 @@ GitHub, Azure DevOps, Jira, GitLab, browser-based backlog, or combinations (for 
 
 Most codebases have no `AGENTS.md`, no architecture documentation that agents can read, and no defined workflow for picking up tasks. Agents end up improvising, producing inconsistent results.
 
-**opencode-onboard** fixes that in a single interactive wizard. It configures OpenCode with OpenSpec for structured change management, native subagent waves for parallel agent execution, codegraph for code intelligence, and agentmemory for shared context across agent sessions. It also installs an agent team, platform skills, and slash commands: everything agents need to plan, implement, and ship.
+**agent-harness** is a CLI that installs a *harness* into your repository, then keeps it current. The harness is the set of files agents actually work from: slash commands, `pc-*` skills, an agent team, OpenCode plugins, an OpenSpec workspace, and generated `ARCHITECTURE.md` / `DESIGN.md`. It configures OpenCode with OpenSpec for structured change management, native subagent waves for parallel execution, codegraph for code intelligence, and agentmemory for shared context across sessions.
+
+Three verbs cover its whole life cycle:
+
+| | |
+| --- | --- |
+| **install** | `npx @plainconceptsplatform/agent-harness` — a wizard runs once, writes the harness, records your choices in `.opencode/harness.json` |
+| **update** | `npx @plainconceptsplatform/agent-harness update` — re-applies the harness from those saved choices, with no prompts, preserving files you have edited |
+| **join** | `npx @plainconceptsplatform/agent-harness join` — a new teammate installs the local tooling the harness expects, touching no committed file |
+
+The wizard is the first of those three, not the product.
 
 <div align="center">
-<img src="https://raw.githubusercontent.com/PlainConceptsPlatform/opencode-onboard/refs/heads/main/docs/public/assets/demo.gif" alt="opencode-onboard demo" width="700" />
+<img src="https://raw.githubusercontent.com/PlainConceptsPlatform/agent-harness/refs/heads/main/docs/public/assets/demo.gif" alt="agent-harness demo" width="700" />
 </div>
 
 ## Quick start
 
 ```bash
-npx @plainconceptsplatform/opencode-onboard@latest
+npx @plainconceptsplatform/agent-harness@latest
 ```
 
 Requires **Node.js 18 or higher**.
@@ -41,36 +51,48 @@ You can run individual setup or maintenance steps without running the full wizar
 
 ```bash
 # Run one step directly
-npx @plainconceptsplatform/opencode-onboard clean
-npx @plainconceptsplatform/opencode-onboard platform
-npx @plainconceptsplatform/opencode-onboard copy
-npx @plainconceptsplatform/opencode-onboard openspec
-npx @plainconceptsplatform/opencode-onboard models
-npx @plainconceptsplatform/opencode-onboard optimization
-npx @plainconceptsplatform/opencode-onboard browser
-npx @plainconceptsplatform/opencode-onboard metadata
-npx @plainconceptsplatform/opencode-onboard join
+npx @plainconceptsplatform/agent-harness clean
+npx @plainconceptsplatform/agent-harness platform
+npx @plainconceptsplatform/agent-harness copy
+npx @plainconceptsplatform/agent-harness openspec
+npx @plainconceptsplatform/agent-harness models
+npx @plainconceptsplatform/agent-harness optimization
+npx @plainconceptsplatform/agent-harness browser
+npx @plainconceptsplatform/agent-harness metadata
+npx @plainconceptsplatform/agent-harness join
 
 # Show CLI help and all commands
-npx @plainconceptsplatform/opencode-onboard --help
-npx @plainconceptsplatform/opencode-onboard -h
+npx @plainconceptsplatform/agent-harness --help
+npx @plainconceptsplatform/agent-harness -h
 ```
 
-When available, step commands reuse context from `.opencode/opencode-onboard.json`.
+When available, step commands reuse context from `.opencode/harness.json`.
 
-Typical flow for reruns:
+### Keeping the harness current
 
-- Run `clean` if you want to reset old AI files
-- Run `copy` if templates or skills changed in a new onboard release
-- Run `optimization` if you want to reconfigure RTK, quota, Simple English, codegraph, agentmemory, or humanizer, and the guardrails optimization markers
-- Run `metadata` last to refresh `.opencode/opencode-onboard.json`
-- Run `join` if you are a new member of an existing onboarded project and want to sync the latest onboarding metadata
+A new release of agent-harness ships new commands, skills and plugins. To pull them into a project that already has the harness:
+
+```bash
+npx @plainconceptsplatform/agent-harness@latest update
+```
+
+`update` re-runs every file patch from `.opencode/harness.json` without asking anything. It tracks a hash of each file it manages in `.opencode/harness-managed.json`, so anything you have edited by hand is preserved rather than overwritten, and generated skills such as `pc-guardrails-project` are left alone.
+
+Reach for individual steps when you want something narrower:
+
+- `clean` to reset old AI files
+- `copy` if templates or skills changed in a new agent-harness release
+- `optimization` to reconfigure RTK, quota, Simple English, codegraph, agentmemory, or humanizer, and the guardrails optimization markers
+- `metadata` last, to refresh `.opencode/harness.json`
+- `join` if you are new to a project that already has the harness and want the local tooling it expects
+
+> **Upgrading from `opencode-onboard` v1?** v2 renamed the config files and the skill prefix (`ob-` → `pc-`) and does not migrate v1 projects. The CLI detects one and refuses to run rather than half-patching it. Re-onboard on a clean branch: remove `.opencode/` and `.agents/skills/ob-*`, then run the wizard again.
 
 ---
 
-## How it works
+## Installing the harness
 
-The CLI runs a 10-step onboarding wizard. It keeps the current step visible, plus the last two completed steps, so progress is always clear.
+The first run is a 10-step wizard. It keeps the current step visible, plus the last two completed steps, so progress is always clear.
 
 | Step | What happens |
 | --- | --- |
@@ -83,7 +105,7 @@ The CLI runs a 10-step onboarding wizard. It keeps the current step visible, plu
 | **7. Choose models** | Fetches live model list from [models.dev](https://models.dev), lets you pick plan, build, and fast models with cost indicators and canonical pricing |
 | **8. Token optimization tools** | Optional and recommended. One checklist step for RTK check, opencode-quota setup, Simple English install, codegraph install, agentmemory install, humanizer install, and token-optimization rule injection into guardrails |
 | **9. Install browser plugin** | Installs `@different-ai/opencode-browser` globally for agent browser automation |
-| **10. Write onboarding metadata** | Writes `.opencode/opencode-onboard.json` with selected setup details |
+| **10. Write onboarding metadata** | Writes `.opencode/harness.json` with selected setup details |
 
 When it finishes, open OpenCode in your project and type:
 
@@ -99,7 +121,7 @@ OpenCode asks if this is a greenfield or brownfield project. For brownfield proj
 
 Custom slash commands are installed into `.opencode/commands/` and are available directly in OpenCode.
 
-Commands that other commands (or agents) need to execute are thin wrappers around `ob-*` skills in `.agents/skills/` — the command handles user invocation and arguments, the skill holds the procedure. OpenCode has no mechanism for a command to run another command, but any agent can load a skill mid-conversation, which is what makes pipelines like `/plan-goal` composable.
+Commands that other commands (or agents) need to execute are thin wrappers around `pc-*` skills in `.agents/skills/` — the command handles user invocation and arguments, the skill holds the procedure. OpenCode has no mechanism for a command to run another command, but any agent can load a skill mid-conversation, which is what makes pipelines like `/plan-goal` composable.
 
 | Command | Description |
 | ------- | ----------- |
@@ -121,15 +143,15 @@ Commands that other commands (or agents) need to execute are thin wrappers aroun
 | `/make-engineer` | Interactive persona-driven form to add a custom specialist engineer. Pick a persona, then confirm an inspected-and-recommended skill set (architecture/patterns like FSD or design patterns, framework, testing, infra) before it installs. |
 | `/make-architecture` | Generate or regenerate `ARCHITECTURE.md` from the codebase. |
 | `/make-design` | Generate or regenerate `DESIGN.md` from the design system. |
-| `/make-guardrails` | Generate a `ob-guardrails-project` skill from `ARCHITECTURE.md` and project config files. Extracts architecture boundaries, naming, code style, testing, and git workflow rules. Updates all `*-engineer.md` to load the skill. |
+| `/make-guardrails` | Generate a `pc-guardrails-project` skill from `ARCHITECTURE.md` and project config files. Extracts architecture boundaries, naming, code style, testing, and git workflow rules. Updates all `*-engineer.md` to load the skill. |
 | `/repo-verify` | Verify and repair current-branch changes against applicable fullstack abilities and dependency/lockfile rules, while always running immutable dependency installs/restores, configured builds, and tests for every discovered project. Runs automatically in `/plan-goal`. |
-| `/make-user-model [user] <tier> <model>` | Set the model for a tier (`plan`, `build`, `fast`). Writes to `opencode-onboard.json` (team) or `opencode-onboard.user.json` (user override, gitignored) when `user` prefix is used. Restart to pick up changes: the `ob-subagent-tiers` plugin rebuilds tier agents at startup. Pass a model id or `current` for the active session model. |
+| `/make-user-model [user] <tier> <model>` | Set the model for a tier (`plan`, `build`, `fast`). Writes to `harness.json` (team) or `harness.user.json` (user override, gitignored) when `user` prefix is used. Restart to pick up changes: the `pc-subagent-tiers` plugin rebuilds tier agents at startup. Pass a model id or `current` for the active session model. |
 
 ---
 
 ## Agents and Skills
 
-opencode-onboard draws a hard line between two concepts:
+agent-harness draws a hard line between two concepts:
 
 ### Agents, universal behaviors
 
@@ -153,50 +175,50 @@ If you choose backlog platform `None`, no userstory skills are injected into the
 
 Current loading model:
 
-- `ob-guardrails-generic` is mandatory baseline for every agent (git, secrets, quality rules, plus the engineer workflow)
+- `pc-guardrails-generic` is mandatory baseline for every agent (git, secrets, quality rules, plus the engineer workflow)
 - Baseline context rules and token-optimization guidance live in `AGENTS.md` (always in context), not in a skill
 
 Default `fullstack-engineer` abilities:
 
 ```
 ## Abilities
-- Guardrails: @ob-guardrails-generic, @ob-guardrails-project
+- Guardrails: @pc-guardrails-generic, @pc-guardrails-project
 ```
 
 Users are expected to create additional skills and map them into abilities over time.
 
-Built-in skills (`ob-` prefix) shipped with opencode-onboard:
+Built-in skills (`pc-` prefix) shipped with agent-harness:
 
 | Skill | Purpose |
 | ----- | ------- |
-| `ob-guardrails-generic` | Foundation for user guardrails skills |
-| `ob-guardrails-project` | Project-specific guardrails, populated by `/make-guardrails` |
-| `ob-userstory-gh` | Parse a GitHub Issue URL into a structured work item |
-| `ob-userstory-az` | Parse an Azure DevOps work item URL |
-| `ob-userstory-jira` | Parse a Jira issue URL via `acli` CLI |
-| `ob-userstory-browser` | Parse work item from any URL via browser automation (Linear, Trello, and so on) |
+| `pc-guardrails-generic` | Foundation for user guardrails skills |
+| `pc-guardrails-project` | Project-specific guardrails, populated by `/make-guardrails` |
+| `pc-userstory-gh` | Parse a GitHub Issue URL into a structured work item |
+| `pc-userstory-az` | Parse an Azure DevOps work item URL |
+| `pc-userstory-jira` | Parse a Jira issue URL via `acli` CLI |
+| `pc-userstory-browser` | Parse work item from any URL via browser automation (Linear, Trello, and so on) |
 | `browser-automation` | Browser control via `@different-ai/opencode-browser` (localhost and browser backlog exception) |
-| `ob-plan-explore` | Read-only exploration procedure behind `/plan-explore`; autonomous mode used by `/plan-goal` |
-| `ob-plan-propose` | Proposal + task-enrichment procedure behind `/plan-propose`; autonomous mode used by `/plan-goal` |
-| `ob-plan-apply` | Wave-implementation procedure behind `/plan-apply`; autonomous mode used by `/plan-goal` |
-| `ob-plan-archive` | Archive procedure behind `/plan-archive` (platform flow injected at onboarding); autonomous mode used by `/plan-goal` |
-| `ob-ops-ship` | PR-creation procedure behind `/ops-ship` (platform flow injected at onboarding); used by `/plan-goal` pr mode |
-| `ob-ops-evidence` | Evidence of a change → `evidence/evidence.json` (passed/skipped/failed/blocked) + idempotent verified issue/PR comment; delegates to a project harness if present, else screenshots; used by `/ops-evidence` and `/plan-goal` |
-| `ob-make-architecture` | ARCHITECTURE.md generation behind `/make-architecture`; used by `/repo-initialize` |
-| `ob-make-design` | DESIGN.md generation behind `/make-design`; used by `/repo-initialize` |
-| `ob-make-guardrails` | Guardrails generation behind `/make-guardrails`; used by `/repo-initialize` |
-| `ob-make-engineer` | Custom engineer creation behind `/make-engineer` |
-| `ob-make-evidence-scaffold` | Visual-evidence harness scaffold behind `/make-evidence-scaffold` |
-| `ob-make-user-model` | Tier model configuration behind `/make-user-model` |
-| `ob-plan-goal` | Autonomous full-lifecycle pipeline behind `/plan-goal` |
-| `ob-plan-quick` | Quick task checklist behind `/plan-quick` |
-| `ob-repo-audit` | Read-only health audit across configured source roots and fullstack abilities |
-| `ob-repo-verify` | Current-branch verification and repair gate used by `/repo-verify` and `/plan-goal` |
-| `ob-repo-initialize` | Project initialization behind `/repo-initialize` |
-| `ob-repo-onboard` | Guided project tour behind `/repo-onboard` |
-| `ob-repo-help` | The command reference displayed by `/repo-help`; used by `/repo-initialize` |
+| `pc-plan-explore` | Read-only exploration procedure behind `/plan-explore`; autonomous mode used by `/plan-goal` |
+| `pc-plan-propose` | Proposal + task-enrichment procedure behind `/plan-propose`; autonomous mode used by `/plan-goal` |
+| `pc-plan-apply` | Wave-implementation procedure behind `/plan-apply`; autonomous mode used by `/plan-goal` |
+| `pc-plan-archive` | Archive procedure behind `/plan-archive` (platform flow injected at onboarding); autonomous mode used by `/plan-goal` |
+| `pc-ops-ship` | PR-creation procedure behind `/ops-ship` (platform flow injected at onboarding); used by `/plan-goal` pr mode |
+| `pc-ops-evidence` | Evidence of a change → `evidence/evidence.json` (passed/skipped/failed/blocked) + idempotent verified issue/PR comment; delegates to a project harness if present, else screenshots; used by `/ops-evidence` and `/plan-goal` |
+| `pc-make-architecture` | ARCHITECTURE.md generation behind `/make-architecture`; used by `/repo-initialize` |
+| `pc-make-design` | DESIGN.md generation behind `/make-design`; used by `/repo-initialize` |
+| `pc-make-guardrails` | Guardrails generation behind `/make-guardrails`; used by `/repo-initialize` |
+| `pc-make-engineer` | Custom engineer creation behind `/make-engineer` |
+| `pc-make-evidence-scaffold` | Visual-evidence harness scaffold behind `/make-evidence-scaffold` |
+| `pc-make-user-model` | Tier model configuration behind `/make-user-model` |
+| `pc-plan-goal` | Autonomous full-lifecycle pipeline behind `/plan-goal` |
+| `pc-plan-quick` | Quick task checklist behind `/plan-quick` |
+| `pc-repo-audit` | Read-only health audit across configured source roots and fullstack abilities |
+| `pc-repo-verify` | Current-branch verification and repair gate used by `/repo-verify` and `/plan-goal` |
+| `pc-repo-initialize` | Project initialization behind `/repo-initialize` |
+| `pc-repo-onboard` | Guided project tour behind `/repo-onboard` |
+| `pc-repo-help` | The command reference displayed by `/repo-help`; used by `/repo-initialize` |
 
-Platform operations are injected during onboarding: pull request creation into the `ob-ops-ship` skill (loaded by `/ops-ship` and `/plan-goal`), archive PR flow into the `ob-plan-archive` skill, issue/work-item evidence comments into the `ob-ops-evidence` skill (backlog platform), and pull request review / issue creation directly into the `/ops-review` and `/ops-backlog` command files.
+Platform operations are injected during onboarding: pull request creation into the `pc-ops-ship` skill (loaded by `/ops-ship` and `/plan-goal`), archive PR flow into the `pc-plan-archive` skill, issue/work-item evidence comments into the `pc-ops-evidence` skill (backlog platform), and pull request review / issue creation directly into the `/ops-review` and `/ops-backlog` command files.
 
 Skills live in `.agents/skills/`. Any `SKILL.md` file in a subdirectory is automatically discoverable. Write your own and agents will pick them up.
 
@@ -237,7 +259,7 @@ lead
    commit → push → pull request → feedback loop
 ```
 
-1. Load the platform userstory skill (installed as `ob-userstory`, from the variant matching your backlog platform)
+1. Load the platform userstory skill (installed as `pc-userstory`, from the variant matching your backlog platform)
 2. Run `/plan-propose` to produce `proposal.md`, specs, and `tasks.md`
 3. Confirm with user before implementation
 4. Run `/plan-apply` to orchestrate implementation in waves
@@ -248,7 +270,7 @@ lead
 
 For unattended Loop Task runs, keep a concrete shell verification task as the final exit-code gate. `/repo-verify` runs inside `/plan-goal` first, applying fullstack abilities, every discovered project's immutable dependency install or restore, configured build and test commands, and change-aware repair checks; the shell task independently proves the critical commands passed before commit or pull request actions.
 
-Agents run as native OpenCode subagents in parallel waves: no external plugin, no git worktrees. The lead's Todo pane is the live board, and the `ob-subagent-monitor` plugin mirrors state to `.opencode/.ob-run.json`. Navigate into any running subagent with `ctrl+x ↓` then `←`/`→`.
+Agents run as native OpenCode subagents in parallel waves: no external plugin, no git worktrees. The lead's Todo pane is the live board, and the `pc-subagent-monitor` plugin mirrors state to `.opencode/harness-run.json`. Navigate into any running subagent with `ctrl+x ↓` then `←`/`→`.
 
 ---
 
@@ -261,23 +283,24 @@ your-project/
 ├── DESIGN.md                        ← prompt for agents to fill in from your codebase
 ├── .opencode/
 │   ├── opencode.json                ← default model + plugin config
-│   ├── opencode-onboard.json        ← onboarding metadata + runtime config (models, maxConcurrentAgents)
+│   ├── harness.json                 ← harness config: platform, models, maxConcurrentAgents
+│   ├── harness-managed.json         ← hashes of every managed file, so "update" spares your edits
 │   ├── agents/                      ← fullstack-engineer (primary, planning) + user-created *-engineer files
 │   ├── tui.json                     ← registers the Subagents sidebar panel
 │   ├── tui/
-│   │   └── ob-subagents.tsx         ← TUI plugin: live Subagents panel in the sidebar
+│   │   └── pc-subagents.tsx         ← TUI plugin: live Subagents panel in the sidebar
 │   └── plugins/
-│       ├── ob-subagent-monitor.js   ← server plugin: writes subagent state → .opencode/.ob-run.json
-│       └── ob-system-reminders.js   ← loads every agent ability and its mandatory transitive skills
+│       ├── pc-subagent-monitor.js   ← server plugin: writes subagent state → .opencode/harness-run.json
+│       └── pc-system-reminders.js   ← loads every agent ability and its mandatory transitive skills
 └── .agents/
     └── skills/
-        ├── ob-guardrails-generic/  ← foundation for user guardrails
-        ├── ob-guardrails-project/  ← populated by /make-guardrails
-        ├── ob-userstory/           ← the variant matching your backlog platform, renamed on install
+        ├── pc-guardrails-generic/  ← foundation for user guardrails
+        ├── pc-guardrails-project/  ← populated by /make-guardrails
+        ├── pc-userstory/           ← the variant matching your backlog platform, renamed on install
         └── browser-automation/
 ```
 
-Platform skills ship as suffixed variants (`ob-userstory-gh`, `ob-userstory-az`, `ob-userstory-jira`, `ob-userstory-browser`) and the installer copies only the matching one, renamed to its generic name. Platform operations (ship, review, backlog) are injected directly into the `/ops-*` command files from `src/presets/ops-*/` during onboarding. Source-roots metadata lands in `.opencode/source-roots.json`. The always-shipped reminder plugin loads every agent ability, guardrails first, and repeats mandatory skill loads after compaction. Token-optimization guidance is injected into `ob-guardrails-generic` marker blocks during onboarding.
+Platform skills ship as suffixed variants (`pc-userstory-gh`, `pc-userstory-az`, `pc-userstory-jira`, `pc-userstory-browser`) and the installer copies only the matching one, renamed to its generic name. Platform operations (ship, review, backlog) are injected directly into the `/ops-*` command files from `src/fragments/ops-*/` during onboarding. Source-roots metadata lands in `.opencode/source-roots.json`. The always-shipped reminder plugin loads every agent ability, guardrails first, and repeats mandatory skill loads after compaction. Token-optimization guidance is injected into `pc-guardrails-generic` marker blocks during onboarding.
 
 ---
 
@@ -344,7 +367,11 @@ Long unattended agent sessions can consume significant tokens. Set these control
 
 ## Development
 
-Wizard choices and defaults live in `src/presets/` where possible:
+The CLI is organized around the ten wizard steps: one directory per step under `src/steps/`, each owning its prompts and its file writes, with `src/commands/` holding the top-level entry points (`wizard`, `update`, `join`, `single`).
+
+Data the CLI reads lives in two places, split by kind:
+
+**`src/presets/`** — JSON that shapes the wizard's questions and defaults:
 
 - `source.json` controls source-scope prompt options
 - `platforms.json` controls platform labels, CLI checks, and backlog-only flags
@@ -354,9 +381,17 @@ Wizard choices and defaults live in `src/presets/` where possible:
 - `quota.json` controls opencode-quota defaults
 - `browser.json` controls opencode-browser installer automation
 
+**`src/fragments/`** — Markdown injected into the installed harness, one directory per marker family: `archive/`, `guardrails/`, `ops-backlog/`, `ops-evidence/`, `ops-review/`, `ops-ship/`. Each file is the platform-specific body that replaces a `<!-- PC-PLATFORM-*-START -->` block.
+
+**`src/content/`** is the payload itself: everything copied verbatim into the target repository.
+
+Every filename the harness writes into a project is declared once in `src/utils/paths.js`. Change it there, and remember the OpenCode plugins under `src/content/.opencode/plugins/` read those same names at runtime.
+
+`skills/` holds skills *about this CLI*, for agents that have to operate it — see [skills/README.md](./skills/README.md). They are not published to npm and are distinct from the `pc-*` skills in `src/content/` that get installed into your project.
+
 ```bash
-git clone https://github.com/PlainConceptsPlatform/opencode-onboard.git
-cd opencode-onboard
+git clone https://github.com/PlainConceptsPlatform/agent-harness.git
+cd agent-harness
 pnpm install
 
 # Run the CLI locally

@@ -24,14 +24,14 @@ vi.mock('fs-extra', () => ({
 
 import { execa } from 'execa'
 import fse from 'fs-extra'
-import { writeOnboardConfig } from './index.js'
+import { writeHarnessConfig } from './index.js'
 
 function lastPayload() {
   const call = fse.writeJson.mock.calls[0]
   return call[1]
 }
 
-describe('writeOnboardConfig()', () => {
+describe('writeHarnessConfig()', () => {
   let tmpDir
 
   beforeEach(() => {
@@ -47,7 +47,7 @@ describe('writeOnboardConfig()', () => {
   it('writes JSON file with all selections', async () => {
     execa.mockResolvedValue({ exitCode: 0, stdout: '1.2.3', stderr: '' })
 
-    await writeOnboardConfig({
+    await writeHarnessConfig({
       backlogPlatform: 'github',
       repoPlatform: 'github',
       sourceMode: 'current',
@@ -81,7 +81,7 @@ describe('writeOnboardConfig()', () => {
   it('writes mixed platforms (azure backlog + github repo)', async () => {
     execa.mockResolvedValue({ exitCode: 0, stdout: '1.2.3', stderr: '' })
 
-    await writeOnboardConfig({
+    await writeHarnessConfig({
       backlogPlatform: 'azure',
       repoPlatform: 'github',
       sourceMode: 'current',
@@ -96,19 +96,19 @@ describe('writeOnboardConfig()', () => {
 
   it('detects opencode version from CLI', async () => {
     execa.mockResolvedValue({ exitCode: 0, stdout: '2.0.0', stderr: '' })
-    await writeOnboardConfig({ backlogPlatform: 'github', repoPlatform: 'github', sourceMode: 'current', sourceRoots: [], cwd: tmpDir })
+    await writeHarnessConfig({ backlogPlatform: 'github', repoPlatform: 'github', sourceMode: 'current', sourceRoots: [], cwd: tmpDir })
     expect(lastPayload().opencodeVersion).toBe('2.0.0')
   })
 
   it('handles missing opencode gracefully', async () => {
     execa.mockResolvedValue({ exitCode: 1, stdout: '', stderr: '' })
-    await writeOnboardConfig({ backlogPlatform: 'github', repoPlatform: 'github', sourceMode: 'current', sourceRoots: [], cwd: tmpDir })
+    await writeHarnessConfig({ backlogPlatform: 'github', repoPlatform: 'github', sourceMode: 'current', sourceRoots: [], cwd: tmpDir })
     expect(lastPayload().opencodeVersion).toBe(null)
   })
 
   it('does not include wizard wrapper or note', async () => {
     execa.mockResolvedValue({ exitCode: 0, stdout: '1', stderr: '' })
-    await writeOnboardConfig({ backlogPlatform: 'github', repoPlatform: 'github', sourceMode: 'current', sourceRoots: [], cwd: tmpDir })
+    await writeHarnessConfig({ backlogPlatform: 'github', repoPlatform: 'github', sourceMode: 'current', sourceRoots: [], cwd: tmpDir })
     const payload = lastPayload()
     expect(payload.wizard).toBeUndefined()
     expect(payload.note).toBeUndefined()
@@ -116,31 +116,31 @@ describe('writeOnboardConfig()', () => {
 
   it('persists none as an explicit platform mode', async () => {
     execa.mockResolvedValue({ exitCode: 0, stdout: '1', stderr: '' })
-    await writeOnboardConfig({ backlogPlatform: 'none', repoPlatform: 'none', sourceMode: 'current', sourceRoots: [], cwd: tmpDir })
+    await writeHarnessConfig({ backlogPlatform: 'none', repoPlatform: 'none', sourceMode: 'current', sourceRoots: [], cwd: tmpDir })
     expect(lastPayload().platform.backlog).toBe('none')
     expect(lastPayload().platform.repo).toBe('none')
   })
 
   it('omits models when no model is selected and none exists', async () => {
     execa.mockResolvedValue({ exitCode: 0, stdout: '1', stderr: '' })
-    await writeOnboardConfig({ backlogPlatform: 'github', repoPlatform: 'github', sourceMode: 'current', sourceRoots: [], cwd: tmpDir })
+    await writeHarnessConfig({ backlogPlatform: 'github', repoPlatform: 'github', sourceMode: 'current', sourceRoots: [], cwd: tmpDir })
     expect(lastPayload().models).toBeUndefined()
   })
 
   it('defaults maxConcurrent to 3 when unset', async () => {
     execa.mockResolvedValue({ exitCode: 0, stdout: '1', stderr: '' })
-    await writeOnboardConfig({ backlogPlatform: 'github', repoPlatform: 'github', sourceMode: 'current', sourceRoots: [], cwd: tmpDir })
+    await writeHarnessConfig({ backlogPlatform: 'github', repoPlatform: 'github', sourceMode: 'current', sourceRoots: [], cwd: tmpDir })
     expect(lastPayload().agents.maxConcurrent).toBe(3)
   })
 
   it('clamps maxConcurrent to the 1..5 range', async () => {
     execa.mockResolvedValue({ exitCode: 0, stdout: '1', stderr: '' })
 
-    await writeOnboardConfig({ backlogPlatform: 'github', repoPlatform: 'github', sourceMode: 'current', sourceRoots: [], maxConcurrentAgents: 9, cwd: tmpDir })
+    await writeHarnessConfig({ backlogPlatform: 'github', repoPlatform: 'github', sourceMode: 'current', sourceRoots: [], maxConcurrentAgents: 9, cwd: tmpDir })
     expect(lastPayload().agents.maxConcurrent).toBe(5)
 
     fse.writeJson.mockClear()
-    await writeOnboardConfig({ backlogPlatform: 'github', repoPlatform: 'github', sourceMode: 'current', sourceRoots: [], maxConcurrentAgents: 0, cwd: tmpDir })
+    await writeHarnessConfig({ backlogPlatform: 'github', repoPlatform: 'github', sourceMode: 'current', sourceRoots: [], maxConcurrentAgents: 0, cwd: tmpDir })
     expect(lastPayload().agents.maxConcurrent).toBe(1)
   })
 
@@ -151,7 +151,7 @@ describe('writeOnboardConfig()', () => {
       agents: { maxConcurrent: 5 },
     })
 
-    await writeOnboardConfig({ backlogPlatform: 'github', repoPlatform: 'github', sourceMode: 'current', sourceRoots: [], cwd: tmpDir })
+    await writeHarnessConfig({ backlogPlatform: 'github', repoPlatform: 'github', sourceMode: 'current', sourceRoots: [], cwd: tmpDir })
 
     const payload = lastPayload()
     expect(payload.models).toEqual({ plan: 'p', build: 'b', fast: 'f' })
@@ -165,7 +165,7 @@ describe('writeOnboardConfig()', () => {
       agents: { maxConcurrent: 2 },
     })
 
-    await writeOnboardConfig({
+    await writeHarnessConfig({
       backlogPlatform: 'github',
       repoPlatform: 'github',
       sourceMode: 'current',
@@ -184,7 +184,7 @@ describe('writeOnboardConfig()', () => {
     execa.mockResolvedValue({ exitCode: 0, stdout: '1', stderr: '' })
     fse.readJson.mockResolvedValueOnce({ tools: { caveman: true } })
 
-    await writeOnboardConfig({ backlogPlatform: 'github', repoPlatform: 'github', sourceMode: 'current', sourceRoots: [], cwd: tmpDir })
+    await writeHarnessConfig({ backlogPlatform: 'github', repoPlatform: 'github', sourceMode: 'current', sourceRoots: [], cwd: tmpDir })
 
     const payload = lastPayload()
     expect(payload.tools.simpleEnglish).toBe(true)
@@ -199,7 +199,7 @@ describe('writeOnboardConfig()', () => {
       tools: { customTool: true },
     })
 
-    await writeOnboardConfig({
+    await writeHarnessConfig({
       backlogPlatform: 'github',
       repoPlatform: 'github',
       sourceMode: 'current',

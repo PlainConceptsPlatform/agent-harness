@@ -7,21 +7,22 @@ import { installBrowser } from '../steps/browser/index.js'
 import { checkRtk } from '../steps/optimization/index.js'
 import { checkPlatform } from '../steps/platform/index.js'
 import { commandExists, header, info, loading, success, warn } from '../utils/exec.js'
-import { readOnboardConfig } from './shared.js'
+import { IGNORED_ENTRIES, USER_CONFIG_FILE } from '../utils/paths.js'
+import { readHarnessConfig } from './shared.js'
 
 export async function runJoin() {
   const logo = chalk.hex('#fe3d57')
   console.log()
-  console.log(logo('  🤝 opencode-onboard join'))
+  console.log(logo('  🤝 agent-harness join'))
   console.log(chalk.dim('  New team member setup: checks & local installs only.'))
   console.log(chalk.dim('  Does not modify committed project files.'))
   console.log()
 
-  const saved = await readOnboardConfig()
+  const saved = await readHarnessConfig()
 
   if (!saved) {
-    warn('No .opencode/opencode-onboard.json found.')
-    warn('This project may not have been onboarded yet. Run `npx @plainconceptsplatform/opencode-onboard` first.')
+    warn('No .opencode/harness.json found.')
+    warn('This project may not have been onboarded yet. Run `npx @plainconceptsplatform/agent-harness` first.')
     return
   }
 
@@ -182,7 +183,7 @@ export async function runJoin() {
 
   // Step 9: Model tier guidance
   header('Step 9, Model tiers')
-  const userConfigPath = path.join(opencodeDir, 'opencode-onboard.user.json')
+  const userConfigPath = path.join(opencodeDir, USER_CONFIG_FILE)
   const hasUserOverride = await fse.pathExists(userConfigPath)
 
   if (teamModels && Object.keys(teamModels).length > 0) {
@@ -193,7 +194,7 @@ export async function runJoin() {
     console.log()
 
     if (hasUserOverride) {
-      info('You have a local model override (opencode-onboard.user.json).')
+      info('You have a local model override (harness.user.json).')
       info('To change: /make-user-model user <tier> <model>')
     } else {
       info('No local override: using team defaults.')
@@ -201,17 +202,17 @@ export async function runJoin() {
       info('  e.g. /make-user-model user build current')
     }
     console.log()
-    info('The ob-subagent-tiers plugin will generate *-engineer.<tier>.md variants')
+    info('The pc-subagent-tiers plugin will generate *-engineer.<tier>.md variants')
     info('on opencode startup from these model configs.')
   } else {
-    warn('No model tiers configured in opencode-onboard.json.')
+    warn('No model tiers configured in harness.json.')
     warn('Run /make-user-model <tier> <model> for plan, build, and fast.')
   }
 
   // Step 10: Ensure .opencode/.gitignore exists
   header('Step 10, Checking .opencode/.gitignore')
   const gitignorePath = path.join(opencodeDir, '.gitignore')
-  const requiredEntries = ['node_modules', '.ob-run.json', 'opencode-onboard.user.json', 'opencode-onboard-managed.json', 'source-roots.json', '*-engineer.*.md']
+  const requiredEntries = IGNORED_ENTRIES
 
   if (await fse.pathExists(gitignorePath)) {
     const content = await fse.readFile(gitignorePath, 'utf-8')

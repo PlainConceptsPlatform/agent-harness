@@ -1,29 +1,30 @@
 {
-  "name": "@plainconceptsplatform/opencode-onboard",
-  "version": "1.6.7",
-  "description": "Prepare any codebase for AI. Wires OpenCode, OpenSpec, codegraph, and agentmemory into a multi-agent development workflow powered by native parallel subagents.",
+  "name": "@plainconceptsplatform/agent-harness",
+  "version": "2.0.0",
+  "description": "Installs and maintains an agent harness in any codebase. Wires OpenCode, OpenSpec, codegraph, and agentmemory into a multi-agent development workflow powered by native parallel subagents.",
   "keywords": [
     "opencode",
     "ai",
     "agents",
+    "agent-harness",
+    "harness",
     "brownfield",
-    "onboarding",
     "openspec",
     "cli"
   ],
-  "homepage": "https://github.com/PlainConceptsPlatform/opencode-onboard",
+  "homepage": "https://github.com/PlainConceptsPlatform/agent-harness",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/PlainConceptsPlatform/opencode-onboard.git"
+    "url": "git+https://github.com/PlainConceptsPlatform/agent-harness.git"
   },
   "bugs": {
-    "url": "https://github.com/PlainConceptsPlatform/opencode-onboard/issues"
+    "url": "https://github.com/PlainConceptsPlatform/agent-harness/issues"
   },
   "license": "MIT",
   "author": "Plain Concepts",
   "type": "module",
   "bin": {
-    "opencode-onboard": "./src/index.js"
+    "agent-harness": "./src/index.js"
   },
   "files": [
     "src",

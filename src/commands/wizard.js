@@ -9,7 +9,7 @@ import { initOpenspec } from '../steps/openspec/index.js'
 import { chooseModels } from '../steps/models/index.js'
 import { tokenOptimizationStep } from '../steps/optimization/index.js'
 import { installBrowser } from '../steps/browser/index.js'
-import { writeOnboardConfig } from '../steps/metadata/index.js'
+import { writeHarnessConfig } from '../steps/metadata/index.js'
 
 export async function runWizard(version) {
   const logo = chalk.hex('#fe3d57')
@@ -27,7 +27,7 @@ export async function runWizard(version) {
     logo('  ▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓   '),
     logo('   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓    '),
     '',
-    chalk.bold('        🧰 opencode-onboard') + chalk.dim(` v${version}`),
+    chalk.bold('        🧰 agent-harness') + chalk.dim(` v${version}`),
     chalk.dim('        Prepare your codebase for AI agents'),
   ]
 
@@ -92,7 +92,7 @@ export async function runWizard(version) {
 
   await installBrowser(ctx)
 
-  await writeOnboardConfig({
+  await writeHarnessConfig({
     ...ctx,
     backlogPlatform,
     repoPlatform,

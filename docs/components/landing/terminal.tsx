@@ -8,10 +8,10 @@ type Tone = 'prompt' | 'accent' | 'dim' | 'ok' | 'plain' | 'br'
 
 const LINES: Line[] = [
   ['prompt', '$ ', 0],
-  ['plain', 'npx @plainconceptsplatform/opencode-onboard@latest', 34],
+  ['plain', 'npx @plainconceptsplatform/agent-harness@latest', 34],
   ['br', '', 0],
   ['br', '', 0],
-  ['accent', '🧰 opencode-onboard', 8],
+  ['accent', '🧰 agent-harness', 8],
   ['br', '', 0],
   ['dim', '   Prepare any codebase for AI\n\n', 4],
   ['ok', '  ✔ ', 0],
@@ -33,7 +33,7 @@ const LINES: Line[] = [
   ['ok', '  ✔ ', 0],
   ['plain', 'Browser plugin: installed\n', 4],
   ['ok', '  ✔ ', 0],
-  ['plain', 'Metadata: .opencode/opencode-onboard.json written\n\n', 4],
+  ['plain', 'Metadata: .opencode/harness.json written\n\n', 4],
   ['accent', '  ✨ Your codebase is ready for AI.\n', 12],
   ['dim', '  Open OpenCode and type ', 8],
   ['accent', '/repo-initialize', 40],
@@ -149,7 +149,7 @@ export function TerminalDemo() {
         <span className="h-3 w-3 rounded-full bg-warning/70" aria-hidden />
         <span className="h-3 w-3 rounded-full bg-success/70" aria-hidden />
         <span className="ml-2 font-mono text-xs text-muted-foreground">
-          your-project: opencode-onboard
+          your-project: agent-harness
         </span>
       </div>
       <div

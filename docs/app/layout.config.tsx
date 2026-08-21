@@ -26,5 +26,5 @@ export const baseOptions: BaseLayoutProps = {
   },
   // No `links`: the sidebar is the navigation. The navbar keeps search, the theme
   // toggle and the repo link, matching Foundations.
-  githubUrl: "https://github.com/PlainConceptsPlatform/opencode-onboard",
+  githubUrl: "https://github.com/PlainConceptsPlatform/agent-harness",
 };

@@ -7,7 +7,7 @@ Custom slash commands are installed into `.opencode/commands/` and are available
 directly in OpenCode.
 
 Commands that other commands (or agents) need to execute are thin wrappers around
-`ob-*` skills in `.agents/skills/`: the command handles user invocation and
+`pc-*` skills in `.agents/skills/`: the command handles user invocation and
 arguments, the skill holds the procedure. OpenCode has no mechanism for a command
 to run another command, but any agent can load a skill mid-conversation, which is
 what makes pipelines like `/plan-goal` composable.
@@ -49,6 +49,6 @@ what makes pipelines like `/plan-goal` composable.
 | `/make-engineer` | Interactive persona-driven form to add a custom specialist engineer. Pick a persona, then confirm an inspected-and-recommended skill set before it installs. |
 | `/make-architecture` | Generate or regenerate `ARCHITECTURE.md` from the codebase. |
 | `/make-design` | Generate or regenerate `DESIGN.md` from the design system. |
-| `/make-guardrails` | Generate an `ob-guardrails-project` skill from `ARCHITECTURE.md` and project config files. Extracts architecture boundaries, naming, code style, testing and git workflow rules, then updates all `*-engineer.md` to load the skill. |
+| `/make-guardrails` | Generate an `pc-guardrails-project` skill from `ARCHITECTURE.md` and project config files. Extracts architecture boundaries, naming, code style, testing and git workflow rules, then updates all `*-engineer.md` to load the skill. |
 | `/make-evidence-scaffold` | One-time scaffold of a project-specific visual-evidence harness (deterministic capture, assertions, manifest and publisher) that `/ops-evidence` and `/plan-goal` then delegate to. |
-| `/make-user-model [user] <tier> <model>` | Set the model for a tier (`plan`, `build`, `fast`). Writes to `opencode-onboard.json` (team) or `opencode-onboard.user.json` (user override, gitignored) when the `user` prefix is used. Restart to pick up changes. Pass a model id or `current` for the active session model. |
+| `/make-user-model [user] <tier> <model>` | Set the model for a tier (`plan`, `build`, `fast`). Writes to `harness.json` (team) or `harness.user.json` (user override, gitignored) when the `user` prefix is used. Restart to pick up changes. Pass a model id or `current` for the active session model. |

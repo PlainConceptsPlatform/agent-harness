@@ -23,7 +23,7 @@ describe('cleanAiFiles()', () => {
   let originalCwd
 
   beforeEach(async () => {
-    tmpDir = await fse.mkdtemp(path.join(os.tmpdir(), 'ob-clean-test-'))
+    tmpDir = await fse.mkdtemp(path.join(os.tmpdir(), 'pc-clean-test-'))
     originalCwd = process.cwd()
     process.chdir(tmpDir)
     vi.clearAllMocks()

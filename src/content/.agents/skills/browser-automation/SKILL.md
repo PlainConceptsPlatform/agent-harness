@@ -10,7 +10,7 @@ metadata:
 
 This skill operates on `localhost` URLs only. Screenshots, clicks, typing, scrolling, and queries on locally running apps are in scope. External services (github.com, dev.azure.com, npmjs.com, etc.) are out of scope for browser tools.
 
-The only exception: when the user selects "Others (Browser)" as their backlog platform during onboarding, the `ob-userstory` skill may navigate to work item URLs the user explicitly provides. That is the sole case where external navigation is permitted, and only to URLs the user explicitly gives you.
+The only exception: when the user selects "Others (Browser)" as their backlog platform during onboarding, the `pc-userstory` skill may navigate to work item URLs the user explicitly provides. That is the sole case where external navigation is permitted, and only to URLs the user explicitly gives you.
 
 ## Best-practice workflow
 
