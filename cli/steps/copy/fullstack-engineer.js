@@ -1,7 +1,7 @@
 import fse from 'fs-extra'
 import path from 'path'
 import { success } from '../../utils/exec.js'
-import { agentColor } from '../../utils/agent-color.js'
+import { agentColor, yamlColor } from '../../utils/agent-color.js'
 
 const FULLSTACK_FILE = 'fullstack-engineer.md'
 const FULLSTACK_DESCRIPTION = 'Default engineer that accumulates skills from all created persona engineers. Use as fallback when no specialist matches: but prefer spawning a specific engineer for deterministic results.'
@@ -62,7 +62,8 @@ export async function generateFullstackEngineer({ cwd = process.cwd(), updateMod
     'mode: subagent',
     // warning is reserved for plan, so fullstack takes its name-derived hex
     // like every other subagent.
-    `color: ${agentColor('fullstack-engineer')}`,
+    // Quoted: a bare #hex is a YAML comment, which opencode rejects.
+    `color: ${yamlColor(agentColor('fullstack-engineer'))}`,
     'permission:',
     '  edit: allow',
     '  bash: allow',

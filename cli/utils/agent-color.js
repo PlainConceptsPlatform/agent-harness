@@ -71,6 +71,34 @@ export function agentColor(name) {
 }
 
 /**
+ * Render a colour for YAML frontmatter.
+ *
+ * A hex has to be quoted. `#` opens a comment in YAML, so `color: #D83155`
+ * parses as null and opencode rejects the agent outright with "Invalid input
+ * color". Theme keywords need no quoting and are left bare.
+ */
+export function yamlColor(value) {
+  return value.startsWith('#') ? `"${value}"` : value
+}
+
+/** The value of a frontmatter colour, with any quoting removed. */
+export function unquoteColor(raw) {
+  return (raw ?? '').trim().replace(/^["']/, '').replace(/["']$/, '')
+}
+
+/**
+ * The frontmatter colour line an agent should have, or null when the current
+ * one is already correct. Covers both jobs: choosing the colour, and quoting it
+ * so the file actually parses.
+ */
+export function colorLineFor(name, rawCurrent) {
+  const current = unquoteColor(rawCurrent)
+  const target = shouldDeriveColor(current) ? agentColor(name) : current
+  const rendered = yamlColor(target)
+  return (rawCurrent ?? '').trim() === rendered ? null : `color: ${rendered}`
+}
+
+/**
  * Whether a frontmatter colour should be replaced by the derived one.
  *
  * A theme keyword is replaced: those came from the old template, which asked

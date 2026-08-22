@@ -84,6 +84,34 @@ function shouldDeriveColor(current) {
   return THEME_COLORS.has(current.trim().toLowerCase())
 }
 
+/**
+ * Render a colour for YAML frontmatter.
+ *
+ * A hex has to be quoted. `#` opens a comment in YAML, so `color: #D83155`
+ * parses as null and opencode refuses the agent with "Invalid input color".
+ * Theme keywords need no quoting and stay bare.
+ */
+function yamlColor(value) {
+  return value.startsWith("#") ? `"${value}"` : value
+}
+
+function unquoteColor(raw) {
+  return (raw ?? "").trim().replace(/^["']/, "").replace(/["']$/, "")
+}
+
+/**
+ * The colour line an agent should have, or null when the current one is already
+ * right. Handles both choosing the colour and quoting it, so a file written by
+ * an earlier version with a bare hex is repaired in place rather than left
+ * broken.
+ */
+function colorLineFor(name, rawCurrent) {
+  const current = unquoteColor(rawCurrent)
+  const target = shouldDeriveColor(current) ? agentColor(name) : current
+  const rendered = yamlColor(target)
+  return (rawCurrent ?? "").trim() === rendered ? null : `color: ${rendered}`
+}
+
 const FULLSTACK_NAME = "fullstack-engineer"
 const FULLSTACK_TEMPLATE = `${FULLSTACK_NAME}.md`
 
@@ -162,11 +190,14 @@ export const PcSubagentTiers = async ({ directory }) => {
     }
     // Give every agent a colour derived from its name, so the same engineer
     // reads the same in any project and two agents never collide by accident.
-    const currentColor = fm.match(/^color:\s*(.+)$/m)?.[1]
-    if (name && shouldDeriveColor(currentColor)) {
-      const derived = `color: ${agentColor(name)}`
-      fm = /^color:/m.test(fm) ? fm.replace(/^color:.*$/m, derived) : `${fm}\n${derived}`
-      changed = true
+    // colorLineFor also repairs a bare #hex written by an earlier version,
+    // which YAML read as a comment and opencode rejected outright.
+    if (name) {
+      const colorLine = colorLineFor(name, fm.match(/^color:\s*(.+)$/m)?.[1])
+      if (colorLine) {
+        fm = /^color:/m.test(fm) ? fm.replace(/^color:.*$/m, () => colorLine) : `${fm}\n${colorLine}`
+        changed = true
+      }
     }
     if (/^model:/m.test(fm)) {
       // Remove the model: line and its trailing newline without leaving a
@@ -195,7 +226,7 @@ export const PcSubagentTiers = async ({ directory }) => {
       'mode: primary',
     ]
     if (model) lines.push(`model: ${model}`)
-    lines.push(`color: ${spec.color}`)
+    lines.push(`color: ${yamlColor(spec.color)}`)
     lines.push('permission:')
     // plan denies edit; everything else stays allowed so the planning skills can
     // still read the tree, shell out to git and openspec, and spawn engineers.

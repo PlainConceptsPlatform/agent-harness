@@ -29,7 +29,7 @@ describe('generateFullstackEngineer()', () => {
     const content = fs.readFileSync(path.join(tmpDir, '.opencode', 'agents', 'fullstack-engineer.md'), 'utf-8')
     expect(content).toContain('mode: subagent')
     // warning belongs to plan; fullstack takes its name-derived hex.
-    expect(content).toMatch(/color: #[0-9A-F]{6}/)
+    expect(content).toMatch(/color: "#[0-9A-F]{6}"/)
     expect(content).toContain('  question: allow')
     expect(content).toContain('  todowrite: allow')
     expect(content).not.toContain('**Startup — before doing anything else:**')

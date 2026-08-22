@@ -168,7 +168,33 @@ describe("PcSubagentTiers engineer templates", () => {
 
     const fm = frontmatter("frontend-engineer.md")
     expect(fm).not.toContain("color: info")
-    expect(fm).toMatch(/color: #[0-9A-F]{6}/)
+    expect(fm).toMatch(/color: "#[0-9A-F]{6}"/)
+  })
+
+  // 2.3.0 wrote a bare #hex, which YAML reads as a comment. opencode refused
+  // the whole agent with "Invalid input color", so this has to self-repair.
+  it("quotes the hex it writes", async () => {
+    fs.writeFileSync(
+      path.join(agentsDir, "frontend-engineer.md"),
+      "---\ndescription: Frontend.\nmode: subagent\ncolor: info\n---\n\nYou are a frontend engineer.\n",
+    )
+
+    await run()
+
+    expect(frontmatter("frontend-engineer.md")).toMatch(/color: "#[0-9A-F]{6}"/)
+  })
+
+  it("repairs an unquoted hex left by an earlier version", async () => {
+    fs.writeFileSync(
+      path.join(agentsDir, "frontend-engineer.md"),
+      "---\ndescription: Frontend.\nmode: subagent\ncolor: #C431D8\n---\n\nYou are a frontend engineer.\n",
+    )
+
+    await run()
+
+    const fm = frontmatter("frontend-engineer.md")
+    // Same colour, now parseable.
+    expect(fm).toContain('color: "#C431D8"')
   })
 
   it("leaves a deliberate hex alone", async () => {
@@ -179,7 +205,7 @@ describe("PcSubagentTiers engineer templates", () => {
 
     await run()
 
-    expect(frontmatter("frontend-engineer.md")).toContain("color: #123456")
+    expect(frontmatter("frontend-engineer.md")).toContain('color: "#123456"')
   })
 
   it("adds a colour when the template has none", async () => {
@@ -190,7 +216,7 @@ describe("PcSubagentTiers engineer templates", () => {
 
     await run()
 
-    expect(frontmatter("butterfly-engineer.md")).toMatch(/color: #[0-9A-F]{6}/)
+    expect(frontmatter("butterfly-engineer.md")).toMatch(/color: "#[0-9A-F]{6}"/)
   })
 
   it("does not generate tier variants for fullstack itself", async () => {

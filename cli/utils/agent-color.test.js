@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { RESERVED_COLORS, agentColor, shouldDeriveColor } from './agent-color.js'
+import { RESERVED_COLORS, agentColor, colorLineFor, shouldDeriveColor, yamlColor } from './agent-color.js'
 
 function toRgb(hex) {
   const n = parseInt(hex.slice(1), 16)
@@ -50,6 +50,68 @@ describe('agentColor()', () => {
     )
     // A bad hash would collapse these onto a handful of values.
     expect(hues.size).toBeGreaterThan(50)
+  })
+})
+
+/**
+ * Parse a frontmatter scalar the way YAML does, so these tests exercise the
+ * actual failure: an unquoted `#` opens a comment and the value becomes empty.
+ */
+function parseYamlScalar(line) {
+  const raw = line.slice(line.indexOf(':') + 1).trim()
+  if (raw.startsWith('"') || raw.startsWith("'")) return raw.slice(1, -1)
+  return raw.split('#')[0].trim()
+}
+
+describe('yamlColor()', () => {
+  // The bug: `color: #D83155` parsed as null and opencode refused the agent
+  // with "Invalid input color".
+  it('quotes a hex so YAML does not read it as a comment', () => {
+    expect(yamlColor('#D83155')).toBe('"#D83155"')
+    expect(parseYamlScalar(`color: ${yamlColor('#D83155')}`)).toBe('#D83155')
+  })
+
+  it('shows why the bare form was broken', () => {
+    expect(parseYamlScalar('color: #D83155')).toBe('')
+  })
+
+  it('leaves theme keywords bare', () => {
+    expect(yamlColor('primary')).toBe('primary')
+    expect(yamlColor('warning')).toBe('warning')
+  })
+
+  it('round-trips every derived colour through a YAML parse', () => {
+    for (let i = 0; i < 200; i++) {
+      const name = `agent-${i}-engineer`
+      const colour = agentColor(name)
+      expect(parseYamlScalar(`color: ${yamlColor(colour)}`)).toBe(colour)
+    }
+  })
+})
+
+describe('colorLineFor()', () => {
+  it('repairs an unquoted hex without changing the colour', () => {
+    expect(colorLineFor('backend-engineer', '#D83155')).toBe('color: "#D83155"')
+  })
+
+  it('is a no-op once the line is already correct', () => {
+    expect(colorLineFor('backend-engineer', '"#D83155"')).toBeNull()
+    expect(colorLineFor('build', 'primary')).toBeNull()
+  })
+
+  it('derives and quotes when the colour is missing', () => {
+    expect(colorLineFor('butterfly-engineer', undefined)).toBe(`color: ${yamlColor(agentColor('butterfly-engineer'))}`)
+  })
+
+  it('replaces a theme keyword on a non-primary', () => {
+    const line = colorLineFor('backend-engineer', 'info')
+    expect(line).toBe(`color: ${yamlColor(agentColor('backend-engineer'))}`)
+    expect(line).toContain('"#')
+  })
+
+  it('keeps a deliberate hex, only fixing its quoting', () => {
+    expect(colorLineFor('backend-engineer', '#123456')).toBe('color: "#123456"')
+    expect(colorLineFor('backend-engineer', '"#123456"')).toBeNull()
   })
 })
 
