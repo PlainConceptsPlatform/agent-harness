@@ -27,4 +27,4 @@ git switch -c "feature/{slug}"
 BRANCH="$(git branch --show-current)"
 ```
 
-Everything through archive and evidence happens on `$BRANCH`.
+Everything through archive happens on `$BRANCH`.

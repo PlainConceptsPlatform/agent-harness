@@ -21,7 +21,7 @@ git merge --no-ff "$BRANCH" -m "goal: {title} ({change-id})"
 git branch -d "$BRANCH"
 ```
 
-If the merge conflicts, abort it and use the failure policy. Do not push the default branch. Evidence remains in the archive and publication is skipped because no commit-pinned repository URL exists.
+If the merge conflicts, abort it and use the failure policy. Do not push the default branch.
 
 ## Push mode
 
@@ -31,13 +31,13 @@ Push the feature branch:
 git push -u origin "$BRANCH"
 ```
 
-When a work item exists, load `pc-ops-evidence` with `operation: publish`, `{change-id}`, the work-item reference, and `mode: push`. Publication is non-fatal. Restore the stash and leave the branch available.
+Restore the stash and leave the branch available.
 
 ## PR mode
 
-Push the feature branch, then load `pc-ops-ship` to create a PR into `$DEFAULT_BRANCH`. Supply title, change id, functional summary, delivered acceptance criteria, task count, verification result, archive path, evidence result, and commits. Do not merge the PR.
+Push the feature branch, then load `pc-ops-ship` to create a PR into `$DEFAULT_BRANCH`. Supply title, change id, functional summary, delivered acceptance criteria, task count, verification result, archive path, and commits. Do not merge the PR.
 
-When a work item exists, load `pc-ops-evidence` with `operation: publish`, `{change-id}`, the work-item reference, PR number, and `mode: pr`. Publication is non-fatal. Restore the stash.
+Restore the stash.
 
 ## Final report
 
@@ -51,13 +51,10 @@ Functional outcome: {one-sentence result}
 Branch: {branch}
 Tasks: {completed}/{total}
 Acceptance criteria: {passed}/{total}
-Commits: {proposal, apply, archive, evidence when present}
+Commits: {proposal, apply, archive}
 Verification: passed | failed
 Archived: yes | no
 Archive path: {path or none}
-Evidence: passed | skipped | failed | blocked
-Evidence assets: {paths or none}
-Evidence publication: {published | skipped | failed}
 Output mode: default | push | pr
 Final state: merged locally | pushed branch | PR URL | branch preserved after failure
 Stash restoration: not needed | restored | preserved after conflict

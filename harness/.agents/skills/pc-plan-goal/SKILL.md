@@ -8,7 +8,7 @@ Run the full OpenSpec lifecycle without human interaction. This skill owns phase
 
 Keep this checklist visible:
 
-`explore · propose · apply · verify · archive · evidence · output · report`
+`explore · propose · apply · verify · archive · output · report`
 
 Move forward only when a phase returns its required result. On a hard failure, follow the [failure policy](failure-policy.md). Continue after each phase skill returns; the run ends only after every checklist item is complete.
 
@@ -71,23 +71,9 @@ git add -A && git commit -m "archive: {title} ({change-id})"
 
 Tick `archive` when the archive commit exists.
 
-## Phase 5.5: Evidence
-
-Load `pc-ops-evidence` with `operation: capture` and `{change-id}`. It owns evidence decisions, capture, and the manifest. Evidence capture is non-fatal.
-
-The evidence skill uses `playwright-cli` (headless, works inside containers) and `pnpm run dev` (starts the full app stack with mock auth). Evidence capture works in CI.
-
-Commit evidence when files or a manifest were written:
-
-```bash
-git add -A && git commit -m "evidence: {title} ({change-id})"
-```
-
-Record the manifest result and tick `evidence` after capture was attempted.
-
 ## Phase 6: Output
 
-Follow the [output procedure](output.md) with the mode, branch values, change id, work-item reference, archive path, and evidence result. Tick `output` only when its mode-specific postcondition holds.
+Follow the [output procedure](output.md) with the mode, branch values, change id, work-item reference, and archive path. Tick `output` only when its mode-specific postcondition holds.
 
 ## Phase 7: Report
 
