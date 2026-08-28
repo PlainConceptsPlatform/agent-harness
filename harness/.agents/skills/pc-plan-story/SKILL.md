@@ -21,6 +21,9 @@ Load the `@user-story` skill now. Follow its format, anti-patterns, and quality 
 
 ## Step 2: Analyze the codebase
 
+<!-- PC-OPTIMIZATION-MEMORY-START -->
+<!-- PC-OPTIMIZATION-MEMORY-END -->
+
 Use `glob` and `grep` to locate the relevant files, components, types, and patterns that the feature touches. Read the key files to understand:
 
 - **Who** the users are (check auth, roles, user models, route guards)

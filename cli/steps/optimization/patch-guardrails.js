@@ -16,7 +16,7 @@ const MARKER_SECTIONS = {
 
 const OPTIONAL_TOOL_GUIDANCE = {
   codegraph: 'Use `codegraph_explore` to refine relevant symbols and file-disjointness for the current wave.',
-  memory: 'Use Agentmemory MCP tools for cross-session context and task-result notes.',
+  memory: 'Agentmemory carries context across sessions and agents: before exploring an unfamiliar area, call `memory_smart_search` with the key concepts of the task (components, error text) and reuse what it returns; when the work completes, call `memory_save` for durable non-obvious learnings (architecture constraints, root causes and fixes, decisions and why). Never store secrets.',
 }
 
 function replaceMarkerSection(content, startMarker, endMarker, replacement) {

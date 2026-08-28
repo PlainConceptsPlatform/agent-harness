@@ -6,6 +6,9 @@ license: MIT
 
 # Plan Archive
 
+<!-- PC-OPTIMIZATION-MEMORY-START -->
+<!-- PC-OPTIMIZATION-MEMORY-END -->
+
 ## Input
 
 The caller provides (all optional):
