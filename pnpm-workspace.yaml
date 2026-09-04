@@ -1,0 +1,7 @@
+packages:
+  - docs
+allowBuilds:
+  esbuild: false
+  sharp: true
+minimumReleaseAgeExclude:
+  - '@plainconceptsplatform/ui-theme@0.1.0'

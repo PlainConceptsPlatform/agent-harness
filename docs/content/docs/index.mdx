@@ -1,0 +1,70 @@
+---
+title: Introduction
+description: What agent-harness is, and what the Plain Concepts Platform Harness gives you.
+---
+
+Most codebases have no `AGENTS.md`, no architecture documentation an agent can
+read, and no defined workflow for picking up a task. So agents improvise, and you
+get a different answer every run.
+
+**agent-harness** is the CLI that installs the **Plain Concepts Platform
+Harness** into a repository and keeps it up to date.
+
+The harness is ours. We build it, our projects run on it, and this CLI is how it
+gets into a codebase. It is the set of files agents work from: slash commands,
+`pc-*` skills (the `pc-` is Plain Concepts), an agent team, OpenCode plugins, an
+OpenSpec workspace, and generated `ARCHITECTURE.md` and `DESIGN.md`.
+
+Underneath, it wires [OpenCode](https://opencode.ai) to
+[OpenSpec](https://github.com/fission-ai/openspec) for change management, native
+subagent waves for parallel work,
+[codegraph](https://github.com/colbymchenry/codegraph) for code intelligence,
+and [agentmemory](https://github.com/rohitg00/agentmemory) for context that
+survives between sessions.
+
+## Three jobs
+
+| Command | What it does |
+| --- | --- |
+| *(no argument)* | Installs the harness. A wizard runs once and saves your answers to `.opencode/harness.json`. |
+| `update` | Reinstalls the harness from those saved answers, no questions asked. Keeps files you edited. |
+| `join` | Sets up a teammate's machine. Touches no committed file. |
+
+You run the first once per repository, and `update` whenever we ship a release.
+
+## Install
+
+```bash
+npx @plainconceptsplatform/agent-harness@latest
+```
+
+Requires Node.js 18 or higher. See [Getting started](/docs/getting-started) for
+prerequisites and per-step commands.
+
+## What it wires together
+
+| Tool | Role |
+| --- | --- |
+| [OpenCode](https://opencode.ai) | The agent runtime. Native parallel subagent waves, no external plugins, no git worktrees. |
+| [OpenSpec](https://github.com/fission-ai/openspec) | Structured change management: proposals, specs, and tasks. |
+| [codegraph](https://github.com/colbymchenry/codegraph) | Code intelligence and indexing, so agents understand the codebase before touching it. |
+| [agentmemory](https://github.com/rohitg00/agentmemory) | Shared context across agent sessions. |
+
+## Supported platforms
+
+Backlog and repository platforms are chosen independently, so mixed setups work:
+a Jira backlog with a GitHub repository, or a browser backlog with a GitLab
+repository.
+
+- **Backlog:** GitHub, Azure DevOps, Jira, browser-based, or None
+- **Repository:** GitHub, Azure DevOps, GitLab, or None
+
+Choosing `None` for a backlog means no userstory skills are injected; choosing
+`None` for a repository means no pull request skills are injected.
+
+## Where to go next
+
+- [Getting started](/docs/getting-started): install, prerequisites, and reruns
+- [The wizard](/docs/the-wizard): what each of the 10 steps does
+- [Commands](/docs/commands): the full slash command reference
+- [The pipeline](/docs/pipeline): how work flows from a URL to a pull request

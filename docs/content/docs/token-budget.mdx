@@ -1,0 +1,61 @@
+---
+title: Token budget controls
+description: Keep long unattended agent sessions from burning through your budget.
+---
+
+<Callout title="Set these up before first use" type="warn">
+  Long unattended agent sessions can consume significant tokens. Provider-side limits are the only
+  control that cannot be talked past by an agent, so start there.
+</Callout>
+
+<Steps>
+
+<Step>
+
+### Set provider-side limits first
+
+A monthly soft limit plus a hard usage cap in your provider dashboard:
+
+- OpenAI: [platform.openai.com/account/limits](https://platform.openai.com/account/limits)
+- Anthropic: [console.anthropic.com](https://console.anthropic.com)
+- Google AI Studio: [aistudio.google.com/app/usage](https://aistudio.google.com/app/usage)
+
+</Step>
+
+<Step>
+
+### Route models by task type
+
+Use a fast, cheap model for orchestration and status loops; reserve expensive models for
+implementation only. This is what the [plan / build / fast tiers](/docs/the-wizard) are for.
+
+</Step>
+
+<Step>
+
+### Install the quota plugin
+
+[`@slkiser/opencode-quota`](https://www.npmjs.com/package/@slkiser/opencode-quota) adds `/quota` and
+`/quota_status`, which surface real-time token usage inside OpenCode sessions.
+
+</Step>
+
+<Step>
+
+### Use /quota checkpoints
+
+Run `/quota` before starting any `/plan-apply` session and after each agent wave. Pause at 75
+percent consumed; stop at 90 percent.
+
+</Step>
+
+<Step>
+
+### Confirm before large runs
+
+The onboarded `/plan-apply` workflow asks for confirmation before spawning agents for Medium (4 to 7
+tasks) or High (8 or more tasks) scope sessions.
+
+</Step>
+
+</Steps>

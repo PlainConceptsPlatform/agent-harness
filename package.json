@@ -1,0 +1,70 @@
+{
+  "name": "@plainconceptsplatform/agent-harness",
+  "version": "2.3.1",
+  "description": "Installs the Plain Concepts Platform Harness into any codebase, and keeps it up to date. Wires OpenCode, OpenSpec, codegraph, and agentmemory into a multi-agent workflow that runs on native parallel subagents.",
+  "keywords": [
+    "opencode",
+    "ai",
+    "agents",
+    "agent-harness",
+    "harness",
+    "brownfield",
+    "openspec",
+    "cli"
+  ],
+  "homepage": "https://github.com/PlainConceptsPlatform/agent-harness",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PlainConceptsPlatform/agent-harness.git"
+  },
+  "bugs": {
+    "url": "https://github.com/PlainConceptsPlatform/agent-harness/issues"
+  },
+  "license": "MIT",
+  "author": "Plain Concepts",
+  "type": "module",
+  "bin": {
+    "agent-harness": "./cli/index.js"
+  },
+  "files": [
+    "cli",
+    "harness",
+    "!cli/**/*.test.js",
+    "!harness/**/*.test.js",
+    "!harness/**/node_modules"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "packageManager": "pnpm@11.10.0",
+  "dependencies": {
+    "@inquirer/prompts": "^7.0.0",
+    "chalk": "^5.0.0",
+    "execa": "^9.6.1",
+    "fs-extra": "^11.0.0",
+    "jsonc-parser": "^3.3.1",
+    "ora": "^8.0.0"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run lint && npm run test",
+    "release:dry": "pnpm publish --dry-run --no-git-checks --access public",
+    "release": "pnpm publish --no-git-checks --access public"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "globals": "^15.0.0",
+    "vitest": "^4.1.5"
+  },
+  "vitest": {
+    "environment": "node"
+  }
+}

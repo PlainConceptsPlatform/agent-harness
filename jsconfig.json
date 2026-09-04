@@ -1,0 +1,18 @@
+{
+    "compilerOptions": {
+        "allowJs": true,
+        "checkJs": true,
+        "noImplicitAny": false,
+        "strict": false,
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+        "resolveJsonModule": true,
+        "target": "ES2022"
+    },
+    "typeAcquisition": {
+        "enable": true
+    },
+    "include": [
+        "cli/**/*.js"
+    ]
+}

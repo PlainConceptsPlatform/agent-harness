@@ -1,0 +1,94 @@
+---
+title: Agents and skills
+description: The line between how to work (agents) and what to know (skills).
+---
+
+agent-harness draws a hard line between two concepts.
+
+## Agents: universal behaviors
+
+Agents define *how to work*. They are universal personas, with the same behavior
+across projects and stacks.
+
+```
+build                  primary. Implements. Full write access. The default.
+plan                   primary. Same body as build, but cannot edit files.
+fullstack-engineer     subagent. The body build and plan share, and the fallback worker.
+*-engineer             subagent. User-created specialists, spawned for parallel implementation.
+*-engineer.<tier>      subagent. The same specialist pinned to a plan/build/fast model.
+```
+
+`build` and `plan` are the only agents a human selects, and they are overrides of
+opencode's own two primaries rather than new names. The `pc-subagent-tiers` plugin
+regenerates both from `fullstack-engineer.md` on every startup, so they always carry
+the current abilities, each on its own tier model. `plan` differs from `build` in one
+frontmatter line: `edit: deny`. It can still read the tree, shell out to git and
+openspec, and spawn engineers, so planning works and cannot write.
+
+Everything else is `mode: subagent` and reached through `task()`, never picked from
+the agent list. Project-specific specialization comes from user-created engineers via
+`/make-engineer`. During `/plan-apply` the lead inspects the engineers that actually
+exist in `.opencode/agents/` and spawns matching specialists. Prefer a specialist over
+`fullstack-engineer`; if none matches, create one.
+
+## Skills: platform knowledge
+
+Skills define *what to know*. They provide project rules, platform behavior and
+task-specific execution guidance. Agents auto-detect and load relevant skills:
+**you do not manually choose skills per prompt**.
+
+- `pc-guardrails-generic` is the mandatory baseline for every agent (git, secrets,
+  quality rules, plus the engineer workflow)
+- Baseline context rules and token-optimization guidance live in `AGENTS.md`
+  (always in context), not in a skill
+
+Default `fullstack-engineer` abilities:
+
+```
+## Abilities
+- Guardrails: @pc-guardrails-generic, @pc-guardrails-project
+```
+
+Users are expected to create additional skills and map them into abilities over
+time. Skills live in `.agents/skills/`, and any `SKILL.md` file in a subdirectory
+is automatically discoverable.
+
+## Built-in skills
+
+| Skill | Purpose |
+| --- | --- |
+| `pc-guardrails-generic` | Foundation for user guardrails skills |
+| `pc-guardrails-project` | Project-specific guardrails, populated by `/make-guardrails` |
+| `pc-userstory-gh` | Parse a GitHub Issue URL into a structured work item |
+| `pc-userstory-az` | Parse an Azure DevOps work item URL |
+| `pc-userstory-jira` | Parse a Jira issue URL via the `acli` CLI |
+| `pc-userstory-browser` | Parse a work item from any URL via browser automation |
+| `browser-automation` | Browser control via `@different-ai/opencode-browser` |
+| `pc-plan-explore` | Read-only exploration procedure behind `/plan-explore` |
+| `pc-plan-propose` | Proposal and task-enrichment procedure behind `/plan-propose` |
+| `pc-plan-apply` | Wave-implementation procedure behind `/plan-apply` |
+| `pc-plan-archive` | Archive procedure behind `/plan-archive` |
+| `pc-plan-goal` | Autonomous full-lifecycle pipeline behind `/plan-goal` |
+| `pc-plan-quick` | Quick task checklist behind `/plan-quick` |
+| `pc-ops-ship` | PR-creation procedure behind `/ops-ship` |
+| `pc-ops-evidence` | Evidence of a change, plus an idempotent verified issue/PR comment |
+| `pc-make-architecture` | `ARCHITECTURE.md` generation behind `/make-architecture` |
+| `pc-make-design` | `DESIGN.md` generation behind `/make-design` |
+| `pc-make-guardrails` | Guardrails generation behind `/make-guardrails` |
+| `pc-make-engineer` | Custom engineer creation behind `/make-engineer` |
+| `pc-make-evidence-scaffold` | Visual-evidence harness scaffold behind `/make-evidence-scaffold` |
+| `pc-make-user-model` | Tier model configuration behind `/make-user-model` |
+| `pc-repo-audit` | Read-only health audit across configured source roots |
+| `pc-repo-verify` | Current-branch verification and repair gate |
+| `pc-repo-initialize` | Project initialization behind `/repo-initialize` |
+| `pc-repo-onboard` | Guided project tour behind `/repo-onboard` |
+| `pc-repo-help` | The command reference displayed by `/repo-help` |
+
+Platform operations are injected during onboarding: pull request creation into
+`pc-ops-ship`, the archive PR flow into `pc-plan-archive`, issue and work-item
+evidence comments into `pc-ops-evidence`, and pull request review plus issue
+creation directly into the `/ops-review` and `/ops-backlog` command files.
+
+Platform skills ship as suffixed variants (`pc-userstory-gh`, `pc-userstory-az`,
+`pc-userstory-jira`, `pc-userstory-browser`) and the installer copies only the
+matching one, renamed to its generic name.

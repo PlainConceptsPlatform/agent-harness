@@ -1,0 +1,9 @@
+node_modules
+harness-run.json
+harness.user.json
+harness-managed.json
+source-roots.json
+tmp/
+*-engineer.*.md
+agents/build.md
+agents/plan.md

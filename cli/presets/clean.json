@@ -1,0 +1,21 @@
+{
+  "preserve": ["DESIGN.md", "ARCHITECTURE.md", "openspec"],
+  "detectFiles": [
+    "AGENTS.md",
+    "CLAUDE.md",
+    "ARCHITECTURE.md",
+    "DESIGN.md",
+    ".cursorrules",
+    ".clinerules",
+    ".windsurfrules",
+    ".github/copilot-instructions.md",
+    "copilot-instructions.md",
+    ".aider.conf.yml",
+    ".aider",
+    ".opencode",
+    ".agents"
+  ],
+  "directoryTargets": [".opencode", ".agents"],
+  "preserveSubfolders": ["skills"],
+  "selectionMessage": "Select AI config files to remove:"
+}

@@ -1,0 +1,19 @@
+# Sidebar order and grouping, mirroring Foundations' content/docs/meta.json.
+# YAML rather than JSON because fumadocs-mdx 14 (used here) sends .json meta
+# through the JavaScript parser and fails to compile it; Foundations is on
+# fumadocs-mdx 11, where JSON meta works. The rendered sidebar is the same.
+title: agent-harness
+pages:
+  - "---Start here---"
+  - index
+  - getting-started
+  - "---Guides---"
+  - the-wizard
+  - bootstrap-sequence
+  - token-budget
+  - "---Reference---"
+  - commands
+  - agents-and-skills
+  - whats-installed
+  - "---Concepts---"
+  - pipeline

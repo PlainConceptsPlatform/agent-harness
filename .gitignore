@@ -1,0 +1,5 @@
+/node_modules
+/.vscode
+/test
+/harness/.opencode/node_modules
+/openspec

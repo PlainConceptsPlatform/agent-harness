@@ -1,0 +1,37 @@
+{
+  "message": "Enable tools:",
+  "info": "Choose which optimization tools to enable (recommended: all).",
+  "timeoutMs": 30000,
+  "choices": [
+    {
+      "name": "RTK check (recommended)",
+      "value": "rtk",
+      "checked": true
+    },
+    {
+      "name": "opencode-quota plugin (recommended)",
+      "value": "quota",
+      "checked": true
+    },
+    {
+      "name": "Simple English concise mode (recommended)",
+      "value": "simpleEnglish",
+      "checked": true
+    },
+    {
+      "name": "codegraph semantic index (recommended)",
+      "value": "codegraph",
+      "checked": true
+    },
+    {
+      "name": "agentmemory local memory server",
+      "value": "memory",
+      "checked": true
+    },
+    {
+      "name": "humanizer skill (removes AI writing patterns)",
+      "value": "humanizer",
+      "checked": true
+    }
+  ]
+}

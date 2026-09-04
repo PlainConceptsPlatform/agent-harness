@@ -1,0 +1,41 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    "AGENTS.md"
+  ],
+  "plugin": [
+    "@different-ai/opencode-browser@4.6.1",
+    "@mohak34/opencode-notifier@0.2.8"
+  ],
+  "experimental": {
+    "mcp_timeout": 300000
+  },
+  "compaction": {
+    "auto": true,
+    "prune": true,
+    "reserved": 10000
+  },
+  "permission": {
+    "question": "allow",
+    "todowrite": "allow",
+    "skill": "allow"
+  },
+  "skills": {
+    "paths": [".agents/skills"]
+  },
+  // build and plan are the only primaries, and plan is the default: a session
+  // starts read-only and you switch to build once you know what to change.
+  // The pc-subagent-tiers plugin
+  // regenerates .opencode/agents/{build,plan}.md from fullstack-engineer.md on
+  // every startup and overrides these two entries with the resolved tier model,
+  // so what is here is only the floor if the plugin cannot run. Every engineer
+  // is mode: subagent and reached through task(), never picked by a human.
+  "default_agent": "plan",
+  "agent": {
+    "build": { "mode": "primary" },
+    "plan": {
+      "mode": "primary",
+      "permission": { "edit": "deny" }
+    }
+  }
+}
