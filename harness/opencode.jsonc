@@ -4,9 +4,15 @@
     "AGENTS.md"
   ],
   "plugin": [
-    "@different-ai/opencode-browser@4.6.1",
     "@mohak34/opencode-notifier@0.2.8"
   ],
+  "mcp": {
+    "agent-browser": {
+      "type": "local",
+      "command": ["agent-browser", "mcp", "--tools", "core"],
+      "enabled": true
+    }
+  },
   "experimental": {
     "mcp_timeout": 300000
   },

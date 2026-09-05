@@ -28,7 +28,6 @@ export async function runJoin() {
 
   const backlogPlatform = saved?.platform?.backlog
   const repoPlatform = saved?.platform?.repo
-  const installScope = 'local'
   const teamModels = saved?.models ?? {}
 
   const opencodeDir = path.join(process.cwd(), '.opencode')
@@ -177,9 +176,9 @@ export async function runJoin() {
   header('Step 7, Checking rtk')
   await checkRtk({ skipHeader: true, skipPrompt: true })
 
-  // Step 8: Browser extension
-  header('Step 8, Installing opencode-browser')
-  await installBrowser({ installScope })
+  // Step 8: Browser automation
+  header('Step 8, Installing agent-browser')
+  await installBrowser()
 
   // Step 9: Model tier guidance
   header('Step 9, Model tiers')

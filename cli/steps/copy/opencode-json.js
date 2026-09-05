@@ -10,6 +10,15 @@ const SHARED_PERMISSIONS = [
   ['todowrite', 'allow'],
 ]
 
+// agent-browser replaced the @different-ai/opencode-browser plugin; any entry
+// with that prefix in the plugin array is stale and gets stripped on update.
+const STALE_BROWSER_PLUGIN_PREFIX = '@different-ai/opencode-browser'
+const AGENT_BROWSER_MCP = {
+  type: 'local',
+  command: ['agent-browser', 'mcp', '--tools', 'core'],
+  enabled: true,
+}
+
 function applyModify(text, jsonPath, value) {
   const edits = modify(text, jsonPath, value, {
     formattingOptions: { insertSpaces: true, tabSize: 2 },
@@ -68,8 +77,11 @@ export async function patchOpencodeJson(cwd = process.cwd()) {
     parsed?.compaction?.auto === true &&
     parsed?.compaction?.prune === true
   )
+  const staleBrowserPlugins = (Array.isArray(parsed?.plugin) ? parsed.plugin : [])
+    .filter(entry => typeof entry === 'string' && entry.startsWith(STALE_BROWSER_PLUGIN_PREFIX))
+  const needsBrowserMcp = JSON.stringify(parsed?.mcp?.['agent-browser']) !== JSON.stringify(AGENT_BROWSER_MCP)
 
-  if (!needsAgentOverride && !needsDefaultAgent && !needsSkillPermission && missingSharedPermissions.length === 0 && !needsSkillsPaths && !needsCompaction) {
+  if (!needsAgentOverride && !needsDefaultAgent && !needsSkillPermission && missingSharedPermissions.length === 0 && !needsSkillsPaths && !needsCompaction && staleBrowserPlugins.length === 0 && !needsBrowserMcp) {
     return { patched: false }
   }
 
@@ -110,6 +122,15 @@ export async function patchOpencodeJson(cwd = process.cwd()) {
     text = applyModify(text, ['compaction', 'reserved'], 10000)
   }
 
+  // Swap the retired opencode-browser plugin for the agent-browser MCP server
+  if (staleBrowserPlugins.length > 0) {
+    const keptPlugins = parsed.plugin.filter(entry => !staleBrowserPlugins.includes(entry))
+    text = applyModify(text, ['plugin'], keptPlugins)
+  }
+  if (needsBrowserMcp) {
+    text = applyModify(text, ['mcp', 'agent-browser'], AGENT_BROWSER_MCP)
+  }
+
   await fse.writeFile(opencodePath, text, 'utf-8')
   if (needsAgentOverride) {
     success('Set build/plan as the primary agents in opencode.jsonc (plan is read-only)')
@@ -129,6 +150,12 @@ export async function patchOpencodeJson(cwd = process.cwd()) {
   if (needsCompaction) {
     success('Enabled context pruning (compaction.prune) in opencode.jsonc')
   }
+  if (staleBrowserPlugins.length > 0) {
+    success(`Removed ${staleBrowserPlugins.length} stale opencode-browser plugin entr${staleBrowserPlugins.length === 1 ? 'y' : 'ies'} in opencode.jsonc`)
+  }
+  if (needsBrowserMcp) {
+    success('Configured agent-browser MCP server in opencode.jsonc')
+  }
 
   return { patched: true }
 }
@@ -139,6 +166,9 @@ const OPENCODE_PACKAGE_DEPENDENCIES = {
   '@opentui/solid': '0.5.6',
   'solid-js': '1.9.12',
 }
+
+// agent-browser replaced this plugin; remove it from consumer installs on update
+const STALE_PACKAGE_DEPENDENCIES = ['@different-ai/opencode-browser']
 
 export async function patchOpencodePackage(cwd = process.cwd()) {
   const packagePath = path.join(cwd, '.opencode', 'package.json')
@@ -151,6 +181,11 @@ export async function patchOpencodePackage(cwd = process.cwd()) {
   for (const [name, version] of Object.entries(OPENCODE_PACKAGE_DEPENDENCIES)) {
     if (!(name in packageJson.dependencies) || packageJson.dependencies[name] === version) continue
     packageJson.dependencies[name] = version
+    patched = true
+  }
+  for (const name of STALE_PACKAGE_DEPENDENCIES) {
+    if (!(name in packageJson.dependencies)) continue
+    delete packageJson.dependencies[name]
     patched = true
   }
   if (!patched) return { patched: false }

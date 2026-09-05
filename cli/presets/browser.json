@@ -1,22 +1,10 @@
 {
   "installer": {
-    "command": "npx",
-    "args": ["@different-ai/opencode-browser@4.6.1", "install"]
+    "command": "npm",
+    "args": ["install", "-g", "agent-browser@0.36.0"]
   },
-  "output": {
-    "showAfter": "To load the extension",
-    "hideAfter": "Press Enter when"
-  },
-  "locationChoices": {
-    "local": "2",
-    "global": "1"
-  },
-  "autoAnswers": [
-    { "trigger": "Press Enter when", "response": "" },
-    { "trigger": "Choose config location", "response": "__LOCATION__" },
-    { "trigger": "Add plugin automatically?", "response": "y" },
-    { "trigger": "Create one?", "response": "y" },
-    { "trigger": "Add browser-automation skill", "response": "n" },
-    { "trigger": "Check broker", "response": "n" }
-  ]
+  "chromeSetup": {
+    "command": "agent-browser",
+    "args": ["install"]
+  }
 }

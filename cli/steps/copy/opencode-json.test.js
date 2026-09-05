@@ -136,6 +136,9 @@ describe('patchOpencodeJson()', () => {
         },
         skills: { paths: ['.agents/skills'] },
         compaction: { auto: true, prune: true },
+        mcp: {
+          'agent-browser': { type: 'local', command: ['agent-browser', 'mcp', '--tools', 'core'], enabled: true },
+        },
       }, null, 2),
     )
 
@@ -245,6 +248,90 @@ describe('patchOpencodeJson()', () => {
     const config = readConfig()
     expect(config.skills.paths).toEqual(['/custom/skills', '.agents/skills'])
   })
+
+  // agent-browser replaced the @different-ai/opencode-browser plugin: update
+  // must strip any stale plugin entry and add the agent-browser MCP server.
+  it('strips the stale opencode-browser plugin and adds the agent-browser MCP server', async () => {
+    fs.writeFileSync(
+      path.join(tmpDir, 'opencode.jsonc'),
+      JSON.stringify({
+        $schema: 'https://opencode.ai/config.json',
+        plugin: [
+          '@different-ai/opencode-browser@4.6.1',
+          '@mohak34/opencode-notifier@0.2.8',
+        ],
+      }, null, 2),
+    )
+
+    const result = await patchOpencodeJson()
+    expect(result.patched).toBe(true)
+
+    const config = readConfig()
+    expect(config.plugin).toEqual(['@mohak34/opencode-notifier@0.2.8'])
+    expect(config.mcp['agent-browser']).toEqual({
+      type: 'local',
+      command: ['agent-browser', 'mcp', '--tools', 'core'],
+      enabled: true,
+    })
+  })
+
+  it('adds the agent-browser MCP server on fresh configs', async () => {
+    await patchOpencodeJson()
+
+    const config = readConfig()
+    expect(config.mcp['agent-browser']).toEqual({
+      type: 'local',
+      command: ['agent-browser', 'mcp', '--tools', 'core'],
+      enabled: true,
+    })
+  })
+
+  it('leaves mcp untouched when another server is configured', async () => {
+    fs.writeFileSync(
+      path.join(tmpDir, 'opencode.jsonc'),
+      JSON.stringify({
+        $schema: 'https://opencode.ai/config.json',
+        mcp: {
+          playwright: { type: 'local', command: ['npx', '@playwright/mcp'] },
+          'agent-browser': { type: 'local', command: ['agent-browser', 'mcp', '--tools', 'core'], enabled: true },
+        },
+      }, null, 2),
+    )
+
+    const result = await patchOpencodeJson()
+    expect(result.patched).toBe(true)
+
+    const config = readConfig()
+    expect(config.mcp.playwright).toEqual({ type: 'local', command: ['npx', '@playwright/mcp'] })
+    expect(config.mcp['agent-browser'].command).toEqual(['agent-browser', 'mcp', '--tools', 'core'])
+  })
+
+  it('is a no-op when the agent-browser MCP server is already exact', async () => {
+    fs.writeFileSync(
+      path.join(tmpDir, 'opencode.jsonc'),
+      JSON.stringify({
+        $schema: 'https://opencode.ai/config.json',
+        default_agent: 'plan',
+        agent: {
+          build: { mode: 'primary' },
+          plan: { mode: 'primary', permission: { edit: 'deny' } },
+        },
+        permission: {
+          question: 'allow',
+          todowrite: 'allow',
+          skill: 'allow',
+        },
+        skills: { paths: ['.agents/skills'] },
+        compaction: { auto: true, prune: true },
+        mcp: {
+          'agent-browser': { type: 'local', command: ['agent-browser', 'mcp', '--tools', 'core'], enabled: true },
+        },
+      }, null, 2),
+    )
+
+    const result = await patchOpencodeJson()
+    expect(result.patched).toBe(false)
+  })
 })
 
 describe('patchOpencodePackage()', () => {
@@ -271,5 +358,24 @@ describe('patchOpencodePackage()', () => {
       'solid-js': '1.9.12',
       custom: '1.0.0',
     })
+  })
+
+  it('removes the retired opencode-browser dependency', async () => {
+    const packagePath = path.join(tmpDir, '.opencode', 'package.json')
+    fs.mkdirSync(path.dirname(packagePath), { recursive: true })
+    fs.writeFileSync(packagePath, JSON.stringify({
+      dependencies: {
+        '@opencode-ai/plugin': '1.18.19',
+        '@different-ai/opencode-browser': '4.6.1',
+        '@mohak34/opencode-notifier': '0.2.8',
+      },
+    }))
+
+    await patchOpencodePackage()
+
+    const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf-8'))
+    expect(packageJson.dependencies['@different-ai/opencode-browser']).toBeUndefined()
+    expect(packageJson.dependencies['@opencode-ai/plugin']).toBe('1.18.19')
+    expect(packageJson.dependencies['@mohak34/opencode-notifier']).toBe('0.2.8')
   })
 })

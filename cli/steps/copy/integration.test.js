@@ -99,7 +99,7 @@ describe('installSkills platform gating (real content/.agents/skills)', () => {
 
   it('browser backlog + azure repo: browser userstory, NO ops skills', async () => {
     await installSkills('browser', 'azure')
-    expect(await installedSkill('pc-userstory')).toContain('browser_open_tab')
+    expect(await installedSkill('pc-userstory')).toContain('agent-browser --session backlog --restore open')
     expect(await installedSkill('pc-ship')).toBeNull()
     expect(await installedSkill('pc-review')).toBeNull()
     expect(await installedSkill('pc-backlog')).toBeNull()

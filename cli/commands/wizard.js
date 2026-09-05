@@ -90,7 +90,7 @@ export async function runWizard(version) {
   const tokenOpt = await tokenOptimizationStep({ ctx })
   const { rtk, quota, simpleEnglish, codegraph, memory, humanizer } = tokenOpt
 
-  await installBrowser(ctx)
+  await installBrowser()
 
   await writeHarnessConfig({
     ...ctx,

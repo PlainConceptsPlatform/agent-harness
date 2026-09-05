@@ -2,20 +2,22 @@
 name: pc-userstory
 description: Parse work item from any URL using browser automation. Use when user provides a URL that doesn't match GitHub/Azure/Jira CLI platforms, or when backlog platform is 'browser'.
 license: MIT
-compatibility: Requires opencode-browser extension and openspec CLI.
+compatibility: Requires agent-browser CLI installed and openspec CLI.
 metadata:
   author: copilots
-  version: "1.0"
+  version: "2.0"
 ---
 
-This skill is used when the backlog platform is set to "Others (Browser)": when there is no CLI integration for the backlog system, or the user doesn't have API tokens. Work items are read directly from the web page using the opencode-browser plugin.
+This skill is used when the backlog platform is set to "Others (Browser)": when there is no CLI integration for the backlog system, or the user doesn't have API tokens. Work items are read directly from the web page using agent-browser.
 
 This skill overrides the `browser-automation` skill's external navigation restriction, but only for URLs the user explicitly provides as work items. Navigate only to URLs the user gives you.
 
 ## Prerequisites
 
-- opencode-browser extension installed and running (installed during onboarding)
-- The user must be authenticated to the backlog system in their browser (e.g. logged into Azure DevOps, Jira, Trello, Linear, etc.)
+- agent-browser installed (installed during onboarding) — verify with `agent-browser doctor`
+- An authenticated session for the backlog system:
+  - agent-browser runs its own Chrome, not the user's daily browser. Login state persists per session via `--session <slug> --restore`: log in once, and later runs restore cookies automatically.
+  - On first use, the user logs in manually in the opened window; state is saved on close and auto-restored afterwards.
 
 ## Steps
 
@@ -23,30 +25,30 @@ This skill overrides the `browser-automation` skill's external navigation restri
    - The user provides a direct URL to a work item, issue, ticket, or PBI
    - Examples: `https://dev.azure.com/org/project/_workitems/edit/123`, `https://linear.app/team/issue/ENG-123`, `https://trello.com/c/abc123`, `https://your-tool.com/ticket/456`
 
-2. **Navigate to the URL**
+2. **Open the URL in a persistent session**
    ```bash
-   browser_open_tab url="https://the-url-the-user-provided"
+   agent-browser --session backlog --restore open "https://the-url-the-user-provided"
    ```
 
 3. **Wait for the page to load**
    ```bash
-   browser_wait ms=3000
+   agent-browser wait --load networkidle
    ```
+   Prefer load-state waits over fixed sleeps; for SPAs that render after idle, add `agent-browser wait --text "<known heading>"` when a stable string is known.
 
 4. **Read the work item content**
    ```bash
-   browser_query mode="page_text"
+   agent-browser snapshot
    ```
-
-   Also try to get structured content:
+   The accessibility tree with `@ref` handles usually reveals the work item title, description, and fields more precisely than raw page text. Also useful:
    ```bash
-   browser_snapshot
+   agent-browser read           # agent-readable text of the active tab
+   agent-browser get text "h1"  # the heading, when present
    ```
-   The accessibility snapshot often reveals the work item title, description, and fields more precisely than raw page text.
 
 5. **Parse work item fields**
 
-   From the page text and/or snapshot, extract:
+   From the snapshot and/or text, extract:
    - Title/Summary: usually the main heading or the `<h1>` / page title
    - Description: the body text, acceptance criteria, or "Definition of Done" section
    - ID/Key: the work item ID from the URL or page (e.g. `123`, `ENG-123`)
@@ -56,9 +58,11 @@ This skill overrides the `browser-automation` skill's external navigation restri
    - Labels/Tags: if visible
 
    If the page is a SPA that loads content dynamically:
-   - Wait longer (`browser_wait ms=5000`)
-   - Use `browser_query` with `mode=page_text` after the wait
-   - Try `browser_snapshot` which may capture more structured content
+   - Wait for load state again (`agent-browser wait --load networkidle`)
+   - Take a fresh `snapshot` after the wait
+   - `agent-browser get url` confirms you are still on the work item
+
+   If a login page appears instead, the session is not authenticated: tell the user to log in manually in the opened browser window, then retry from step 2 with the same `--session backlog --restore` (the login is saved for future runs).
 
 6. **Create OpenSpec Change**
    ```bash
@@ -120,13 +124,13 @@ This skill overrides the `browser-automation` skill's external navigation restri
 ### Other tools (generic)
 - Look for `<h1>` or page title for the work item title
 - Look for the main content area for description
-- Use `browser_snapshot` to get structured accessibility tree data
+- Use `agent-browser snapshot` to get structured accessibility tree data
 
 ## Rules
 
-- Navigate only to URLs the user explicitly provides. Never guess or browse randomly.
-- The user must already be authenticated in their browser to the backlog system.
-- If the page requires login and the user isn't authenticated, tell them to log in via their browser and retry.
+- Navigate only to URLs the user explicitly provide. Never guess or browse randomly.
+- Reuse the `backlog` session (`--session backlog --restore`) so login state persists across runs.
+- If the page requires login and the session is not authenticated, tell them to log in via the opened browser window and retry.
 - For GitHub/Azure/Jira URLs when the CLI is configured for those platforms, use the CLI-based skill instead (faster, more reliable, no browser needed).
 - This skill is read-only: no clicking buttons, no changing status.
 - Browser is a backlog-only platform: it has no PR or repo integration. PR creation uses the repo platform configured separately.

@@ -26,7 +26,7 @@ function printHelp(version) {
   console.log('  openspec        Run OpenSpec initialization step')
   console.log('  models          Run models selection step')
   console.log('  optimization    Run token optimization tools step')
-  console.log('  browser         Run opencode-browser installer step')
+  console.log('  browser         Run agent-browser installer step')
   console.log('  metadata        Write onboarding metadata step')
   console.log()
   console.log('Options:')

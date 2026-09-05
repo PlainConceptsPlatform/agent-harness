@@ -12,13 +12,8 @@ vi.mock('../../utils/exec.js', () => ({
 vi.mock('fs-extra', () => ({
   default: {
     readJson: vi.fn().mockResolvedValue({
-       installer: { command: 'npx', args: ['@different-ai/opencode-browser@4.6.1', 'install'] },
-      output: { showAfter: '===', hideAfter: '===' },
-      locationChoices: { local: '2', global: '1' },
-      autoAnswers: [
-        { trigger: 'Install', response: 'y' },
-        { trigger: 'Choose config location', response: '__LOCATION__' },
-      ],
+      installer: { command: 'npm', args: ['install', '-g', 'agent-browser@0.36.0'] },
+      chromeSetup: { command: 'agent-browser', args: ['install'] },
     }),
   },
 }))
@@ -32,84 +27,60 @@ describe('installBrowser()', () => {
     vi.clearAllMocks()
   })
 
-  it('calls installer command from preset', async () => {
+  it('runs the npm install and chrome setup from preset', async () => {
     const { execa } = await import('execa')
-    const mockChild = {
-      stdout: { on: vi.fn() },
-      stderr: { on: vi.fn() },
-      stdin: { write: vi.fn() },
-      then: (cb) => cb({ exitCode: 0 }),
-    }
-    execa.mockReturnValue(mockChild)
+    execa.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' })
 
     await installBrowser()
 
-    expect(execa).toHaveBeenCalledWith('npx', expect.arrayContaining(['@different-ai/opencode-browser@4.6.1']), expect.any(Object))
+    expect(execa).toHaveBeenNthCalledWith(1, 'npm', ['install', '-g', 'agent-browser@0.36.0'], expect.any(Object))
+    expect(execa).toHaveBeenNthCalledWith(2, 'agent-browser', ['install'], expect.any(Object))
   })
 
-  it('logs success when exit code is 0', async () => {
+  it('logs success when both steps exit 0', async () => {
     const { execa } = await import('execa')
-    const mockChild = {
-      stdout: { on: vi.fn() },
-      stderr: { on: vi.fn() },
-      stdin: { write: vi.fn() },
-      then: (cb) => cb({ exitCode: 0 }),
-    }
-    execa.mockReturnValue(mockChild)
+    execa.mockResolvedValue({ exitCode: 0, stdout: 'Chrome ready', stderr: '' })
     const { success } = await import('../../utils/exec.js')
 
     await installBrowser()
 
-    expect(success).toHaveBeenCalledWith('opencode-browser installed')
+    expect(success).toHaveBeenCalledWith('agent-browser installed')
+    expect(success).toHaveBeenCalledWith('agent-browser Chrome ready')
   })
 
-  it('logs warning when exit code is non-zero', async () => {
+  it('warns and skips chrome setup when npm install fails', async () => {
     const { execa } = await import('execa')
-    const mockChild = {
-      stdout: { on: vi.fn() },
-      stderr: { on: vi.fn() },
-      stdin: { write: vi.fn() },
-      then: (cb) => cb({ exitCode: 1 }),
-    }
-    execa.mockReturnValue(mockChild)
-    const { warn } = await import('../../utils/exec.js')
+    execa.mockResolvedValueOnce({ exitCode: 1, stdout: '', stderr: 'engine incompat' })
+    const { warn, success, info } = await import('../../utils/exec.js')
 
     await installBrowser()
 
-    expect(warn).toHaveBeenCalledWith('opencode-browser install exited with non-zero code')
+    expect(warn).toHaveBeenCalledWith('agent-browser npm install exited with non-zero code')
+    expect(info).toHaveBeenCalledWith('engine incompat')
+    expect(success).not.toHaveBeenCalledWith('agent-browser installed')
+    expect(execa).toHaveBeenCalledTimes(1)
   })
 
-  it('resolves __LOCATION__ to local answer by default', async () => {
+  it('warns when chrome setup exits non-zero', async () => {
     const { execa } = await import('execa')
-    let capturedTriggers = null
-    const mockChild = {
-      stdout: { on: vi.fn((_, cb) => { capturedTriggers = cb }) },
-      stderr: { on: vi.fn() },
-      stdin: { write: vi.fn() },
-      then: (cb) => cb({ exitCode: 0 }),
-    }
-    execa.mockReturnValue(mockChild)
+    execa
+      .mockResolvedValueOnce({ exitCode: 0, stdout: '', stderr: '' })
+      .mockResolvedValueOnce({ exitCode: 2, stdout: '', stderr: 'no chrome' })
+    const { warn, success } = await import('../../utils/exec.js')
 
     await installBrowser()
 
-    if (capturedTriggers) capturedTriggers(Buffer.from('Choose config location'))
-    expect(mockChild.stdin.write).toHaveBeenCalledWith('2\n')
+    expect(success).toHaveBeenCalledWith('agent-browser installed')
+    expect(warn).toHaveBeenCalledWith('agent-browser install (Chrome setup) exited with non-zero code')
   })
 
-  it('resolves __LOCATION__ to global answer when installScope is global', async () => {
+  it('recovers from a thrown execa error', async () => {
     const { execa } = await import('execa')
-    let capturedTriggers = null
-    const mockChild = {
-      stdout: { on: vi.fn((_, cb) => { capturedTriggers = cb }) },
-      stderr: { on: vi.fn() },
-      stdin: { write: vi.fn() },
-      then: (cb) => cb({ exitCode: 0 }),
-    }
-    execa.mockReturnValue(mockChild)
+    execa.mockRejectedValue(new Error('spawn npm ENOENT'))
+    const { error } = await import('../../utils/exec.js')
 
-    await installBrowser({ installScope: 'global' })
+    await installBrowser()
 
-    if (capturedTriggers) capturedTriggers(Buffer.from('Choose config location'))
-    expect(mockChild.stdin.write).toHaveBeenCalledWith('1\n')
+    expect(error).toHaveBeenCalledWith('Failed to install agent-browser: spawn npm ENOENT')
   })
 })

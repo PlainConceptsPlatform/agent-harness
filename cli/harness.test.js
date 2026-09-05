@@ -13,18 +13,23 @@ describe("OpenCode config template", () => {
     expect(fs.existsSync(path.join(CONTENT_DIR, ".opencode", "opencode.json"))).toBe(false)
   })
 
-  it("pins external OpenCode plugins", () => {
+  it("pins external OpenCode plugins and the agent-browser MCP server", () => {
     const config = parseJsonc(fs.readFileSync(path.join(CONTENT_DIR, "opencode.jsonc"), "utf-8"))
     const packageConfig = JSON.parse(fs.readFileSync(path.join(CONTENT_DIR, ".opencode", "package.json"), "utf-8"))
     const quota = JSON.parse(fs.readFileSync(path.join(__dirname, "presets", "quota.json"), "utf-8"))
 
     expect(config.plugin).toEqual([
-      "@different-ai/opencode-browser@4.6.1",
       "@mohak34/opencode-notifier@0.2.8",
     ])
+    expect(config.mcp["agent-browser"]).toEqual({
+      type: "local",
+      command: ["agent-browser", "mcp", "--tools", "core"],
+      enabled: true,
+    })
+    expect(config.plugin.join(" ")).not.toContain("@different-ai/opencode-browser")
     expect(packageConfig.dependencies["@opencode-ai/plugin"]).toBe("1.18.19")
     expect(packageConfig.dependencies["@opentui/core"]).toBe("0.5.6")
-    expect(packageConfig.dependencies["@different-ai/opencode-browser"]).toBe("4.6.1")
+    expect(packageConfig.dependencies["@different-ai/opencode-browser"]).toBeUndefined()
     expect(packageConfig.dependencies["@mohak34/opencode-notifier"]).toBe("0.2.8")
     expect(quota.plugin).toBe("@slkiser/opencode-quota@4.2.0")
   })
