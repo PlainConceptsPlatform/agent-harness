@@ -12,7 +12,9 @@ Keep this checklist visible:
 
 Move forward only when a phase returns its required result. On a hard failure, follow the [failure policy](failure-policy.md). Continue after each phase skill returns; the run ends only after every checklist item is complete.
 
-**Token efficiency rules:** Batch git operations within a phase (combine `git add -A && git commit` in one tool call). Do not run status checks between sequential operations in the same phase. Minimize model turns: if a phase requires 3 git commands, call them in one tool call, not 3.
+**Token efficiency rules:** Batch git operations within a phase (combine `git add <paths> && git commit` in one tool call). Do not run status checks between sequential operations in the same phase. Minimize model turns: if a phase requires 3 git commands, call them in one tool call, not 3.
+
+**Stage paths, never `git add -A` or `git add .`.** A working tree is shared: a person or another agent may have edits in it, and staging everything puts their work in your commit under your message. It is not hypothetical. A Teams tool and its tests were committed inside a commit named after a YAML input rename, and nothing in that message said so. Two things go wrong, and the second is worse: the history lies about what changed, and unreviewed or half-finished work reaches the default branch under a heading nobody would look twice at. Saving a model turn is not worth either.
 
 Input: `$ARGUMENTS`
 
@@ -44,14 +46,14 @@ Tick `explore` when `pc-plan-explore` returns its findings handoff.
 
 ## Phase 3: Propose
 
-**Skip if `{refined}` is `true`.** Instead, create a minimal OpenSpec change directly: run `openspec new change "{change-id}"`, write `tasks.md` from the issue's acceptance criteria (one task per criterion or artifact group), create `.openspec.yaml` with `skip_specs: true` (the issue already has the spec content), and commit: `git add -A && git commit -m "propose: {title} ({change-id})"`.
+**Skip if `{refined}` is `true`.** Instead, create a minimal OpenSpec change directly: run `openspec new change "{change-id}"`, write `tasks.md` from the issue's acceptance criteria (one task per criterion or artifact group), create `.openspec.yaml` with `skip_specs: true` (the issue already has the spec content), and commit: `git add openspec/changes/{change-id}/ && git commit -m "propose: {title} ({change-id})"`.
 
 Load `pc-plan-propose` in autonomous mode with `{resolved_input}`, `EXPLORATION_BRIEF`, and `scope_classification`.
 
 Confirm its change directory and actionable `tasks.md` exist. Rename `$BRANCH` when the canonical change slug differs from `{slug}`, then commit the proposal:
 
 ```bash
-git add -A && git commit -m "propose: {title} ({change-id})"
+git add openspec/changes/{change-id}/ && git commit -m "propose: {title} ({change-id})"
 ```
 
 Tick `propose` when the proposal commit exists.
@@ -69,7 +71,7 @@ Require `verify` and a clean working tree. Load `pc-plan-archive` in autonomous 
 Require `ARCHIVED_OK` and the archive path, then commit:
 
 ```bash
-git add -A && git commit -m "archive: {title} ({change-id})"
+git add openspec/changes/ && git commit -m "archive: {title} ({change-id})"
 ```
 
 Tick `archive` when the archive commit exists.
