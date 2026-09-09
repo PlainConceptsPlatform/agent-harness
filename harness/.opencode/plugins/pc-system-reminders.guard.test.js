@@ -108,6 +108,30 @@ describe("scratch files", () => {
     await expect(bash("cat /tmp/existing.log")).resolves.toBeUndefined()
   })
 
+  // `/tmp/gh-aw/` is the agent workflow runtime's own directory, not agent scratch. GitHub
+  // Agentic Workflows stages the issue context, the diff and the review comments there before
+  // the agent starts, and the worker prompts tell it to read them. This check tests the whole
+  // command string, so it could not tell "write to /tmp" from "read from /tmp", and a command
+  // that read one of those files and wrote the result anywhere at all was denied. Three refine
+  // runs in a row spent their entire turn arguing with it and emitted nothing.
+  it("allows the agent workflow runtime directory", async () => {
+    await expect(bash("jq -r .body /tmp/gh-aw/agent/issue-context.json > .opencode/.tmp/body.md"))
+      .resolves.toBeUndefined()
+    await expect(bash("mkdir -p /tmp/gh-aw/agent")).resolves.toBeUndefined()
+    await expect(bash("gh pr diff 12 > /tmp/gh-aw/agent/diff.patch")).resolves.toBeUndefined()
+  })
+
+  // A sibling that merely begins the same way is still scratch.
+  it("denies a directory whose name only starts like the runtime one", async () => {
+    await expect(bash("echo hi > /tmp/gh-awful/x")).rejects.toThrow("inside the repository")
+    await expect(bash("echo hi > /tmp/gh-aw-notes")).rejects.toThrow("inside the repository")
+  })
+
+  it("denies reading the runtime directory and writing elsewhere", async () => {
+    await expect(bash("jq . /tmp/gh-aw/agent/issue-context.json > /tmp/elsewhere.json"))
+      .rejects.toThrow("inside the repository")
+  })
+
   it("denies an absolute write outside the repo", async () => {
     const outside = path.join(os.tmpdir(), "elsewhere", "file.md")
     await expect(call("write", { filePath: outside, content: "x" })).rejects.toThrow("outside the repository")

@@ -139,13 +139,30 @@ async function checkPush(command, root, defaultBranch) {
   }
 }
 
+// `/tmp/gh-aw/` is the agent workflow runtime's own working directory, not agent scratch.
+//
+// GitHub Agentic Workflows stages everything a worker is given there before the agent starts:
+// the issue context, the open-issue list, the pull request diff, the review comments. The worker
+// prompts name those paths and tell the agent to read them. This check tests the whole command
+// string, so it cannot tell "write to /tmp" from "read from /tmp" — and a command that read one
+// of those files and wrote the result anywhere at all was denied.
+//
+// The effect was total and silent. Three refine runs in a row spent their whole turn arguing
+// with this guardrail and emitted nothing: the agent tried
+// `jq -r .body /tmp/gh-aw/agent/issue-context.json > .opencode/.tmp/body.md`, was refused, tried
+// an absolute path, was refused again, and gave up. The advice it is handed names `$REPO_ROOT`,
+// which is unset on a GitHub Actions runner, so following it exactly could not work either.
+//
+// Exempting this one directory is not a hole in the rule. The rule exists so the next step can
+// still find what the agent wrote, and `/tmp/gh-aw/` is exactly where the next step looks.
 function checkScratch(command) {
   const writesSomewhere = /(>>?|\btee\b|\bcp\b|\bmv\b|\bmkdir\b|\btouch\b|\bdd\b)/.test(command)
-  const outsideRepo = /(\/tmp\/|\$TMPDIR|\$TEMP\b|%TEMP%|\bmktemp\b)/.test(command)
+  // Everywhere else stays blocked: /tmp outside gh-aw, $TMPDIR, $TEMP, %TEMP%, mktemp.
+  const outsideRepo = /(\/tmp\/(?!gh-aw\/)|\$TMPDIR|\$TEMP\b|%TEMP%|\bmktemp\b)/.test(command)
   if (writesSomewhere && outsideRepo) {
     deny(
       "Scratch files belong inside the repository, where the next step and the next agent can still find them.",
-      "Write under `$REPO_ROOT/.opencode/.tmp/`.",
+      "Write under `$REPO_ROOT/.opencode/.tmp/`, or the workflow runtime's own `/tmp/gh-aw/`.",
     )
   }
 }
