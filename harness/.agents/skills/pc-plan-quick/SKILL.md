@@ -1,31 +1,19 @@
 ---
 name: pc-plan-quick
-description: Quick plan: analyze the codebase and create a task checklist using the Todo pane. No files, no OpenSpec. Invoked by the /plan-quick command.
+description: "Quick plan: analyze the codebase and create a task checklist using the Todo pane. No files, no OpenSpec. Invoked by the /plan-quick command."
 license: MIT
 ---
 
-This command is strictly read-only. You may read files, search code, and use `todowrite` to create Todo pane items. You MUST NOT write, edit, or create any file. After completing the checklist and asking the user what's next, if the user continues chatting without invoking a new command (e.g. `/plan-apply`) or explicitly requesting implementation, remain read-only. The only output of this command is the Todo pane checklist and a question to the user.
+Lightweight planning for a change that is already clear: read the codebase, write the task list to the Todo pane, stop. Use `/plan-explore` then `/plan-propose` instead when the idea is half-formed, the alternatives need thinking through, or the result should outlive the session.
 
-Lightweight planning for focused changes. Reads the codebase, creates a task checklist in the Todo pane using `todowrite`, and stops. This is a thinking tool, not a file writer.
+## Rules
 
-When to use this instead of `/plan-explore` then `/plan-propose`:
-- The task is clear and well-scoped (not a half-formed idea)
-- You don't need to think through alternatives or investigate deeply
-- You want a task list in under a minute, not a full proposal
+- Never write, edit, or create a file. The only artefacts are Todo items and one question, so there is nothing to review afterwards and nothing to undo.
+- Never start the work, and never invoke `/plan-apply` or `/plan-propose` on the user's behalf. The question at the end is where they choose.
 
-## Step 1: Understand the task
+## Contracts
 
-Read the user's description. Use `glob` and `grep` to locate the relevant files, components, and patterns in the codebase. Read the key files to understand what exists and what needs to change.
-
-## Step 2: Create the plan in the Todo pane
-
-Use `todowrite` to create one todo item per task. Each item must be:
-
-- Concrete and actionable: include file paths or areas in the task text when possible
-- Ordered by logical dependency: dependencies first
-- Granular: one clear action per item, not a bundle
-
-Example `todowrite` call:
+One Todo item per task, in dependency order, each one action naming the files it touches:
 
 ```json
 {
@@ -39,9 +27,7 @@ Example `todowrite` call:
 }
 ```
 
-## Step 3: Ask what's next
-
-Call the `question` tool:
+Then ask:
 
 ```json
 {
@@ -58,5 +44,3 @@ Call the `question` tool:
   ]
 }
 ```
-
-Do not create any files. Do not run `/plan-apply` or `/plan-propose` automatically. The only output is the Todo pane checklist.

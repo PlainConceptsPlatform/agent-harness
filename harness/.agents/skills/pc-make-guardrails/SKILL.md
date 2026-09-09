@@ -6,69 +6,38 @@ license: MIT
 
 # Make Guardrails
 
-Analyze `ARCHITECTURE.md` and other project files to generate or update a `pc-guardrails-project` skill: a set of rules and constraints extracted from the project's own documentation that agents must follow.
+Turn this project's own documentation into `.agents/skills/pc-guardrails-project/SKILL.md`: the rules and constraints its agents work under, per the [category reference](category-reference.md).
 
-## Steps
+## Rules
 
-1. **Check current state**
+- Never regenerate over a file that carries a `<!-- Last updated:` footer. `pc-guardrails-project` is the one skill a team is expected to hand-edit, and a full rewrite silently drops that work. Read the file first and pick the mode.
+- Never invent a rule the project does not state somewhere. A guardrail that came from nowhere is one nobody agreed to, and it will be followed anyway.
+- Never write an empty category. Omit it.
+- Never touch a tier variant (`*-engineer.build.md`, `*-engineer.fast.md`, `*-engineer.plan.md`): they are regenerated from the base templates every startup.
 
-   Read `.agents/skills/pc-guardrails-project/SKILL.md`. Determine which mode to use:
-   - Does not exist: Generate mode. Create from scratch.
-   - Exists and has a `<!-- Last updated:` footer: Update mode. Incrementally update.
-   - Exists but no timestamp: proceed in Generate mode (full regeneration).
+## Sources
 
-2a. **Generate mode: read source documents**
+`ARCHITECTURE.md` is the primary one. Then whatever else exists: `DESIGN.md`, `AGENTS.md`, `README.md`, `CONTRIBUTING.md`, `.opencode/harness.json`, `openspec/config.yaml`, the root manifests (`package.json`, `tsconfig.json`, `biome.json`, `.eslintrc*`, `Cargo.toml`, `go.mod`, `pyproject.toml`, `pom.xml`), and the CI definitions (`.github/workflows/*`, `azure-pipelines.yml`). Lint and formatter config is where the conventions are actually enforced, so it outranks any document that describes them.
 
-   Read ALL of the following that exist:
-   - `ARCHITECTURE.md` (primary source)
-   - `DESIGN.md` (design system, component conventions)
-   - `AGENTS.md` (existing agent instructions, optimizations)
-   - `README.md` (setup, conventions)
-   - `CONTRIBUTING.md` (if present)
-   - `.opencode/harness.json` (platform, models, concurrency)
-   - `openspec/config.yaml` (if present: domain context and rules)
-   - Root config files: `package.json`, `tsconfig.json`, `biome.json`, `.eslintrc*`, `Cargo.toml`, `go.mod`, `pyproject.toml`, `pom.xml`: whatever exists
-   - CI/CD workflows: `.github/workflows/*`, `azure-pipelines.yml`: whatever exists
+## Modes
 
-   Use file tools to discover constraints: `read` the documents above, `grep` for lint/formatter config rules.
+| The existing skill file | Mode |
+|---|---|
+| Missing | Generate |
+| Has a `<!-- Last updated:` footer | Update |
+| Exists with no footer | Generate |
 
-2b. **Update mode: incremental analysis**
+**Update.** If `ARCHITECTURE.md` has not changed since the footer date, say "Guardrails up to date" and stop. Otherwise `git log --oneline --since="<footer date>" -- <config, lint config, CI workflows>`, update only the affected categories, and leave the rest, including hand-written rules, as they stand. A new architecture, framework or platform is a Generate.
 
-   Extract the `<!-- Last updated: <ISO date> -->` timestamp from the existing skill file. Then:
-   - Read `ARCHITECTURE.md` and check its `<!-- Last updated:` timestamp. If ARCHITECTURE.md hasn't changed since the guardrails were last generated, report "Guardrails up to date" and stop.
-   - Run `git log --oneline --since="<date>" -- <config files, lint configs, CI workflows>` to find what convention/config files changed.
-   - If nothing changed: report "Guardrails up to date" and stop.
-   - Update only the affected rule categories. Preserve manually-added rules in unchanged categories.
-   - If changes are pervasive (new architecture, new framework, new platform), fall back to Generate mode.
+## Wiring
 
-3. **Extract guardrails**
+Every `*-engineer.md` in `.opencode/agents/` gets `@pc-guardrails-project` on its Guardrails line, right after `@pc-guardrails-generic`, with its existing entries untouched:
 
-   From the documents and code graph analysis, extract concrete, actionable rules. Follow the [category reference](category-reference.md) for the full list of categories, rule quality standards, and the skill file template.
+```markdown
+## Abilities
+- Guardrails: @pc-guardrails-generic, @pc-guardrails-project[, ...existing entries unchanged]
+```
 
-4. **Write the skill**
+## Report
 
-   Write (or update) `.agents/skills/pc-guardrails-project/SKILL.md` using the template from the [category reference](category-reference.md). Only include sections that have real rules. Omit empty sections.
-
-5. **Update agents**
-
-   For every `*-engineer.md` in `.opencode/agents/`, add `@pc-guardrails-project` to the Guardrails ability line (skip if already present). Keep the line's existing entries exactly as they are: only insert `@pc-guardrails-project` after `@pc-guardrails-generic`, using this pattern:
-   ```markdown
-   ## Abilities
-   - Guardrails: @pc-guardrails-generic, @pc-guardrails-project[, ...existing entries unchanged]
-   ```
-
-   Exclude tier variant files (`*-engineer.build.md`, `*-engineer.fast.md`, `*-engineer.plan.md`): they are generated copies; only update the base templates.
-
-6. **Store summary in configured persistent context**
-
-   `write_note` MCP tool with title `guardrails-summary` containing:
-   - The ISO timestamp of this run
-   - Number of rules per category
-
-7. **Report**
-
-   Tell the user:
-   - Whether the skill was generated or updated (and which categories changed)
-   - Number of rules extracted per category
-   - Number of agent files updated
-   - Tip: "Rerun `/make-guardrails` any time the architecture or conventions change significantly."
+Whether the skill was generated or updated and which categories changed, the rule count per category, how many agent files were wired, and that `/make-guardrails` can be re-run whenever the conventions move.

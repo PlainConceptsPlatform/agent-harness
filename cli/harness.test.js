@@ -3,9 +3,18 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { parse as parseJsonc } from "jsonc-parser"
 import { describe, expect, it } from "vitest"
+import { SKILL_RENAME } from "./steps/copy/skills.js"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const CONTENT_DIR = path.resolve(__dirname, "../harness")
+
+function walkMd(dir) {
+  if (!fs.existsSync(dir)) return []
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
+    const full = path.join(dir, entry.name)
+    return entry.isDirectory() ? walkMd(full) : full.endsWith(".md") ? [full] : []
+  })
+}
 
 describe("OpenCode config template", () => {
   it("ships the project config as root JSONC", () => {
@@ -92,10 +101,15 @@ describe("planning skill templates", () => {
     expect(verifyCommand).toContain("Load the `pc-repo-verify` skill")
     expect(audit).toContain("without modifying files")
     expect(audit).toContain("fullstack-engineer.md")
+
+    // Pin what verification means, not how the skill words its steps: a scoped
+    // diff, an immutable install (so a stale lockfile fails instead of being
+    // silently updated), and the sentinel the pipeline gates on.
     expect(verify).toContain("git diff")
-    expect(verify).toContain("dependency manifest changes")
-    expect(verify).toContain("immutable dependency install or restore command")
-    expect(verify).toContain("build command, and test command")
+    expect(verify).toMatch(/immutable/)
+    expect(verify).toMatch(/lockfile/)
+    expect(verify).toMatch(/\bVERIFIED\b/)
+    expect(verify).toMatch(/NOT VERIFIED/)
   })
 
   it("keeps plan-explore delegating to openspec-explore", () => {
@@ -196,13 +210,7 @@ describe("each rule has one home", () => {
   const SKILLS_DIR = path.join(CONTENT_DIR, ".agents", "skills")
   const FRAGMENTS_DIR = path.resolve(__dirname, "fragments")
 
-  function walk(dir) {
-    if (!fs.existsSync(dir)) return []
-    return fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
-      const full = path.join(dir, entry.name)
-      return entry.isDirectory() ? walk(full) : full.endsWith(".md") ? [full] : []
-    })
-  }
+  const walk = walkMd
 
   const authored = [...walk(SKILLS_DIR), ...walk(FRAGMENTS_DIR)]
   const read = file => fs.readFileSync(file, "utf-8")
@@ -221,9 +229,11 @@ describe("each rule has one home", () => {
 
   // The command wrapper turns a skill into a recipe before the model reads a
   // word of it, and it is wrong about openspec-explore, which has no steps.
+  // Case-sensitively this passed while pc-repo-initialize said "Follow every
+  // step defined in it" three times.
   it("does not tell the model to follow every step", () => {
     const commands = walk(path.join(CONTENT_DIR, ".opencode", "commands"))
-    const offenders = [...authored, ...commands].filter(f => read(f).includes("follow every step"))
+    const offenders = [...authored, ...commands].filter(f => /follow (every step|all steps|its steps)/i.test(read(f)))
     expect(offenders.map(f => path.relative(CONTENT_DIR, f))).toEqual([])
   })
 
@@ -239,6 +249,11 @@ describe("each rule has one home", () => {
   it("states an enforced rule once, and says what enforces it", () => {
     const offenders = authored.filter(f => /MANDATORY LOAD|not optional|you enforce the cap/i.test(read(f)))
     expect(offenders.map(f => path.relative(CONTENT_DIR, f))).toEqual([])
+
+    // Patches aimed at a model that stops early, rather than a statement of
+    // where the stage actually ends. The pipeline owns its own continuation.
+    const patched = authored.filter(f => /do ?n[o']t end the turn|remain read-only|this is not optional/i.test(read(f)))
+    expect(patched.map(f => path.relative(CONTENT_DIR, f))).toEqual([])
 
     // A skill that claims a plugin loads its abilities for it, or that the
     // reminder is the load, was wrong even before the gate existed.
@@ -266,6 +281,17 @@ describe("each rule has one home", () => {
     expect(dangling).toEqual([])
   })
 
+  // Twelve ops fragments opened with a bolded restatement of the same rule,
+  // which is now denied in a hook. What is left is the one real difference
+  // between them: whether a missing CLI blocks or skips.
+  it("opens no ops fragment with a bolded platform rule", () => {
+    const opsFragments = walk(FRAGMENTS_DIR).filter(f => /[\\/]ops-/.test(f))
+    expect(opsFragments.length).toBe(12)
+
+    const offenders = opsFragments.filter(f => /^\*\*/.test(read(f).trimStart()))
+    expect(offenders.map(f => path.relative(CONTENT_DIR, f))).toEqual([])
+  })
+
   // Shouting is not enforcement. Budget of two per file; the two ops-ship
   // fragments were the only ones over it.
   it("keeps all-caps imperatives within budget", () => {
@@ -277,6 +303,70 @@ describe("each rule has one home", () => {
       })
       .filter(entry => entry.count > 2)
     expect(over).toEqual([])
+  })
+})
+
+// Structure a reader (or a patcher) can rely on without opening the file.
+describe("skills hold together as files", () => {
+  const SKILLS_DIR = path.join(CONTENT_DIR, ".agents", "skills")
+  const skillDirs = fs.readdirSync(SKILLS_DIR, { withFileTypes: true })
+    .filter(entry => entry.isDirectory())
+    .map(entry => entry.name)
+
+  // `name:` is what the `skill` tool is called with and what the reminder
+  // plugin matches a load against, so a mismatch makes a skill unloadable.
+  it("names each skill after its directory, modulo the install rename", () => {
+    const mismatched = skillDirs.flatMap(dir => {
+      const content = fs.readFileSync(path.join(SKILLS_DIR, dir, "SKILL.md"), "utf-8")
+      const declared = /^name:\s*(\S+)\s*$/m.exec(content)?.[1]
+      const expected = SKILL_RENAME[dir] ?? dir
+      return declared === expected ? [] : [{ dir, declared, expected }]
+    })
+    expect(mismatched).toEqual([])
+  })
+
+  // A `#` in an unquoted YAML value starts a comment and a `: ` breaks the
+  // mapping outright, which silently costs the skill its description: the very
+  // field `/plan-apply` matches a task against.
+  it("keeps every frontmatter value parseable", () => {
+    const offenders = [...walkMd(SKILLS_DIR), ...walkMd(path.join(CONTENT_DIR, ".opencode", "commands"))]
+      .flatMap(file => {
+        const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---/.exec(fs.readFileSync(file, "utf-8"))?.[1] ?? ""
+        return frontmatter.split("\n").flatMap(line => {
+          const value = /^[a-z_]+:\s+(.*)$/.exec(line.trim())?.[1]
+          if (!value || /^["'[]/.test(value)) return []
+          return /: |#/.test(value) ? [`${path.relative(CONTENT_DIR, file)}: ${value.slice(0, 40)}`] : []
+        })
+      })
+    expect(offenders).toEqual([])
+  })
+
+  it("resolves every relative link a skill makes", () => {
+    const broken = walkMd(SKILLS_DIR).flatMap(file =>
+      [...fs.readFileSync(file, "utf-8").matchAll(/\]\((?!https?:|#)([^)]+\.md)\)/g)]
+        .filter(match => !fs.existsSync(path.resolve(path.dirname(file), match[1])))
+        .map(match => `${path.relative(CONTENT_DIR, file)} -> ${match[1]}`),
+    )
+    expect(broken).toEqual([])
+  })
+
+  it("points every command at a skill that exists", () => {
+    const installed = new Set(skillDirs.map(dir => SKILL_RENAME[dir] ?? dir))
+    const dangling = walkMd(path.join(CONTENT_DIR, ".opencode", "commands")).flatMap(file =>
+      [...fs.readFileSync(file, "utf-8").matchAll(/Load the `(pc-[a-z-]+)` skill/g)]
+        .filter(match => !installed.has(match[1]))
+        .map(match => `${path.basename(file)} -> ${match[1]}`),
+    )
+    expect(dangling).toEqual([])
+  })
+
+  // The worked example for the constraint rewrite: three files, 367 lines of
+  // menus, display formats and self-checks, none of which anything parsed.
+  it("keeps pc-make-engineer within its rewritten budget", () => {
+    const lines = ["SKILL.md", "template.md", "signal-mapping.md"]
+      .map(file => fs.readFileSync(path.join(SKILLS_DIR, "pc-make-engineer", file), "utf-8").split("\n").length)
+      .reduce((total, count) => total + count, 0)
+    expect(lines).toBeLessThanOrEqual(160)
   })
 })
 

@@ -35,11 +35,52 @@ afterEach(() => {
 })
 
 describe('patchAgentsMd against the real pc-repo-initialize SKILL.md', () => {
-  it('leaves the file untouched when nothing exists yet', async () => {
+  const initPath = () => path.join(tmpDir, '.agents', 'skills', 'pc-repo-initialize', 'SKILL.md')
+
+  function installInit() {
     fs.mkdirSync(path.join(tmpDir, '.agents', 'skills', 'pc-repo-initialize'), { recursive: true })
-    fs.writeFileSync(path.join(tmpDir, '.agents', 'skills', 'pc-repo-initialize', 'SKILL.md'), REAL_OB_INIT_MD)
+    fs.writeFileSync(initPath(), REAL_OB_INIT_MD)
+  }
+
+  it('leaves the file untouched when nothing exists yet', async () => {
+    installInit()
     await patchAgentsMd({})
-    expect(fs.readFileSync(path.join(tmpDir, '.agents', 'skills', 'pc-repo-initialize', 'SKILL.md'), 'utf-8')).toBe(REAL_OB_INIT_MD)
+    expect(fs.readFileSync(initPath(), 'utf-8')).toBe(REAL_OB_INIT_MD)
+  })
+
+  // Every one of these titles has to match a heading in the shipped skill. The
+  // patcher looked for a `Step N,` prefix the skill stopped using and a step
+  // called "Chain make commands" that no longer existed, so both skips were
+  // dead: a project with its own openspec/ history got told to archive it
+  // again, and the only symptom was a warning during onboarding.
+  it.each([
+    ['hasOpenspec', 'Archive project history', 'already had an openspec/ history'],
+    ['hasArchitecture', 'Generate ARCHITECTURE.md', 'ARCHITECTURE.md already exists'],
+    ['hasDesign', 'Generate DESIGN.md', 'DESIGN.md already exists'],
+  ])('marks the %s step as skipped', async (flag, title, note) => {
+    installInit()
+
+    await patchAgentsMd({ [flag]: true })
+
+    const patched = fs.readFileSync(initPath(), 'utf-8')
+    expect(patched).not.toBe(REAL_OB_INIT_MD)
+    expect(patched).toContain(note)
+    expect(patched).toContain(title)
+  })
+
+  // The block scan used to run to end of file when it found no `---`, so a
+  // matched step took every step after it with it.
+  it('keeps every later step when it skips one', async () => {
+    installInit()
+
+    await patchAgentsMd({ hasOpenspec: true })
+
+    const patched = fs.readFileSync(initPath(), 'utf-8')
+    for (const later of ['Generate ARCHITECTURE.md', 'Generate DESIGN.md', 'Generate guardrails', 'Show help', 'Initialization complete.']) {
+      expect(patched).toContain(later)
+    }
+    // And the skipped step keeps nothing but the note.
+    expect(patched).not.toContain('openspec new change "project-history"')
   })
 })
 

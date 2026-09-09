@@ -4,131 +4,32 @@ description: Write a detailed, repo-aware user story from a feature idea or need
 license: MIT
 ---
 
-Write a user story grounded in the actual codebase. Load the `@user-story` skill and follow its format (Mike Cohn "As a / I want to / so that" + Gherkin "Given / When / Then"). The story must be specific: real personas, real file paths, real component names, real data models — not generic placeholders.
-
-This skill is read-only. You may read files, search code, and use `todowrite` to create Todo pane items. The only output is the user story itself and a question to the user. No files, no OpenSpec changes, no branches.
+Write a user story grounded in this repository. `@user-story` owns the format and the quality bar; `@humanizer` owns the prose. What this skill adds is the grounding: the personas, paths, models and components come out of the codebase, not out of a template.
 
 ## Input
 
-The caller provides:
-- A feature description, user need, or rough idea. This is the seed for the story.
-- Exploration findings may accompany it — including diagrams (Mermaid, ASCII, or inline markdown). When provided, use them as context: the story should align with the explored scope, decisions, and recommended approach.
-- If `$ARGUMENTS` is empty, ask the user what feature or need they want to capture.
-
-## Step 1: Load the user-story skill
-
-Load the `@user-story` skill now. Follow its format, anti-patterns, and quality checks for the rest of this skill. Every story produced must pass the user-story skill's validation.
-
-## Step 2: Analyze the codebase
+A feature description, need, or rough idea, possibly with exploration findings and diagrams to align the scope with. If `$ARGUMENTS` is empty, ask what the user wants to capture.
 
 <!-- PC-OPTIMIZATION-MEMORY-START -->
 <!-- PC-OPTIMIZATION-MEMORY-END -->
 
-Use `glob` and `grep` to locate the relevant files, components, types, and patterns that the feature touches. Read the key files to understand:
+## Rules
 
-- **Who** the users are (check auth, roles, user models, route guards)
-- **What** the current state is (existing components, API endpoints, data models, types)
-- **Where** the change would land (file paths, directory structure, module boundaries)
-- **Why** it matters (business logic, validation rules, existing UX flows)
+- Never write, edit, or create a file, and never start the work or invoke `/plan-propose` or `/plan-quick`. The only artefacts are the story and one question.
+- Never write `As a user`. The persona comes from the repo's own roles: auth middleware, route guards, user models. A story that could have been written without opening the repo is not worth reviewing.
+- Never show the user a story that fails the `@user-story` checks. Fix it first.
+- Every `Given`, `When` and `Then` names something real, and every `Then` is testable: a file, endpoint, model or field somebody can point at.
 
-If exploration findings or diagrams were provided, incorporate them: align the story's scope with the explored boundaries, reference the components and flows the diagram highlights, and respect any out-of-scope decisions the exploration made.
+## Flow
 
-Map the feature description to concrete codebase artifacts:
+1. Load `@user-story`.
+2. Read the codebase for what the feature touches: who the users are (auth, roles, user models, guards), what exists now (components, endpoints, models, types), where the change lands (paths, module boundaries), and what rules already govern it (validation, existing flows). Incorporate any exploration findings, including their out-of-scope decisions.
+3. Draft the story against that inventory, with two or three edge cases taken from what the code does today: a violated constraint, an empty or half-migrated state, a permission boundary.
+4. Load `@humanizer` and run it over the prose. It cleans prose, not structure: paths, component names and Gherkin stay exact.
+5. Add a Mermaid diagram only for a multi-step flow, a state transition, or a component interaction, and only the happy path. A single-resource CRUD story does not need one. If the input carried an exploration diagram, extend it rather than redrawing.
+6. Show the story with the artefacts it is grounded in, then ask what is next.
 
-```
-Relevant artifacts:
-  Models:    <model names and file paths>
-  Components: <component names and file paths>
-  Endpoints:  <route or API paths>
-  Types:      <type definitions and file paths>
-  Patterns:   <architectural patterns in use (FSD, monolith, etc.)>
-```
-
-## Step 3: Draft the user story
-
-Write the story using the user-story skill's format. Ground every field in the codebase analysis from Step 2:
-
-### Use Case
-
-- **As a** [specific persona derived from auth/roles/user models in the repo — never "user"]
-- **I want to** [action that maps to a concrete code change — reference the component, endpoint, or model involved]
-- **so that** [real outcome tied to business logic or UX flow found in the codebase]
-
-### Acceptance Criteria (Gherkin)
-
-Write scenarios with preconditions grounded in the actual codebase state:
-
-- **Scenario:** [brief description]
-- **Given:** [precondition referencing real state — e.g. "the user is authenticated via the JWT middleware in src/auth/middleware.ts"]
-- **and Given:** [additional preconditions — existing data models, current UI state, config values]
-- **When:** [trigger that maps to a concrete user action on a real component or endpoint]
-- **Then:** [testable outcome referencing actual system behavior — e.g. "the response from POST /api/projects includes the new projectId field defined in src/types/Project.ts"]
-
-### Edge Cases
-
-List 2-3 edge cases derived from what the code currently does:
-
-- What happens when [existing validation/constraint] is violated?
-- What if [existing data state] is empty/null/migration-incomplete?
-- What about [existing role/permission boundary]?
-
-### Summary
-
-Write a one-line value-focused summary (not a feature title).
-
-## Step 4: Humanize
-
-Load the `@humanizer` skill and run it on the drafted story text from Step 3. AI-generated stories tend to:
-
-- Overuse em dashes and rule-of-three lists
-- Use promotional language ("seamless", "powerful", "comprehensive")
-- Use passive voice and negative parallelisms
-- Stack vague attributions
-- Inflate symbolism in the summary line
-
-Apply `@humanizer` to all prose in the story: the summary, the use case, the scenario descriptions, and the edge case notes. Preserve all technical details, file paths, component names, and Gherkin structure — the humanizer cleans prose, not structure or accuracy.
-
-## Step 5: Diagram (when the story has a flow)
-
-If the story involves a user journey, state transition, or component interaction that benefits from visualization, produce a Mermaid diagram. Keep it minimal: the happy path only, no exhaustive enumeration of every branch.
-
-When to draw:
-- Multi-step flows (login → action → confirmation)
-- State transitions (status changes on a work item, order state machine)
-- Component interactions (frontend → API → service → DB)
-
-When to skip:
-- Simple CRUD on a single resource
-- Stories with a single step and no preconditions beyond auth
-
-If the input included an exploration diagram, extend it with the story's new flow rather than redrawing from scratch.
-
-## Step 6: Validate
-
-Run every quality check from the user-story skill:
-
-- No generic "As a user" — the persona must be specific and grounded in repo context
-- "So that" must express real motivation, not restate "I want to"
-- Single When / single Then per scenario — if multiple, note that the story should split
-- Thens must be testable and measurable — reference real system behavior, not vague improvements
-- No technical tasks disguised as user stories (if there's no user outcome, say so)
-
-If any check fails, fix the story and re-validate. Do not show a story to the user that fails validation.
-
-## Step 7: Present the story
-
-Display the complete user story to the user:
-
-- Summary
-- Use Case (As a / I want to / so that)
-- Acceptance Criteria (all scenarios with full Given/When/Then)
-- Edge Cases
-- Diagram (if produced in Step 5)
-- Codebase artifacts the story is grounded in (file paths, component names, types)
-
-## Step 8: Ask what's next
-
-Call the `question` tool:
+## Contracts
 
 ```json
 {
@@ -145,5 +46,3 @@ Call the `question` tool:
   ]
 }
 ```
-
-Do not create any files. Do not run `/plan-propose` or `/plan-quick` automatically. The only output is the user story.

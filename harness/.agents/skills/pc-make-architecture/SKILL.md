@@ -6,46 +6,26 @@ license: MIT
 
 # Make Architecture
 
-Analyze the architecture of this codebase and generate or update `ARCHITECTURE.md` in the project root.
+Write `ARCHITECTURE.md` in the project root from what the codebase actually contains, following the [structure template](structure-template.md).
 
-## Steps
+## Rules
 
-1. **Check current state**
+- Never regenerate over a file that carries a `<!-- Last updated:` footer. That footer is what makes the next run incremental, and a full rewrite silently drops whatever a human added by hand. Read the file first and pick the mode.
+- Never analyze outside `.opencode/source-roots.json` when it exists, plus this repo's own docs and config.
+- The footer is the file's last line, and it is the run's own ISO timestamp: `<!-- Last updated: <ISO date> -->`.
 
-   Read `ARCHITECTURE.md`. Determine which mode to use:
-   - Does not exist or is a placeholder (no real content): Generate mode. Create from scratch.
-   - Exists with content and has a `<!-- Last updated:` footer: Update mode. Incrementally update (see step 2b).
-   - Exists with content but no timestamp: warn the user, then proceed in Generate mode (full regeneration).
+## Modes
 
-2a. **Generate mode: analyze the codebase**
+| The existing file | Mode |
+|---|---|
+| Missing, or a placeholder with no real content | Generate |
+| Has content and a `<!-- Last updated:` footer | Update |
+| Has content but no footer | Warn the user, then Generate |
 
-   Read `.opencode/source-roots.json` when present. Only analyze those roots plus this repo's docs/config files.
+**Generate.** Discover the architecture with the file tools: `glob` for structure, `grep` for routes, models and schemas, `read` for config, CI workflows, Dockerfiles, README, changelogs and ADRs.
 
-   Use file tools to discover the architecture: `glob` for folder structure, `grep` for route/model/schema definitions, `read` config files, CI/CD workflows, Dockerfiles, README, changelogs, ADRs.
+**Update.** `git log --oneline --since="<footer date>" -- <source roots>` says what moved. Nothing changed means nothing to write: say "Architecture unchanged since last update" and stop. Otherwise rewrite only the affected sections and leave the rest, including anything hand-written, as it stands. Past roughly 40% of sections affected, fall back to Generate.
 
-2b. **Update mode: incremental analysis**
+## Report
 
-   Extract the `<!-- Last updated: <ISO date> -->` timestamp from the existing file. Then:
-   - Run `git log --oneline --since="<date>" -- <source roots>` to find what changed since the last analysis.
-   - If nothing changed: report "Architecture unchanged since last update" and stop.
-   - For each changed area, understand what's affected.
-   - Update only the affected sections. Preserve manually-added content in unchanged sections.
-   - If the changes are too pervasive (more than ~40% of sections affected), fall back to Generate mode.
-
-3. **Write ARCHITECTURE.md**
-
-   Write (or update) `ARCHITECTURE.md` following the [structure template](structure-template.md) reference. That reference defines every section, the rules for writing, and the timestamp footer format.
-
-4. **Store summary in configured persistent context**
-
-   `write_note` MCP tool with title `architecture-summary` containing:
-   - The ISO timestamp of this run
-   - A bullet list of top-level components found (every top-level component must appear)
-   - Any key architectural decisions or risks identified
-
-5. **Report**
-
-   Tell the user:
-   - Whether ARCHITECTURE.md was generated or updated (and which sections changed)
-   - Top-level components found
-   - Tip: "Rerun `/make-architecture` any time the architecture changes significantly."
+Whether the file was generated or updated and which sections changed, the top-level components found, and that `/make-architecture` can be re-run whenever the architecture moves.

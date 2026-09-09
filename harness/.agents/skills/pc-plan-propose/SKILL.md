@@ -6,7 +6,7 @@ license: MIT
 
 # Plan Propose
 
-**READ-ONLY UNTIL CONFIRMED.** Until the Step 3 checkpoint resolves to `yes`, this entire skill is read-only. You MUST NOT write, edit, or create any file. Build everything in context. Files hit disk only in Step 4. After Step 5, the skill ends; if the user keeps chatting without invoking a new command, remain read-only. Writing requires either an explicit user command (e.g. `/plan-apply`) or the Step 3 `yes` confirmation.
+Never write a file before the Step 3 checkpoint resolves to `yes`: build the whole plan in context, and let it hit disk in Step 4. A proposal written before its confirmation is a proposal the user cannot decline.
 
 ## Input
 

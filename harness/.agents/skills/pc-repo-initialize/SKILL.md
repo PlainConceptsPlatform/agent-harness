@@ -1,16 +1,18 @@
 ---
 name: pc-repo-initialize
-description: Initialize the project. Presents a single form with all setup questions, then executes selected steps. Invoked by the /init command (alias: /repo-initialize).
+description: "Initialize the project. Presents a single form with all setup questions, then executes selected steps. Invoked by the /init command (alias: /repo-initialize)."
 license: MIT
 ---
-Check if `AGENTS.md` contains the `<!-- PC-NOT-INITIALIZED -->` marker.
 
-- If no: tell the user the project is already initialized. Suggest running `/make-architecture` or `/make-design` if they want to refresh those docs.
-- If yes: run the sequence below.
+First read `AGENTS.md`. Without the `<!-- PC-NOT-INITIALIZED -->` marker the project is already initialized: say so, and point at `/make-architecture` or `/make-design` for a refresh. With it, run the sequence below.
 
-## Step 1: Ask everything at once
+## Rules
 
-Call the `question` tool with all five questions in a single batch (do not ask them one at a time). Use exactly these fields:
+- Write only to `ARCHITECTURE.md`, `DESIGN.md`, `AGENTS.md`, `openspec/` and `.agents/skills/`. Source files are read for analysis, never edited: init sets a project up, it does not implement anything, and it creates no branches or pull requests.
+- Ask the five questions in one `question` call. Five separate prompts is five chances for the user to walk away from a setup that does nothing until it finishes.
+- A step whose answer was No is skipped, not approximated.
+
+## Step 1, Ask everything at once
 
 ```json
 {
@@ -59,59 +61,45 @@ Call the `question` tool with all five questions in a single batch (do not ask t
 }
 ```
 
-## Step 2: Execute selected steps
+## Step 2, Sync skills
 
-Based on the user's answers, run the selected steps in order:
+Always. `npx skills experimental_install --yes` in the project root installs what onboarding queued in `skills-lock.json`. A failure here is a warning, not a stop: the optional ones can be added later.
 
-### Sync skills (always)
+## Step 3, Archive project history
 
-Ensure all skills listed in `skills-lock.json` are installed. Run `npx skills experimental_install --yes` in the project root. This installs the core and selected optional skills queued by onboarding. If the command fails or is unavailable, warn the user but continue because optional skills can be installed manually later.
-
-### Archive project history (if Yes)
-
-Scan the codebase for existing documentation, changelogs, ADRs, README files, or notable history. Create an OpenSpec archive entry that captures this history.
-
-Before scanning, load source roots from `.opencode/source-roots.json` when present. Only scan those roots plus this repo's docs/config files.
+If Yes. Scan the roots in `.opencode/source-roots.json` (plus this repo's own docs and config) for documentation, changelogs, ADRs, READMEs and anything else that records how the project got here. Then:
 
 ```bash
 openspec new change "project-history"
 ```
 
-Write a `proposal.md` inside that change summarizing:
-- What this project is
-- Key decisions already made (inferred from code and docs)
-- Known tech debt or constraints visible in the codebase
-- Current state of the project
-
-Then archive it immediately (`-y` skips the confirmation prompt so this never blocks):
+Write a `proposal.md` in it covering what the project is, the decisions already taken, the tech debt and constraints the code shows, and where things stand. Archive it immediately, with `-y` so it cannot block:
 
 ```bash
 openspec archive "project-history" -y
 ```
 
-### Generate ARCHITECTURE.md (if Yes)
+## Step 4, Generate ARCHITECTURE.md
 
-Load the `pc-make-architecture` skill now. Follow every step defined in it.
+If Yes. Load `pc-make-architecture`.
 
-### Generate DESIGN.md (if Yes)
+## Step 5, Generate DESIGN.md
 
-Load the `pc-make-design` skill now. Follow every step defined in it.
+If Yes. Load `pc-make-design`.
 
-### Generate guardrails (always)
+## Step 6, Generate guardrails
 
-Load the `pc-make-guardrails` skill now. Follow every step defined in it.
+Always. Load `pc-make-guardrails`.
 
-### Visual evidence (if Yes)
+## Step 7, Visual evidence
 
-Evidence is built into the `pc-ops-evidence` skill using `playwright-cli` + `pnpm run dev`. No scaffold is needed — it works out of the box as long as the project has a root `pnpm run dev` script that starts the full app stack with mock auth. Ensure `playwright-cli` is installed (handled by `opencode-ci.md` in CI).
+If Yes, there is nothing to scaffold: `pc-ops-evidence` drives `playwright-cli` against the project's root `pnpm run dev`, which has to start the full stack with mock auth. CI installs `playwright-cli` itself.
 
-## Step 3: Show help
+## Step 8, Show help
 
-Load the `pc-repo-help` skill and display the full command reference exactly as written.
+Load `pc-repo-help` and display the command reference as written.
 
-## Step 4: Confirm
-
-Tell the user:
+## Step 9, Confirm
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -122,9 +110,3 @@ Restart OpenCode now.
 Nothing will work correctly until you do.
 After restarting you are ready to work.
 ```
-
-If the user answered Yes to Question 5 (Evidence), no post-init step is needed. Evidence works automatically via `pc-ops-evidence` using `playwright-cli` + `pnpm run dev`.
-
-## Init scope
-
-During init, write only to: ARCHITECTURE.md, DESIGN.md, AGENTS.md, openspec/, .agents/skills/. Read source files for analysis. Feature implementation, branches, PRs, and project source file modification are outside init's scope.

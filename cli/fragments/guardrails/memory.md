@@ -1,4 +1,4 @@
 ## Agentmemory
 
-- Use agentmemory MCP tools (`memory_smart_search`, `memory_save`, `memory_sessions`, `memory_governance_delete`) for cross-session context: `memory_smart_search` for prior decisions before implementing unfamiliar areas, `memory_save` for architecture decisions and cross-agent context.
-- Do NOT run `agentmemory` in bash: it is an MCP server. Start the server with `agentmemory` in a separate terminal, then use MCP tools.
+- Cross-session context lives in the agentmemory MCP tools: `memory_smart_search` for prior decisions before working somewhere unfamiliar, `memory_save` for architecture decisions and anything the next agent will need, plus `memory_sessions` and `memory_governance_delete`.
+- It is an MCP server, not a CLI. Never run `agentmemory` in bash; start it with `agentmemory` in a separate terminal and use the tools.

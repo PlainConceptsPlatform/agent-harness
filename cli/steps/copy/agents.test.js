@@ -24,8 +24,11 @@ describe('platform patching', () => {
     await patchAgentGuidance('none', 'none', tmpDir)
 
     const content = await fse.readFile(dest, 'utf-8')
-    expect(content).toContain('GitHub Issue URLs, Azure DevOps work item URLs, and PR URLs are NOT automatic triggers in this mode.')
-    expect(content).not.toContain('A GitHub or Azure DevOps URL anywhere in the user\'s message is always a trigger')
+    // `none` is the one mode where a platform URL means nothing, so the
+    // injected workflow has to say so rather than describing a pipeline.
+    expect(content).toContain('is not a trigger in this mode')
+    expect(content).toContain('the local repository is the only context')
+    expect(content).not.toContain('means run the pipeline, in whatever words')
   })
 
   it('preserves the operating-guide structure and platform markers', async () => {

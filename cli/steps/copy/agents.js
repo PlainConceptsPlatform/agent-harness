@@ -6,17 +6,17 @@ import { info, success, warn } from '../../utils/exec.js'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const agentsContent = await fse.readJson(path.resolve(__dirname, '../../presets/agents-content.json'))
 
-// Steps are matched by their title text, not by exact heading string:
-// heading level (###/####) and step numbers have drifted before and silently
-// broke removal. Matching `^#{3,4} Step N, <title>` survives both.
+// Steps are matched by their title text, not by exact heading string: heading
+// level (##/###/####), the `Step N,` prefix and any ` (if Yes)` suffix have all
+// drifted before, and every drift silently turned the patch into a no-op that
+// only showed up as a warning nobody read.
 const HISTORY_STEP_TITLE = 'Archive project history'
-const CHAIN_STEP_TITLE = 'Chain make commands'
-
-const CHAIN_CONFIRM_LINE = '- ARCHITECTURE.md generated'
+const ARCHITECTURE_STEP_TITLE = 'Generate ARCHITECTURE.md'
+const DESIGN_STEP_TITLE = 'Generate DESIGN.md'
 
 function stepHeadingPattern(title) {
   const escaped = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  return new RegExp(`^#{2,4} Step \\d+, ${escaped}`)
+  return new RegExp(`^#{2,4}\\s+(?:Step\\s+\\d+[a-z]?[,:]\\s+)?${escaped}\\b`, 'i')
 }
 
 // The step heading is kept and its body replaced with an explicit skip note.
@@ -29,17 +29,17 @@ export function skipStepBlock(content, title, note) {
   const start = lines.findIndex(l => pattern.test(l.trim()))
   if (start === -1) return { content, matched: false }
 
+  // The block ends at the next heading or rule, NOT at end of file. Scanning
+  // only for `---` meant a document without one lost everything below the
+  // matched step.
   let end = lines.length
   for (let i = start + 1; i < lines.length; i++) {
-    if (lines[i].trim() === '---') { end = i; break }
+    const line = lines[i].trim()
+    if (line === '---' || /^#{1,4}\s/.test(line)) { end = i; break }
   }
 
   lines.splice(start + 1, end - start - 1, '', `> ${note}`, '')
   return { content: lines.join('\n'), matched: true }
-}
-
-function removeConfirmLine(content, line) {
-  return content.split('\n').filter(l => l.trim() !== line.trim()).join('\n')
 }
 
 const PLATFORM_WORKFLOW_START = '<!-- PC-PLATFORM-WORKFLOW-START -->'
@@ -78,13 +78,15 @@ export async function patchAgentsMd(ctx) {
   const patches = []
 
   const skips = [
-    [ctx.hasOpenspec, HISTORY_STEP_TITLE, null,
+    [ctx.hasOpenspec, HISTORY_STEP_TITLE,
       'Skipped during onboarding: this project already had an openspec/ history. Do not archive again; continue with the next step.'],
-    [ctx.hasDesign || ctx.hasArchitecture, CHAIN_STEP_TITLE, CHAIN_CONFIRM_LINE,
-      'Skipped during onboarding: project files already exist. Run /make-architecture or /make-design individually to regenerate.'],
+    [ctx.hasArchitecture, ARCHITECTURE_STEP_TITLE,
+      'Skipped during onboarding: ARCHITECTURE.md already exists. Run /make-architecture to regenerate it, which keeps its update mode.'],
+    [ctx.hasDesign, DESIGN_STEP_TITLE,
+      'Skipped during onboarding: DESIGN.md already exists. Run /make-design to regenerate it, which keeps its update mode.'],
   ]
 
-  for (const [enabled, title, confirmLine, note] of skips) {
+  for (const [enabled, title, note] of skips) {
     if (!enabled) continue
     const result = skipStepBlock(content, title, note)
     if (!result.matched) {
@@ -92,7 +94,6 @@ export async function patchAgentsMd(ctx) {
       continue
     }
     content = result.content
-    if (confirmLine) content = removeConfirmLine(content, confirmLine)
     patches.push(`Step "${title}" marked as skipped, file already exists`)
   }
 

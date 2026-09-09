@@ -4,83 +4,29 @@ description: Walk the user through the project and its agentic infrastructure. E
 license: MIT
 ---
 
-This command is a guided tour. Read and explain only.
+A guided tour of this repository and the harness installed in it, for somebody who has just arrived. Read and explain; change nothing.
 
-## Step 1: Project overview
+## Rules
 
-Read `AGENTS.md`, `ARCHITECTURE.md`, and `DESIGN.md`. Summarize:
+- Never write, edit, or create a file, and never run a command from the tour to demonstrate it. The output is the explanation.
+- Never describe an agent, command, skill or setting that is not in this repository. The tour is worth having because it is specific: read `.opencode/agents/`, `.opencode/commands/`, `.agents/skills/`, `.opencode/harness.json`, `AGENTS.md`, `ARCHITECTURE.md` and `DESIGN.md` and report what is actually there.
 
-- What this project is (name, purpose, domain)
-- Tech stack (languages, frameworks, build system)
-- Project structure (key directories and what they contain)
+## Cover, in this order
 
-Keep it to 3 to 5 bullet points. Focus on what a new contributor needs to know.
+1. **The project.** Three to five bullets: what it is, the stack, the directories that matter.
+2. **The agents.** One table row per file in `.opencode/agents/`, with its tier and purpose. Then the selection model: `build` and `plan` are the only two a human picks and both run the `fullstack-engineer` body, `plan` can neither edit nor spawn, everything else is `mode: subagent` and reached through `task()`, and a missing specialist is made with `/make-engineer`.
+3. **The commands**, grouped by what they are for:
 
-## Step 2: Agent infrastructure
+   | Group | Commands |
+   |---|---|
+   | Planning | `/plan-explore`, `/plan-story`, `/plan-propose`, `/plan-quick`, `/plan-goal` |
+   | Implementation | `/plan-apply`, `/plan-archive` |
+   | Maintenance | `/make-architecture`, `/make-design`, `/make-engineer`, `/make-guardrails` |
+   | Shipping | `/ops-ship`, `/ops-review`, `/ops-backlog`, `/ops-evidence` |
+   | Quality | `/repo-audit` (read-only), `/repo-verify` (the branch gate) |
+   | Setup | `/init`, `/make-user-model`, `/repo-help` |
 
-Inspect `.opencode/agents/` and list every agent file. For each agent, read its frontmatter and summarize:
-
-- Agent name and role (primary, subagent, or specialist)
-- Model tier it uses (plan, build, or fast)
-- Key abilities: what it can do
-
-Present as a table:
-
-| Agent | Role | Tier | Purpose |
-|---|---|---|---|
-| ... | ... | ... | ... |
-
-Then explain the agent selection model:
-- Primary agents appear in Tab and handle direct user interaction
-- Subagent engineers are spawned by the lead for parallel implementation waves
-- Specialist engineers are preferred when their domain matches the task. `build` and `plan` are the only agents the user selects, and both run the `fullstack-engineer` body; `plan` cannot edit files. Everything else is `mode: subagent` and spawned. If no specialist matches, create one with `/make-engineer`.
-
-## Step 3: Command reference
-
-Read every `.md` file in `.opencode/commands/`. List each command with its name and description:
-
-| Command | What it does |
-|---|---|
-| ... | ... |
-
-Group them by workflow phase if possible:
-- Planning: plan-explore, plan-story, plan-propose, plan-quick, plan-goal
-- Implementation: plan-apply, plan-archive
-- Maintenance: make-architecture, make-design, make-engineer, make-guardrails
-- Shipping: ops-ship, ops-review, ops-backlog, ops-evidence
-- Quality: repo-audit, repo-verify
-- Setup: init, make-user-model, repo-help
-
-## Step 4: Skills
-
-Inspect `.agents/skills/` (if present). List installed skills with a one-line description each. Note which are platform-specific (userstory, pullrequest) vs general-purpose, and identify `pc-repo-audit` as read-only and `pc-repo-verify` as the current-branch verification gate.
-
-## Step 5: OpenSpec workflow
-
-Explain the OpenSpec change lifecycle:
-
-1. Explore (`/plan-explore`): investigate and discuss, no files created
-2. Propose (`/plan-propose`): structured plan, saved to `openspec/changes/`
-3. Apply (`/plan-apply`): implement tasks via parallel subagent waves
-4. Archive (`/plan-archive`): finalize and clean up
-
-Explain `openspec/config.yaml`: what it contains and why it matters.
-
-## Step 6: Configuration
-
-Explain `harness.json`:
-- What each field controls (platform, models, agents, tools, source)
-- How to change the model for a tier (`/make-user-model`)
-- What `agents.maxConcurrent` does
-
-## Step 7: Quick tips
-
-End with 3 to 5 practical tips:
-
-- How to start working: "Run `/plan-goal` with a description of what you want to build"
-- How to add a specialist: "Run `/make-engineer`"
-- How to regenerate docs: "Run `/make-architecture` or `/make-design`"
-- How to audit the whole repository: "Run `/repo-audit`"
-- How to verify an active branch: "Run `/repo-verify`"
-- How to see all commands: "Run `/repo-help`"
-- How to refresh config after changes: "Re-run `npx @plainconceptsplatform/agent-harness` in the terminal"
+4. **The skills** installed in `.agents/skills/`, one line each, marking which are platform-specific.
+5. **The OpenSpec lifecycle**: explore, propose, apply, archive, and what `openspec/config.yaml` controls.
+6. **The configuration** in `.opencode/harness.json`: what each section governs, that `/make-user-model` changes a tier's model, and what `agents.maxConcurrent` caps.
+7. **Where to start.** `/plan-goal` with a description of the work, `/repo-help` for everything else, and `npx @plainconceptsplatform/agent-harness` to refresh the harness after changing config.

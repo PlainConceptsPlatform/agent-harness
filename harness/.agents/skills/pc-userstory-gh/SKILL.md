@@ -8,105 +8,31 @@ metadata:
   version: "1.1"
 ---
 
-Use `gh` CLI for all GitHub operations. If `gh` is unavailable, report it as a blocker.
+Turn a GitHub Issue URL into an OpenSpec change, then hand the change to `pc-plan-propose`.
 
-## GitHub CLI Setup (One-Time)
+## Rules
+
+- Issue data comes from `gh`, never from a page fetch (denied by `pc-system-reminders`). An unavailable or unauthenticated `gh` is a blocker to report: `gh auth status` says which.
+- Always pass `--repo {owner}/{repo}`. Git context resolves to the wrong repository in a fork or a worktree, and the failure looks like a missing issue.
+- Never load `pc-plan-apply` until the user has said yes.
+
+## Contracts
+
+`https://github.com/{owner}/{repo}/issues/42` gives owner, repo and number `42`.
 
 ```bash
-gh auth login
-# Follow prompts, authenticate via browser or token
+gh issue view 42 --repo {owner}/{repo} --json number,title,body,labels,milestone,state
 ```
 
-Verify:
+An auth error or a 404 here is the blocker; do not work around it. From the JSON take `number`, `title`, `body` (description and acceptance criteria), `labels`, `milestone` and `state`.
+
 ```bash
-gh auth status
+openspec new change "gh-{number}-{slug}"
 ```
 
-## Steps
+Screenshots live in the change folder, `openspec/changes/{change-name}/images/{name}.png`, and embed as a blob URL pinned to a commit SHA with `?raw=true`: `https://github.com/{owner}/{repo}/blob/{sha}/openspec/changes/{change}/images/{file}.png?raw=true`.
 
-1. **Extract owner, repo, and issue number** from URL
-   - `https://github.com/{owner}/{repo}/issues/42` -> owner: `{owner}`, repo: `{repo}`, number: `42`
-
-2. **Fetch Issue**, always pass `--repo` explicitly:
-   ```bash
-   gh issue view 42 --repo {owner}/{repo} --json number,title,body,labels,milestone,state
-   ```
-   If this returns an auth error or 404, report as a blocker.
-
-3. **Extract Key Fields** from JSON response:
-   - `number` -> Issue number
-   - `title` -> Title
-   - `body` -> Description / acceptance criteria
-   - `labels` -> Labels
-   - `milestone` -> Milestone / sprint equivalent
-   - `state` -> State (open/closed)
-
-4. **Create OpenSpec Change**
-   ```bash
-   openspec new change "gh-{number}-{slug}"
-   ```
-
-5. **Hand off to proposal.** Load the `pc-plan-propose` skill (interactive mode) to generate the proposal, specs, and tasks. After it completes, call the `question` tool:
-
-   ```json
-   {
-     "questions": [
-       {
-         "header": "Ready to implement",
-         "question": "Ready to implement?",
-         "options": [
-           { "label": "yes", "description": "Load the pc-plan-apply skill to start implementation." },
-           { "label": "no", "description": "Stop here. You can run /plan-apply later." }
-         ]
-       }
-     ]
-   }
-   ```
-
-   Wait for confirmation before loading `pc-plan-apply`.
-
-## Full GitHub CLI Reference
-
-Always pass `--repo {owner}/{repo}`, relying on git context is unreliable.
-
-### Issues
-```bash
-# Read issue
-gh issue view <number> --repo {owner}/{repo}
-
-# List open issues
-gh issue list --repo {owner}/{repo} --state open --limit 10
-
-# Update issue
-gh issue edit <number> --repo {owner}/{repo} --add-label "in-progress"
-```
-
-## Screenshot / Image Strategy
-
-Save to openspec change folder and reference via GitHub blob URL pinned to commit SHA. Keep `?raw=true` when embedding in markdown:
-
-```
-openspec/changes/{change-name}/images/{screenshot}.png
-```
-
-```
-https://github.com/{owner}/{repo}/blob/{sha}/openspec/changes/{change}/images/{file}.png?raw=true
-```
-
-## URL Formats Reference
-
-```
-# Issue
-https://github.com/{owner}/{repo}/issues/{number}
-
-# PR
-https://github.com/{owner}/{repo}/pull/{number}
-
-# Blob file
-https://github.com/{owner}/{repo}/blob/{sha}/{path}
-```
-
-## Output Format
+Report:
 
 ```
 ## Issue Parsed
@@ -117,4 +43,21 @@ State: {state}
 Milestone: {milestone}
 
 Change Created: gh-{number}-{slug}
+```
+
+Then load `pc-plan-propose` (interactive) and, once it returns, ask:
+
+```json
+{
+  "questions": [
+    {
+      "header": "Ready to implement",
+      "question": "Ready to implement?",
+      "options": [
+        { "label": "yes", "description": "Load the pc-plan-apply skill to start implementation." },
+        { "label": "no", "description": "Stop here. You can run /plan-apply later." }
+      ]
+    }
+  ]
+}
 ```

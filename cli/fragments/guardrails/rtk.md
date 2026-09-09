@@ -1,3 +1,3 @@
 ## RTK
 
-- Prefix ALL CLI commands with `rtk` (e.g. `rtk git diff`, `rtk pnpm test`). Read-only commands like `cat`, `ls`, `Get-Content` are exempt.
+- Prefix CLI commands with `rtk` (`rtk git diff`, `rtk pnpm test`); it strips the output down to what matters. Read-only commands like `cat`, `ls` and `Get-Content` are exempt.
