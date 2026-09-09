@@ -1,6 +1,6 @@
 import fse from 'fs-extra'
 import path from 'path'
-import { canUpdateManagedFile, hashFile, readUpdateManifest, recordManagedFile, writeUpdateManifest } from './update-manifest.js'
+import { canUpdateManagedFile, hashComparableFile, readUpdateManifest, recordManagedFile, writeUpdateManifest } from './update-manifest.js'
 
 // Folders never copied (skills handled separately by installSkills, .bootstrap is internal tooling)
 const ALWAYS_EXCLUDE = ['.bootstrap', 'skills', 'node_modules']
@@ -82,8 +82,13 @@ export async function recordManagedContent(contentDir, destDir, { updateMode = f
 
       const destinationPath = path.join(destDir, relativePath)
       if (!await fse.pathExists(destinationPath)) continue
-      const sourceHash = await hashFile(sourcePath)
-      const destinationHash = await hashFile(destinationPath)
+      // Comparable, not raw: this runs after the patchers, so a managed file's
+      // destination never equals its source byte for byte once anything has
+      // been injected into a marker pair. Comparing raw hashes here meant no
+      // entry was ever recorded for those files, which left them permanently
+      // indistinguishable from files a project had edited by hand.
+      const sourceHash = await hashComparableFile(sourcePath)
+      const destinationHash = await hashComparableFile(destinationPath)
       const manifestPath = relativePath.split(path.sep).join('/')
       const previousHash = manifest.files?.[manifestPath]
       if (!updateMode || destinationHash === sourceHash || destinationHash === previousHash) {
