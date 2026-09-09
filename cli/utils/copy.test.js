@@ -84,6 +84,41 @@ describe('copy utils', () => {
       expect(await fse.pathExists(path.join(dest, 'AGENTS.md'))).toBe(true)
     })
 
+    // Pliny-Bot keeps its architecture in ai/ARCHITECTURE.md, 620 lines of it,
+    // and its AGENTS.md points readers there. An update seeded a root
+    // placeholder reading "NOT GENERATED YET, run /make-architecture" beside
+    // it, which is what pc-make-guardrails then reads as its primary source.
+    it.each(['ARCHITECTURE.md', 'DESIGN.md'])('does not seed a %s placeholder when the project keeps it in ai/', async (doc) => {
+      await fse.writeFile(path.join(src, doc), '> NOT GENERATED YET')
+      await fse.ensureDir(path.join(dest, 'ai'))
+      await fse.writeFile(path.join(dest, 'ai', doc), '# the real one')
+
+      await copyContent(src, dest, 'github')
+
+      expect(await fse.pathExists(path.join(dest, doc))).toBe(false)
+      expect(await fse.readFile(path.join(dest, 'ai', doc), 'utf-8')).toBe('# the real one')
+    })
+
+    it('does not seed a placeholder when the project keeps the doc in docs/', async () => {
+      await fse.writeFile(path.join(src, 'ARCHITECTURE.md'), '> NOT GENERATED YET')
+      await fse.ensureDir(path.join(dest, 'docs'))
+      await fse.writeFile(path.join(dest, 'docs', 'ARCHITECTURE.md'), '# the real one')
+
+      await copyContent(src, dest, 'github')
+
+      expect(await fse.pathExists(path.join(dest, 'ARCHITECTURE.md'))).toBe(false)
+    })
+
+    // The common case has to keep working: no doc anywhere means seed the
+    // placeholder, which is how a fresh project learns to run /make-architecture.
+    it('still seeds the placeholder when the project has no such doc', async () => {
+      await fse.writeFile(path.join(src, 'ARCHITECTURE.md'), '> NOT GENERATED YET')
+
+      await copyContent(src, dest, 'github')
+
+      expect(await fse.pathExists(path.join(dest, 'ARCHITECTURE.md'))).toBe(true)
+    })
+
     it('always excludes .bootstrap folder', async () => {
       await fse.ensureDir(path.join(src, '.bootstrap'))
       await fse.writeFile(path.join(src, '.bootstrap', 'secret.md'), 'internal')

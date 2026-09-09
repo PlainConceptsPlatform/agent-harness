@@ -15,6 +15,24 @@ const NEVER_OVERWRITE = [
 
 const MARKER_COMMANDS = new Set(['.opencode/commands/ops-review.md', '.opencode/commands/ops-backlog.md'])
 
+// Where a project may legitimately keep the doc instead of the repository root.
+// Foundations puts both under ai/, and projects that follow it point their own
+// AGENTS.md there.
+const ROOT_DOCS = new Set(['ARCHITECTURE.md', 'DESIGN.md'])
+const ALTERNATE_DOC_DIRS = ['ai', 'docs']
+
+// Seeding the "NOT GENERATED YET, run /make-architecture" placeholder next to a
+// real architecture document is worse than seeding nothing: pc-make-guardrails
+// reads the root file as its primary source, and an agent that finds the
+// placeholder there concludes the project has no architecture written down.
+async function documentedElsewhere(destDir, fileName) {
+  if (!ROOT_DOCS.has(fileName)) return false
+  for (const directory of ALTERNATE_DOC_DIRS) {
+    if (await fse.pathExists(path.join(destDir, directory, fileName))) return true
+  }
+  return false
+}
+
 function isTemplateTest(relativePath) {
   return relativePath.split(path.sep).join('/').startsWith('.opencode/plugins/') && relativePath.endsWith('.test.js')
 }
@@ -50,6 +68,7 @@ export async function copyContent(contentDir, destDir, platform, ctx = {}) {
       if (isTemplateTest(rel)) return false
       if (ctx.hasDesign && rel === 'DESIGN.md') return false
       if (ctx.hasArchitecture && rel === 'ARCHITECTURE.md') return false
+      if (await documentedElsewhere(destDir, rel)) return false
       // User-owned config files are never overwritten, even with forceOverwrite.
       // The update command calls writeModelsToConfigs separately to set the
       // model field in opencode.jsonc without destroying user additions.
