@@ -39,6 +39,12 @@ Push the feature branch, then load `pc-ops-ship` to create a PR into `$DEFAULT_B
 
 Restore the stash.
 
+## Branch mode
+
+Leave `$BRANCH` in place with its commits. Merge nothing, push nothing, delete nothing.
+
+Restore the stash.
+
 ## Final report
 
 Print:
@@ -55,8 +61,8 @@ Commits: {proposal, apply, archive}
 Verification: passed | failed
 Archived: yes | no
 Archive path: {path or none}
-Output mode: default | push | pr
-Final state: merged locally | pushed branch | PR URL | branch preserved after failure
+Output mode: default | push | pr | branch
+Final state: merged locally | pushed branch | PR URL | branch preserved | branch preserved after failure
 Stash restoration: not needed | restored | preserved after conflict
 ```
 

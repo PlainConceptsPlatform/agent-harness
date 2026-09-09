@@ -31,7 +31,7 @@ what makes pipelines like `/plan-goal` composable.
 | `/plan-quick <task>` | Quick plan for focused changes. Reads the codebase, creates a task checklist in the Todo pane, and stops. No OpenSpec, no proposals, no specs. |
 | `/plan-apply` | Implement tasks from the current plan. Detects format automatically: OpenSpec-annotated tasks run as parallel subagent waves, plain checkboxes run sequentially in-session. |
 | `/plan-archive` | Archive a completed OpenSpec change. |
-| `/plan-goal <feature or URL>` | Autonomous, no-confirmation pipeline: branch off main, then explore, propose, apply, archive (one commit per phase). Default mode merges to main and deletes the feature branch; add the `branch` keyword to keep it. Never pushes. |
+| `/plan-goal <feature or URL>` | Autonomous, no-confirmation pipeline: branch off main, then explore, propose, apply, archive (one commit per phase). Default mode merges to main and deletes the feature branch; add `branch` to keep it without merging or pushing, `push` to push the branch, or `pr` to push and open a PR. |
 
 ## ops
 

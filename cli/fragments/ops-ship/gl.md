@@ -1,4 +1,4 @@
-**ALL GitLab data MUST come from `glab` CLI. NEVER use webfetch, HTTP requests, or browser MCP tools for GitLab operations, even if glab CLI fails. If `glab` is unavailable, report as a blocker.**
+Every GitLab read and write goes through the `glab` CLI. Never webfetch, raw HTTP, or browser tools, even when `glab` fails: an unavailable `glab` is a blocker to report, not a reason to improvise.
 Always pass `--repo {owner}/{repo}` explicitly, never rely on git context to resolve the repo.
 
 ---
@@ -11,7 +11,7 @@ DEFAULT_BRANCH="$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null 
 [ -z "$DEFAULT_BRANCH" ] && DEFAULT_BRANCH="main"
 ```
 
-`$BRANCH` must be a work branch (`feature/*` or `bugfix/*`: the `pc-plan-apply` skill creates `feature/{change-slug}`). NEVER push the default branch.
+`$BRANCH` must be a work branch (`feature/*` or `bugfix/*`: the `pc-plan-apply` skill creates `feature/{change-slug}`). Never push the default branch.
 
 ### Step 2: Capture screenshots (if UI changes exist)
 

@@ -25,9 +25,17 @@ The caller provides (all optional):
 
 ## OpenSpec mode: parallel subagent waves
 
-Load `@openspec-apply-change` skill and follow its instructions, replacing Step 6 (Implement) with the protocol below.
+Load `@openspec-apply-change` for change selection, status, and closing. Its
+own implement step does not apply here: annotated tasks are implemented only by
+spawning the annotated tier worker, and the lead never implements. Take that
+step from the protocol below instead.
 
-**Step 6: Implement via native subagent waves. Replace the default step 6 with this protocol.**
+Referring to it by number would break silently. `@openspec-apply-change` is
+installed by `openspec init --force` with no version pinned, so an inserted step
+upstream renumbers the one being replaced, and the sequential default would then
+run alongside these waves.
+
+**Implement via native subagent waves.**
 
 You are the lead. You orchestrate from this session only; you spawn workers with the native `task` tool. Workers are ephemeral (one batch, then they exit) and navigable (`ctrl+x` arrow down, left/right arrows). There is no board, no claiming, no merging, no external dashboard.
 

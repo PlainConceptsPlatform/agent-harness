@@ -63,20 +63,26 @@ describe("planning skill templates", () => {
     expect(verify).toContain("build command, and test command")
   })
 
-  it("keeps plan-explore as an openspec-explore facade", () => {
+  it("keeps plan-explore delegating to openspec-explore", () => {
     const explore = skill("pc-plan-explore")
 
-    expect(explore).toContain("Load `@openspec-explore` and follow every step defined in it.")
+    expect(explore).toContain("@openspec-explore")
     expect(explore).not.toContain("requirement-model.md")
     expect(explore).not.toContain("exploration-brief.md")
+    // openspec-explore states it has no steps ("a stance, not a workflow"), so
+    // telling the model to follow every one of them was a category error.
+    expect(explore).not.toContain("follow every step")
   })
 
-  it("makes plan-goal exploration think before it validates code", () => {
+  it("defines EXPLORATION_BRIEF on both sides of the handoff", () => {
     const goal = skill("pc-plan-goal")
+    const explore = skill("pc-plan-explore")
 
     expect(goal).toContain("Load `pc-plan-explore`")
-    expect(goal).toContain("Require an in-memory `EXPLORATION_BRIEF`")
     expect(goal).not.toContain("pc-goal-explore")
+    // plan-goal required this handoff while plan-explore never defined it.
+    expect(goal).toContain("EXPLORATION_BRIEF")
+    expect(explore).toContain("EXPLORATION_BRIEF")
   })
 
   it("requires workers for annotated OpenSpec tasks", () => {
@@ -137,5 +143,87 @@ describe("planning skill templates", () => {
     expect(scaffold).toContain("DEPRECATED")
     expect(evidence).toContain("capturePlan")
     expect(evidence).toContain("Visual Evidence CI workflow")
+  })
+})
+
+// Where each rule lives. Several of these were stated in three places at once,
+// so a fix landed in one copy and the other two silently disagreed. One home
+// each, and these assertions keep it that way.
+//
+//   never `git add -A`            pc-guardrails-generic  (enforced: see below)
+//   worker is not substitutable   pc-plan-apply
+//   agents.maxConcurrent          pc-plan-apply
+//   scratch files under .tmp      pc-guardrails-generic
+//   platform data via CLI only    pc-guardrails-generic
+//   story format                  pc-plan-story
+//   scoped verification           pc-repo-verify
+describe("each rule has one home", () => {
+  const SKILLS_DIR = path.join(CONTENT_DIR, ".agents", "skills")
+  const FRAGMENTS_DIR = path.resolve(__dirname, "fragments")
+
+  function walk(dir) {
+    if (!fs.existsSync(dir)) return []
+    return fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
+      const full = path.join(dir, entry.name)
+      return entry.isDirectory() ? walk(full) : full.endsWith(".md") ? [full] : []
+    })
+  }
+
+  const authored = [...walk(SKILLS_DIR), ...walk(FRAGMENTS_DIR)]
+  const read = file => fs.readFileSync(file, "utf-8")
+
+  // archive/*.md told the model to `git add -A` while ops-ship/*.md forbade it.
+  it("instructs an unscoped git add nowhere", () => {
+    const offenders = authored.filter(f => /git add (-A|--all|\.)(\s|$)/m.test(read(f)))
+    expect(offenders.map(f => path.relative(CONTENT_DIR, f))).toEqual([])
+  })
+
+  // Every derived agent colour must be quoted: a bare #hex is a YAML comment.
+  it("quotes every hex colour it writes", () => {
+    const offenders = authored.filter(f => /^color:\s*#/m.test(read(f)))
+    expect(offenders.map(f => path.relative(CONTENT_DIR, f))).toEqual([])
+  })
+
+  // The command wrapper turns a skill into a recipe before the model reads a
+  // word of it, and it is wrong about openspec-explore, which has no steps.
+  it("does not tell the model to follow every step", () => {
+    const commands = walk(path.join(CONTENT_DIR, ".opencode", "commands"))
+    const offenders = [...authored, ...commands].filter(f => read(f).includes("follow every step"))
+    expect(offenders.map(f => path.relative(CONTENT_DIR, f))).toEqual([])
+  })
+
+  // A step number into @openspec-apply-change breaks silently when upstream
+  // renumbers, and upstream is installed unpinned via `openspec init --force`.
+  it("references no upstream step by number", () => {
+    const offenders = authored.filter(f => /replacing Step \d|Replace the default step \d/i.test(read(f)))
+    expect(offenders.map(f => path.relative(CONTENT_DIR, f))).toEqual([])
+  })
+
+  // Shouting is not enforcement. Budget of two per file; the two ops-ship
+  // fragments were the only ones over it.
+  it("keeps all-caps imperatives within budget", () => {
+    const over = authored
+      .map(f => {
+        const withoutFences = read(f).replace(/```[\s\S]*?```/g, "")
+        const shouts = withoutFences.match(/\b(MUST|NEVER|ALWAYS|MANDATORY|STOP)\b/g) ?? []
+        return { file: path.relative(CONTENT_DIR, f), count: shouts.length }
+      })
+      .filter(entry => entry.count > 2)
+    expect(over).toEqual([])
+  })
+})
+
+// The always-loaded context is paid on every single request, before any skill
+// loads. Constraint-based rewrites should shrink it; nothing should grow it
+// without someone deciding to.
+describe("always-loaded context budget", () => {
+  it("stays within its measured baseline", () => {
+    const bytes = [
+      path.join(CONTENT_DIR, "AGENTS.md"),
+      path.join(CONTENT_DIR, ".agents", "skills", "pc-guardrails-generic", "SKILL.md"),
+    ].reduce((total, file) => total + fs.readFileSync(file, "utf-8").length, 0)
+
+    // Baseline at the time of the truth pass: 11,436 chars for these two.
+    expect(bytes).toBeLessThanOrEqual(11_600)
   })
 })
