@@ -39,7 +39,9 @@
 6. **Commit the archive**
 
    ```bash
-   git add -A
+   # Stage specific paths only: a shared tree may hold another agent's or a
+   # person's edits, and -A commits them under this message.
+   git add openspec/changes/   # plus ARCHITECTURE.md / DESIGN.md if step 5 updated them
    git commit -m "archive: {title} ({change-id})"
    ```
 

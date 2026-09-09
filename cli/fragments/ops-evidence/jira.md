@@ -14,6 +14,7 @@ Screenshot committed at: {asset-path} (branch {branch}, commit {sha})
 
 ```
 <!-- pc-visual-evidence:{change-id} -->
+<!-- pc-visual-evidence-status:{status} -->
 
 Status: `{status}`
 
@@ -28,11 +29,14 @@ Manifest and assets: {commit-pinned links when available, otherwise committed pa
 
 ### Step 3 — Upsert the comment on the issue
 
-Keep it idempotent: list existing comments and skip if one already carries the marker for this change id, otherwise add:
+`acli` cannot edit a comment in place, so match on the status probe rather than the change id alone. Matching the change id alone leaves a stale `blocked` comment standing after a later run succeeds:
 
 ```bash
-acli jira issue comment list --key {issue-key} 2>/dev/null | grep -q "pc-visual-evidence:{change-id}" \
+# Skip only when this exact status is already published for this change.
+acli jira issue comment list --key {issue-key} 2>/dev/null | grep -q "pc-visual-evidence-status:{status}" \
   || acli jira issue comment --key {issue-key} --body "$BODY"
 ```
+
+When an earlier comment carries this change id with a different status, this one supersedes it: open the body with `Supersedes the earlier evidence comment for this change.` so a reader can tell which is current.
 
 - If the comment command fails: report it. Fail the run ONLY when publishing was declared a ship gate; otherwise continue.

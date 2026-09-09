@@ -143,7 +143,6 @@ Commands that other commands (or agents) need to execute are thin wrappers aroun
 | `/ops-review` | Read and triage pull request review feedback. Reports what needs fixing. |
 | `/ops-backlog` | Create an issue in the backlog platform (GitHub, Azure DevOps, or Jira) from a description. |
 | `/ops-evidence` | Produce evidence a change works (delegating to a project harness if present, else a screenshot), write `evidence/evidence.json`, and publish an idempotent comment on the issue/PR. Best-effort. |
-| `/make-evidence-scaffold` | One-time scaffold of a project-specific visual-evidence harness (deterministic capture + assertions + manifest + publisher) that `/ops-evidence` and `/plan-goal` then delegate to. |
 | `/plan-archive` | Archive a completed OpenSpec change. |
 | `/plan-goal <feature or URL>` | Autonomous, no-confirmation pipeline: branch off main, then explore, propose, apply, archive (one commit per phase). Default mode: merge to main and delete the feature branch. Add `branch` keyword to keep the feature branch without merging. Never pushes. For loop-engineering. |
 | `/make-engineer` | Interactive persona-driven form to add a custom specialist engineer. Pick a persona, then confirm an inspected-and-recommended skill set (architecture/patterns like FSD or design patterns, framework, testing, infra) before it installs. |
@@ -211,12 +210,11 @@ Built-in skills (`pc-` prefix) shipped with agent-harness:
 | `pc-plan-apply` | Wave-implementation procedure behind `/plan-apply`; autonomous mode used by `/plan-goal` |
 | `pc-plan-archive` | Archive procedure behind `/plan-archive` (platform flow injected at onboarding); autonomous mode used by `/plan-goal` |
 | `pc-ops-ship` | PR-creation procedure behind `/ops-ship` (platform flow injected at onboarding); used by `/plan-goal` pr mode |
-| `pc-ops-evidence` | Evidence of a change → `evidence/evidence.json` (passed/skipped/failed/blocked) + idempotent verified issue/PR comment; delegates to a project harness if present, else screenshots; used by `/ops-evidence` and `/plan-goal` |
+| `pc-ops-evidence` | Evidence of a change → `evidence/evidence.json` (passed/skipped/failed/blocked) + idempotent verified issue/PR comment; delegates to a project harness if present, else screenshots; used by `/ops-evidence` |
 | `pc-make-architecture` | ARCHITECTURE.md generation behind `/make-architecture`; used by `/repo-initialize` |
 | `pc-make-design` | DESIGN.md generation behind `/make-design`; used by `/repo-initialize` |
 | `pc-make-guardrails` | Guardrails generation behind `/make-guardrails`; used by `/repo-initialize` |
 | `pc-make-engineer` | Custom engineer creation behind `/make-engineer` |
-| `pc-make-evidence-scaffold` | Visual-evidence harness scaffold behind `/make-evidence-scaffold` |
 | `pc-make-user-model` | Tier model configuration behind `/make-user-model` |
 | `pc-plan-goal` | Autonomous full-lifecycle pipeline behind `/plan-goal` |
 | `pc-plan-quick` | Quick task checklist behind `/plan-quick` |
@@ -226,7 +224,7 @@ Built-in skills (`pc-` prefix) shipped with agent-harness:
 | `pc-repo-onboard` | Guided project tour behind `/repo-onboard` |
 | `pc-repo-help` | The command reference displayed by `/repo-help`; used by `/repo-initialize` |
 
-Platform operations are injected during onboarding: pull request creation into the `pc-ops-ship` skill (loaded by `/ops-ship` and `/plan-goal`), archive PR flow into the `pc-plan-archive` skill, issue/work-item evidence comments into the `pc-ops-evidence` skill (backlog platform), and pull request review / issue creation directly into the `/ops-review` and `/ops-backlog` command files.
+Platform operations are injected during onboarding: pull request creation into the `pc-ops-ship` skill (loaded by `/ops-ship`, and by `/plan-goal` in `pr` mode), archive PR flow into the `pc-plan-archive` skill, issue/work-item evidence comments into the `pc-ops-evidence` skill (backlog platform), and pull request review / issue creation directly into the `/ops-review` and `/ops-backlog` command files.
 
 Skills live in `.agents/skills/`. Any `SKILL.md` file in a subdirectory is automatically discoverable. Write your own and agents will pick them up.
 

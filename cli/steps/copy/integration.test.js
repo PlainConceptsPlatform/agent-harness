@@ -205,6 +205,81 @@ describe('ops command patching (real presets + real templates)', () => {
     if (evidenceCli[backlog]) {
       expect(evidence).toContain(evidenceCli[backlog])
       expect(evidence).toContain('commit-pinned')
+      // Every publishing platform carries the status probe in the body.
+      expect(evidence).toContain('pc-visual-evidence-status:{status}')
+    }
+    // az and jira cannot edit a comment in place, so they must key the skip on
+    // the status. Keying it on the change id alone left a stale `blocked`
+    // comment standing after a later run passed.
+    if (backlog === 'azure' || backlog === 'jira') {
+      expect(evidence).toContain('grep -q "pc-visual-evidence-status:{status}"')
+      expect(evidence).not.toContain('grep -q "pc-visual-evidence:{change-id}"')
+      expect(evidence).toContain('Supersedes the earlier evidence comment')
+    }
+  })
+})
+
+// Marker skills used to be preserved wholesale on update, which froze their
+// prose at whatever version a consumer first installed. A skill rewrite then
+// only ever reached fresh installs.
+describe('update refreshes marker skills but keeps project-owned content', () => {
+  const shipped = name =>
+    fs.readFileSync(path.join(CONTENT_DIR, '.agents', 'skills', name, 'SKILL.md'), 'utf-8')
+
+  const installed = name =>
+    fs.readFileSync(path.join(tmpDir, '.agents', 'skills', name, 'SKILL.md'), 'utf-8')
+
+  function seed(name, body) {
+    fs.mkdirSync(path.join(tmpDir, '.agents', 'skills', name), { recursive: true })
+    fs.writeFileSync(path.join(tmpDir, '.agents', 'skills', name, 'SKILL.md'), body)
+  }
+
+  it('replaces stale prose in a marker skill', async () => {
+    seed('pc-ops-ship', '---\nname: pc-ops-ship\n---\n\nAncient prose from an old release.\n')
+
+    await installSkills('github', 'github', { updateMode: true })
+
+    expect(installed('pc-ops-ship')).not.toContain('Ancient prose')
+    // The platform body is injected separately, so the refreshed file still
+    // carries the empty marker pair for patchOpsShip to fill.
+    expect(installed('pc-ops-ship')).toContain('PC-PLATFORM-SHIP-START')
+  })
+
+  it('carries a PC-PROJECT slot over the refresh', async () => {
+    const adapted = shipped('pc-ops-evidence').replace(
+      /<!-- PC-PROJECT-EXAMPLE-START -->[\s\S]*?<!-- PC-PROJECT-EXAMPLE-END -->/,
+      '<!-- PC-PROJECT-EXAMPLE-START -->\nOUR OWN ROUTES\n<!-- PC-PROJECT-EXAMPLE-END -->',
+    )
+    seed('pc-ops-evidence', `${adapted}\nstale tail that must go\n`)
+
+    await installSkills('github', 'github', { updateMode: true })
+
+    expect(installed('pc-ops-evidence')).toContain('OUR OWN ROUTES')
+    expect(installed('pc-ops-evidence')).not.toContain('stale tail that must go')
+  })
+
+  it('never refreshes a generated skill', async () => {
+    seed('pc-guardrails-project', '<!-- Last updated: 2026-01-01 -->\nNever import across contexts.\n')
+
+    await installSkills('github', 'github', { updateMode: true })
+
+    expect(installed('pc-guardrails-project')).toContain('Never import across contexts.')
+  })
+
+  // patchAgentsMd stamps "skipped during onboarding" notes into this one on a
+  // fresh install only, so a refresh would discard them.
+  it('never refreshes pc-repo-initialize', async () => {
+    seed('pc-repo-initialize', 'Step 3 skipped during onboarding: openspec/ already existed.\n')
+
+    await installSkills('github', 'github', { updateMode: true })
+
+    expect(installed('pc-repo-initialize')).toContain('skipped during onboarding')
+  })
+
+  it('ships no project-specific domain in the evidence example', () => {
+    const text = shipped('pc-ops-evidence')
+    for (const leak of ['quote', 'Quote', 'ProjectDetailsCard', 'currency']) {
+      expect(text).not.toContain(leak)
     }
   })
 })

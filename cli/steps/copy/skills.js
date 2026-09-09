@@ -51,6 +51,72 @@ const MARKER_SKILLS = new Set([
   'pc-repo-initialize',
 ])
 
+// Marker skills whose prose must track the shipped version on update.
+//
+// These are shipped content, not project content: the project-specific part is
+// injected into their marker pairs, and the platform patchers plus
+// patchGuardrails re-inject it immediately after this copy. Treating them as
+// project-owned froze their prose at whatever version a consumer first
+// installed, so a skill rewrite never reached an existing repo. That is also
+// how browser-automation sat on v1.0 in five repos while the harness shipped
+// v2.0.
+//
+// pc-repo-initialize is deliberately absent. patchAgentsMd stamps "skipped
+// during onboarding" notes into it that only run on a fresh install
+// (copy/index.js runs it under `!ctx.updateMode`), so refreshing it would
+// discard decisions made at onboarding.
+const REFRESHABLE_MARKER_SKILLS = new Set([
+  'pc-guardrails-generic',
+  'pc-plan-archive',
+  'pc-ops-ship',
+  'pc-ops-evidence',
+])
+
+// A project-owned slot inside a shipped skill: the content between the markers
+// survives a refresh, everything around it takes the new shipped version. This
+// is the supported way to adapt one example to a project without forking the
+// file, which consumers have otherwise done by editing shipped prose in place.
+const PROJECT_SLOT_RE = /<!-- (PC-PROJECT-[A-Z0-9-]+)-START -->([\s\S]*?)<!-- \1-END -->/g
+
+function readProjectSlots(text) {
+  const slots = new Map()
+  for (const match of text.matchAll(PROJECT_SLOT_RE)) slots.set(match[1], match[2])
+  return slots
+}
+
+function writeProjectSlots(text, slots) {
+  if (slots.size === 0) return text
+  // Replacer function, not a replacement string: carried content can contain
+  // shell quoting like $'...', and a string replacement expands $' as
+  // "everything after the match" and truncates the file.
+  return text.replace(PROJECT_SLOT_RE, (whole, name) => {
+    const kept = slots.get(name)
+    if (kept === undefined || kept.trim() === '') return whole
+    return `<!-- ${name}-START -->${kept}<!-- ${name}-END -->`
+  })
+}
+
+async function refreshMarkerSkill(src, dest, relativeRoot) {
+  for (const entry of await fse.readdir(src, { withFileTypes: true })) {
+    const sourcePath = path.join(src, entry.name)
+    const destinationPath = path.join(dest, entry.name)
+    const relativePath = path.join(relativeRoot, entry.name)
+    if (entry.isDirectory()) {
+      await refreshMarkerSkill(sourcePath, destinationPath, relativePath)
+      continue
+    }
+    const shipped = await fse.readFile(sourcePath, 'utf-8')
+    const existing = await fse.pathExists(destinationPath)
+      ? await fse.readFile(destinationPath, 'utf-8')
+      : ''
+    const merged = writeProjectSlots(shipped, readProjectSlots(existing))
+    if (merged === existing) continue
+    await fse.ensureDir(path.dirname(destinationPath))
+    await fse.writeFile(destinationPath, merged, 'utf-8')
+    success(`Refreshed skill: ${relativePath}`)
+  }
+}
+
 async function isGeneratedSkill(dest) {
   const skillMd = path.join(dest, 'SKILL.md')
   if (!await fse.pathExists(skillMd)) return false
@@ -145,12 +211,19 @@ async function installObSkills(backlogPlatform = 'github', repoPlatform, { force
       continue
     }
     if (updateMode) {
+      const relativeRoot = path.join('.agents', 'skills', destName)
       if (!await fse.pathExists(dest)) {
-        await syncSkillFiles(src, dest, path.join('.agents', 'skills', destName), process.cwd(), manifest)
-      } else if (MARKER_SKILLS.has(destName) || GENERATABLE_SKILLS.has(destName)) {
+        await syncSkillFiles(src, dest, relativeRoot, process.cwd(), manifest)
+      } else if (GENERATABLE_SKILLS.has(destName)) {
+        info(`Preserving generated skill: ${destName}`)
+      } else if (REFRESHABLE_MARKER_SKILLS.has(destName)) {
+        // Shipped prose refreshes; the patchers re-inject the marker pairs and
+        // any PC-PROJECT-* slot is carried over.
+        await refreshMarkerSkill(src, dest, relativeRoot)
+      } else if (MARKER_SKILLS.has(destName)) {
         info(`Preserving project-owned skill: ${destName}`)
       } else {
-        await syncSkillFiles(src, dest, path.join('.agents', 'skills', destName), process.cwd(), manifest)
+        await syncSkillFiles(src, dest, relativeRoot, process.cwd(), manifest)
       }
       continue
     }

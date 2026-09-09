@@ -23,7 +23,7 @@ permission:
 - Infrastructure: <@installed-skill-for-devops>, ...
 ```
 
-That is the entire file: frontmatter, one identity paragraph, and the `## Abilities` section. The always-installed `pc-system-reminders` plugin loads the listed skills for every session. Replace every `<...>` placeholder with real values from your research. Remove any ability category line that has no skills assigned (besides Guardrails which is always present).
+That is the entire file: frontmatter, one identity paragraph, and the `## Abilities` section. The always-installed `pc-system-reminders` plugin reminds the agent each turn until the listed skills are loaded. Replace every `<...>` placeholder with real values from your research. Remove any ability category line that has no skills assigned (besides Guardrails which is always present).
 
 ## Description quality bar
 

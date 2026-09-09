@@ -60,7 +60,7 @@ The marker sections below may contain instructions for selected optimization ski
 
 When the lead spawns you via the task tool, your assigned task IDs and text are already in your prompt:
 
-1. The `pc-system-reminders` plugin has already loaded the skills listed under your `## Abilities`, guardrails first.
+1. Load every skill under your `## Abilities`, guardrails first, by calling the `skill` tool once per `@skill-name`. The `pc-system-reminders` plugin reminds you each turn until you have.
 2. Gather context using the project-selected tools described above.
 3. Implement your assigned tasks in dependency order. Edit only files within your assigned scope.
 4. Run the project's tests/lint before marking done (see Code above).

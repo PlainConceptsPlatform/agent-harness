@@ -1,6 +1,6 @@
 # Evidence contract
 
-Evidence captured by `/plan-goal` lives at `openspec/changes/archive/<dated>-<id>/evidence/`. A standalone pre-archive capture may use `openspec/changes/<id>/evidence/`, but archive moves it into the archived change before publication. That folder contains only:
+Evidence captured by `/ops-evidence` lives at `openspec/changes/archive/<dated>-<id>/evidence/`. A standalone pre-archive capture may use `openspec/changes/<id>/evidence/`, but archive moves it into the archived change before publication. That folder contains only:
 - ordered capture images (`01-{label}.png/webp`, ...) and/or `flow.gif`
 - `evidence.json`: the manifest, schema below.
 

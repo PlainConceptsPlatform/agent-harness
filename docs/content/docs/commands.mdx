@@ -50,5 +50,4 @@ what makes pipelines like `/plan-goal` composable.
 | `/make-architecture` | Generate or regenerate `ARCHITECTURE.md` from the codebase. |
 | `/make-design` | Generate or regenerate `DESIGN.md` from the design system. |
 | `/make-guardrails` | Generate an `pc-guardrails-project` skill from `ARCHITECTURE.md` and project config files. Extracts architecture boundaries, naming, code style, testing and git workflow rules, then updates all `*-engineer.md` to load the skill. |
-| `/make-evidence-scaffold` | One-time scaffold of a project-specific visual-evidence harness (deterministic capture, assertions, manifest and publisher) that `/ops-evidence` and `/plan-goal` then delegate to. |
 | `/make-user-model [user] <tier> <model>` | Set the model for a tier (`plan`, `build`, `fast`). Writes to `harness.json` (team) or `harness.user.json` (user override, gitignored) when the `user` prefix is used. Restart to pick up changes. Pass a model id or `current` for the active session model. |

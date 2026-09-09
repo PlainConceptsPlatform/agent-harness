@@ -1,6 +1,6 @@
 ---
 name: pc-ops-evidence
-description: Writes a capturePlan in evidence.json for the Visual Evidence CI workflow to execute on a runner with Docker and Chrome access. Load after a change is implemented. Invoked by /ops-evidence and the plan-goal pipeline.
+description: Writes a capturePlan in evidence.json for the Visual Evidence CI workflow to execute on a runner with Docker and Chrome access. Load after a change is implemented. Invoked by /ops-evidence.
 license: MIT
 ---
 
@@ -44,7 +44,7 @@ If skipped: write `evidence.json` with `status: "skipped"` and reason. Done.
 ```
 capturePlan:
   routes:           # Array of route objects to screenshot (at minimum [{ path: "/" }])
-    - path: string  # URL path, e.g. "/quotes/:id"
+    - path: string  # URL path, e.g. "/items/:id"
       sampleId:     # string | "first" | "any" — how to resolve dynamic segments
       caption:      # string — human-readable description of what this screenshot shows
   viewports:        # Array of viewport objects
@@ -61,24 +61,29 @@ capturePlan:
 
 1. `routes` MUST always include `{ path: "/", caption: "Homepage" }` as the first entry.
 2. Every additional route discovered from the diff goes after the homepage entry.
-3. `sampleId: "first"` means the CI workflow should use the first record returned by the API (e.g. the first quote from the seed data). `sampleId: "any"` means any valid ID.
+3. `sampleId: "first"` means the CI workflow should use the first record returned by the API. `sampleId: "any"` means any valid ID.
 4. `requireApi` is `true` when any route needs the backend to return data. It is `false` only for purely static pages (login, not-found).
 5. `requireLogin` is `true` when any route needs authentication. For dev mode with mock auth, `loginMethod` is `"mock-sso"`.
 6. `reason` should explain both WHY capture was blocked and WHAT the screenshots should show once captured.
 
 ### Example `evidence.json`
 
+Adapt the routes and captions to this repository. Edits between the
+`PC-PROJECT-EXAMPLE` markers are carried over when the harness updates;
+anything outside them is replaced by the shipped version.
+
+<!-- PC-PROJECT-EXAMPLE-START -->
 ```json
 {
   "version": 1,
-  "changeId": "currency-in-project-details",
+  "changeId": "status-badge-in-detail-panel",
   "required": true,
   "status": "blocked",
   "assets": [],
   "capturePlan": {
     "routes": [
-      { "path": "/", "sampleId": "any", "caption": "Homepage / accounts list" },
-      { "path": "/quotes/:id", "sampleId": "first", "caption": "Quote editor with currency selector in ProjectDetailsCard" }
+      { "path": "/", "sampleId": "any", "caption": "Homepage" },
+      { "path": "/items/:id", "sampleId": "first", "caption": "Item detail with the new status badge" }
     ],
     "viewports": [
       { "width": 1280, "height": 720, "label": "desktop" },
@@ -87,12 +92,13 @@ capturePlan:
     "requireApi": true,
     "requireLogin": true,
     "loginMethod": "mock-sso",
-    "reason": "Currency selector moved from editor body into ProjectDetailsCard; visual change in quote editor page."
+    "reason": "Status badge added to the item detail panel; visual change on the detail page."
   },
   "reason": "Visual evidence cannot be captured inside the awf sandbox (Docker-in-Docker unsupported, headless Chromium sandbox blocked). A capturePlan has been written for the Visual Evidence CI workflow.",
   "prMarkdown": "## Evidence\n\nVisual evidence for this change is **blocked** in this agent run. A `capturePlan` has been written to `evidence.json` — the Visual Evidence CI workflow will execute it on a runner with full Docker and Chrome access.\n\nAutomated verification that did run:\n- Lint: clean\n- Tests: all pass\n- Build: success"
 }
 ```
+<!-- PC-PROJECT-EXAMPLE-END -->
 
 ### When evidence is not required
 

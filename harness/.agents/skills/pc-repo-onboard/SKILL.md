@@ -46,7 +46,7 @@ Read every `.md` file in `.opencode/commands/`. List each command with its name 
 Group them by workflow phase if possible:
 - Planning: plan-explore, plan-story, plan-propose, plan-quick, plan-goal
 - Implementation: plan-apply, plan-archive
-- Maintenance: make-architecture, make-design, make-engineer, make-guardrails, make-evidence-scaffold
+- Maintenance: make-architecture, make-design, make-engineer, make-guardrails
 - Shipping: ops-ship, ops-review, ops-backlog, ops-evidence
 - Quality: repo-audit, repo-verify
 - Setup: init, make-user-model, repo-help
@@ -82,6 +82,5 @@ End with 3 to 5 practical tips:
 - How to regenerate docs: "Run `/make-architecture` or `/make-design`"
 - How to audit the whole repository: "Run `/repo-audit`"
 - How to verify an active branch: "Run `/repo-verify`"
-- How to set up visual evidence: "Run `/make-evidence-scaffold` (UI projects) so `/plan-goal` can prove changes with screenshots"
 - How to see all commands: "Run `/repo-help`"
 - How to refresh config after changes: "Re-run `npx @plainconceptsplatform/agent-harness` in the terminal"

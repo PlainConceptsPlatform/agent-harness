@@ -23,8 +23,10 @@ Save to: `openspec/changes/{change-name}/images/{feature}.png`
 
 ### Step 3: Commit and push
 
+The `pc-plan-apply` skill already committed each task group: usually only screenshots or small residuals remain. Stage **specific paths only** (never `git add .`, it sweeps unrelated files into the ship commit):
+
 ```bash
-git add .
+git add openspec/changes/{change-name}/images/  # plus any other paths you actually changed
 git commit -m "feat({scope}): {description} (#{id})"
 git push origin feature/{id}-{slug}
 ```

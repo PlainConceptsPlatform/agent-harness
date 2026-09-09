@@ -21,6 +21,7 @@ Prefix the body with a hidden marker so re-runs update the same comment instead 
 
 ```
 <!-- pc-visual-evidence:{change-id} -->
+<!-- pc-visual-evidence-status:{status} -->
 
 Status: `{status}`
 

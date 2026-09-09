@@ -15,4 +15,4 @@ No per-project scaffold, fixture apps, or scenario registries are required. The 
 
 If you previously ran `/make-evidence-scaffold` and have a `src/visual-evidence/` directory or `visual-evidence` scripts in `package.json`, you can delete them — the new system does not use them.
 
-To capture evidence for a change, just run `/ops-evidence` or let `/plan-goal` handle it automatically.
+To capture evidence for a change, run `/ops-evidence`.

@@ -86,7 +86,7 @@ Load the `@humanizer` skill and run it on the drafted story text from Step 3. AI
 - Stack vague attributions
 - Inflate symbolism in the summary line
 
-Apply the humanizer's audit → fix loop to all prose in the story: the summary, the use case, the scenario descriptions, and the edge case notes. Preserve all technical details, file paths, component names, and Gherkin structure — the humanizer cleans prose, not structure or accuracy.
+Apply `@humanizer` to all prose in the story: the summary, the use case, the scenario descriptions, and the edge case notes. Preserve all technical details, file paths, component names, and Gherkin structure — the humanizer cleans prose, not structure or accuracy.
 
 ## Step 5: Diagram (when the story has a flow)
 

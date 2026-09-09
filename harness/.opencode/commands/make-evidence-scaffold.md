@@ -1,5 +1,5 @@
 ---
-description: One-time scaffold of a project-specific visual-evidence harness (deterministic capture + assertions + manifest + publisher) that /ops-evidence and /plan-goal delegate to.
+description: DEPRECATED. Per-project evidence scaffolds are gone; run /ops-evidence instead.
 ---
 
 Load the `pc-make-evidence-scaffold` skill and follow every step defined in it.

@@ -65,7 +65,7 @@ The `pc-plan-apply` skill is authoritative for subagent waves, dependency orderi
 
 ## Skills
 
-Skills live in `.agents/skills/`. Always installed: `@pc-guardrails-generic`, `@pc-guardrails-project`, and `@browser-automation`. The always-installed `pc-system-reminders` plugin loads each agent's `## Abilities` before work, guardrails first. Skills can require mandatory transitive loads. Keep `## Abilities` complete and do not treat entries as passive references.
+Skills live in `.agents/skills/`. Always installed: `@pc-guardrails-generic`, `@pc-guardrails-project`, and `@browser-automation`. The always-installed `pc-system-reminders` plugin reminds you every turn until each skill under your `## Abilities` is loaded, guardrails first. The reminder is not the load: call the `skill` tool yourself. Skills can require mandatory transitive loads. Keep `## Abilities` complete and do not treat entries as passive references.
 
 <!-- PC-PLATFORM-SKILLS-GUIDE-START -->
 <!-- PC-PLATFORM-SKILLS-GUIDE-END -->

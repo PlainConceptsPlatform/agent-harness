@@ -44,7 +44,7 @@ Display the following reference to the user exactly as written. Do not summarize
 
 **`/ops-backlog`**: Create an issue in the backlog platform (GitHub, Azure DevOps, Jira) from a description.
 
-**`/ops-evidence`**: Produce evidence a completed change works and publish it to the originating issue/PR. Uses `playwright-cli` (headless) and `pnpm run dev` to capture screenshots at desktop and mobile viewports, writes `evidence/evidence.json` (passed/skipped/failed/blocked), and upserts an idempotent verified comment. Best-effort; `/plan-goal` runs it automatically. Works inside CI containers.
+**`/ops-evidence`**: Produce evidence a completed change works and publish it to the originating issue/PR. Uses `playwright-cli` (headless) and `pnpm run dev` to capture screenshots at desktop and mobile viewports, writes `evidence/evidence.json` (passed/skipped/failed/blocked), and upserts an idempotent verified comment. Best-effort. Run it yourself after a change lands; `/plan-goal` does not run it. Works inside CI containers.
 
 **`/plan-archive`**: Mark a completed change as archived in OpenSpec. Run this after the PR is merged.
 
@@ -57,8 +57,6 @@ Display the following reference to the user exactly as written. Do not summarize
 **`/make-architecture`**: Regenerate `ARCHITECTURE.md` from the current codebase. Safe to rerun any time the architecture evolves.
 
 **`/make-design`**: Regenerate `DESIGN.md` from the design system (Tailwind, CSS vars, tokens, etc.).
-
-**`/make-evidence-scaffold`**: DEPRECATED. Evidence is now built into `/ops-evidence` using `playwright-cli` + `pnpm run dev`. No per-project scaffold needed.
 
 **`/make-guardrails`**: Generate a `pc-guardrails-project` skill from `ARCHITECTURE.md` and project config files. Extracts concrete rules (architecture boundaries, naming, code style, testing, git workflow) that all agents must follow. Updates every `*-engineer.md` to load the skill.
 

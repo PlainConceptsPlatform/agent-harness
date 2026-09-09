@@ -18,4 +18,4 @@ Rules:
 - No OpenSpec commands.
 - Keep each commit focused on one task.
 - Use `todowrite` to track progress: `pending` -> `in_progress` -> `completed`.
-- If a task is too complex or blocked, mark it `completed` with a note, and continue with the next.
+- Never mark a task `completed` that you did not finish. Use `cancelled` with the reason and continue with the next; a false green is invisible to whoever reads the report.

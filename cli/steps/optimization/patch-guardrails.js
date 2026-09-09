@@ -77,10 +77,12 @@ export async function patchGuardrails(selections = {}, { cwd = process.cwd() } =
     ).replace(
       '<!-- PC-GUARDRAILS-CAVEMAN-START -->\n\n<!-- PC-GUARDRAILS-CAVEMAN-END -->',
       '<!-- PC-GUARDRAILS-SIMPLE-ENGLISH-START -->\n<!-- PC-GUARDRAILS-SIMPLE-ENGLISH-END -->',
-    ).replace(
-      '1. Load ALL skills listed under your own `## Abilities` now (Guardrails first, then the rest), by calling the `skill` tool once per `@skill-name`.',
-      '1. The `pc-system-reminders` plugin has already loaded the skills listed under your `## Abilities`, guardrails first.',
     )
+    // A third replace used to rewrite the engineer workflow's step 1 into "the
+    // plugin has already loaded the skills". That was never true: the plugin
+    // appends a reminder and never calls the skill tool. The shipped skill now
+    // carries the honest wording, and update refreshes this file, so the
+    // migration is gone rather than perpetuated.
     for (const [key, markerSuffix] of Object.entries(MARKER_SECTIONS)) {
       let sectionContent = ''
       if (selections[key]) {
