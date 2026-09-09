@@ -8,6 +8,50 @@ import { SKILL_RENAME } from "./steps/copy/skills.js"
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const CONTENT_DIR = path.resolve(__dirname, "../harness")
 
+// Flags rules that are near-verbatim restatements of each other, by content-word
+// overlap. Takes {label: text}, returns the collisions.
+//
+// This catches copy-paste, which is what actually happened: the credentials rule
+// was pasted into two sections of one file. It does NOT catch a rule restated in
+// different words — "Run tests before marking done" and "Run the applicable
+// tests, lint, typecheck, and build before reporting completion" share exactly
+// one content word, and no string metric will pair them. That class is what the
+// single-home comment table above is for; a person has to notice it.
+function duplicateRules(sources, threshold = 0.5) {
+  const STOP = new Set(["the", "a", "an", "and", "or", "to", "in", "of", "for", "it", "is", "are",
+    "be", "that", "this", "with", "your", "you", "any", "all", "on", "at", "as", "by", "from", "not"])
+
+  const contentWords = rule => new Set(
+    rule
+      .replace(/^\s*[-*] /, "")
+      .toLowerCase()
+      .replace(/`[^`]*`/g, " ")
+      .replace(/[^a-z\s]/g, " ")
+      .split(/\s+/)
+      .filter(word => word.length > 2 && !STOP.has(word)),
+  )
+
+  const rules = Object.entries(sources).flatMap(([label, text]) =>
+    text.split(/\r?\n/)
+      .filter(line => /^\s*[-*] /.test(line))
+      .map(line => ({ label, line, words: contentWords(line) })),
+  )
+
+  const collisions = []
+  for (let i = 0; i < rules.length; i++) {
+    for (let j = i + 1; j < rules.length; j++) {
+      const [a, b] = [rules[i], rules[j]]
+      if (a.words.size < 3 || b.words.size < 3) continue
+      const shared = [...a.words].filter(word => b.words.has(word)).length
+      const union = new Set([...a.words, ...b.words]).size
+      if (shared / union >= threshold) {
+        collisions.push(`${a.label} + ${b.label}: ${a.line.trim().slice(0, 60)}`)
+      }
+    }
+  }
+  return collisions
+}
+
 function walkMd(dir) {
   if (!fs.existsSync(dir)) return []
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
@@ -373,16 +417,106 @@ describe("skills hold together as files", () => {
 // The always-loaded context is paid on every single request, before any skill
 // loads. Constraint-based rewrites should shrink it; nothing should grow it
 // without someone deciding to.
+//
+// Two budgets, because rule *count* and character count fail differently.
+// Characters are tokens. Count is compliance: past roughly fifty rules a model
+// follows fewer of them whatever they say, so rule 41 does not merely cost its
+// own tokens, it dilutes the forty that matter. Measured before this pass: 48
+// rules and 10,354 rendered characters.
 describe("always-loaded context budget", () => {
-  it("stays within its measured baseline", () => {
-    const bytes = [
-      path.join(CONTENT_DIR, "AGENTS.md"),
-      path.join(CONTENT_DIR, ".agents", "skills", "pc-guardrails-generic", "SKILL.md"),
-    ].reduce((total, file) => total + fs.readFileSync(file, "utf-8").length, 0)
+  const AGENTS = path.join(CONTENT_DIR, "AGENTS.md")
+  const GUARDRAILS = path.join(CONTENT_DIR, ".agents", "skills", "pc-guardrails-generic", "SKILL.md")
+  const read = file => fs.readFileSync(file, "utf-8")
+  const bullets = text => text.match(/^\s*[-*] /gm) ?? []
+  const rulesIn = text => text.split(/\r?\n/).filter(line => /^\s*[-*] /.test(line))
 
-    // 7,757 chars as shipped. A consumer pays more: the optimization
-    // fragments are injected into the guardrails markers and the engineer body
-    // is loaded on top, so this is the floor, not the total.
-    expect(bytes).toBeLessThanOrEqual(8_200)
+  // Everything a consumer actually has in context on request one: AGENTS.md
+  // with the platform preset injected at its two markers (copy/agents.js), and
+  // pc-guardrails-generic with the optimization fragments injected at its five
+  // (optimization/patch-guardrails.js).
+  function renderAlwaysLoaded(platform = "github") {
+    const preset = JSON.parse(fs.readFileSync(path.resolve(__dirname, "presets", "agents-content.json"), "utf-8"))
+    const entry = preset.platform[platform]
+    const fragments = walkMd(path.resolve(__dirname, "fragments", "guardrails")).map(read)
+    return [read(AGENTS), entry.workflow ?? "", entry.skillsGuide ?? "", read(GUARDRAILS), ...fragments].join("\n")
+  }
+
+  it("stays within its measured character baseline", () => {
+    // 6,226 for the two files as shipped; 8,823 rendered with every injection.
+    expect(read(AGENTS).length + read(GUARDRAILS).length).toBeLessThanOrEqual(6_500)
+    expect(renderAlwaysLoaded().length).toBeLessThanOrEqual(9_200)
+  })
+
+  it("stays within its rule budget", () => {
+    // 33 as shipped: AGENTS 9 + workflow 3 + skillsGuide 2 + guardrails 9 +
+    // fragments 10. The fragments are positive directives and stay: which
+    // analysis tools this project selected is not inferable from the code.
+    expect(bullets(renderAlwaysLoaded()).length).toBeLessThanOrEqual(36)
+  })
+
+  // A positive directive competes with what the model already does; a
+  // prohibition removes an option. The always-loaded files are where that
+  // matters most, so most of their rules state a boundary.
+  it("keeps the always-loaded rules mostly negative", () => {
+    const rules = [...rulesIn(read(AGENTS)), ...rulesIn(read(GUARDRAILS))]
+    const negative = rules.filter(rule => /\b(never|nothing but|only with|not up to you)\b/i.test(rule))
+
+    // 12 of 18 at the time of the pass. A floor, not a ratio: adding one
+    // non-inferable contract should not fail the build.
+    expect(negative.length).toBeGreaterThanOrEqual(9)
+    expect(negative.length * 2).toBeGreaterThan(rules.length)
+  })
+
+  // "Run tests before marking done" lived in AGENTS.md, in pc-guardrails-generic
+  // twice, and in pc-repo-verify. Both always-loaded files land in the same
+  // context window, so a rule in both is paid twice per request.
+  it("states no rule twice across the always-loaded files", () => {
+    expect(duplicateRules({
+      "AGENTS.md": read(AGENTS),
+      "pc-guardrails-generic": read(GUARDRAILS),
+    })).toEqual([])
+  })
+
+  // The detector has to actually detect. This pair was live in one file, in two
+  // sections, until this pass.
+  it("catches the copy-pasted rule that was there before", () => {
+    const found = duplicateRules({
+      "old guardrails": [
+        "- Stage secrets through environment variables or secret stores, committed only in encrypted or template form.",
+        "- Keep credentials in environment variables or secret stores, committed only in encrypted or template form.",
+      ].join("\n"),
+    })
+
+    expect(found).toHaveLength(1)
+  })
+})
+
+// These two files are read once per project and then shape every rule that
+// project's agents carry forever, so their bar multiplies. Both landed their
+// consumers at 90-120 rules with no cap in sight.
+describe("the guardrail generators state their bar", () => {
+  it.each([
+    ["pc-make-guardrails", "rules"],
+    ["pc-make-merge-risk-assess", "indicators"],
+  ])("%s caps the output and skips what is already enforced", (skill, noun) => {
+    const reference = fs.readFileSync(
+      path.join(CONTENT_DIR, ".agents", "skills", skill, "category-reference.md"), "utf-8")
+
+    expect(reference).toMatch(new RegExp(`at most 40 ${noun}`, "i"))
+    expect(reference).toMatch(/already fails the build on|already fails the build|CI already fails/i)
+  })
+
+  // Numa's quoting domain shipped as the canonical wording for two categories,
+  // so every other project inherited its business as the example.
+  it("ships no project's domain as the canonical wording", () => {
+    const reference = fs.readFileSync(
+      path.join(CONTENT_DIR, ".agents", "skills", "pc-make-merge-risk-assess", "category-reference.md"), "utf-8")
+    const [, slot = ""] = /<!-- PC-PROJECT-EXAMPLE-START -->([\s\S]*?)<!-- PC-PROJECT-EXAMPLE-END -->/.exec(reference) ?? []
+    const outsideSlot = reference.replace(slot, "")
+
+    expect(reference).toContain("<!-- PC-PROJECT-EXAMPLE-START -->")
+    for (const leaked of ["salary", "margin waterfall", "QuoteCalculator"]) {
+      expect(outsideSlot).not.toContain(leaked)
+    }
   })
 })

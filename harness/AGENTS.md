@@ -4,23 +4,11 @@
 
 # Agent operating guide
 
-This guide defines the common operating contract for AI agents in this repository.
-It is agent-agnostic and works with OpenCode, Claude Code, Codex, Gemini, and other agents.
-
-## Purpose and scope
-
-Use this file for repository-wide workflow rules. Keep product architecture, security constraints, and design rules in their source documents rather than duplicating them here.
+The operating contract for AI agents in this repository. Agent-agnostic: OpenCode, Claude Code, Codex, Gemini and others.
 
 ## Session context
 
-Before a non-trivial change, read these documents in order:
-
-1. `AGENTS.md` for workflow and repository rules.
-2. `ARCHITECTURE.md` for boundaries, dependencies, and component interactions.
-3. `DESIGN.md` for UI and design-system work.
-4. The active OpenSpec change or the relevant specification for the area being changed.
-
-Read each document once per session unless it changes or the task moves into a different area.
+Before a non-trivial change, read `AGENTS.md` for workflow rules, `ARCHITECTURE.md` for boundaries and component interactions, `DESIGN.md` for UI and design-system work, and the active OpenSpec change or the specification covering the area you are changing.
 
 Command aliases: OpenSpec skills may reference `/opsx-propose`, `/opsx-apply`, `/opsx-archive`, or `/opsx-explore`. Always substitute them with the `pc-plan-propose`, `pc-plan-apply`, `pc-plan-archive`, and `pc-plan-explore` skills respectively. User-facing command names are `/plan-propose`, `/plan-apply`, `/plan-archive`, and `/plan-explore`. Never mention the `opsx-` names to the user.
 
@@ -31,10 +19,8 @@ Command aliases: OpenSpec skills may reference `/opsx-propose`, `/opsx-apply`, `
 
 ## Planning and execution
 
-- Plan before delegating work. Use OpenSpec when the change needs explicit scope, decisions, or sequenced tasks.
-- Keep changes focused. Do not combine unrelated refactors with requested work.
-- Do not guess when requirements, architecture, or security constraints are unclear. Ask before proceeding.
-- Prefer the project's established patterns and source documents over introducing new conventions.
+- Never combine an unrelated refactor with the work you were asked to do. It arrives under a message that does not mention it, and the reviewer approves both.
+- Never introduce a new convention where the repository already has one, and never guess when requirements, architecture or a security constraint are unclear. Ask.
 
 ## Engineer selection
 
@@ -45,27 +31,19 @@ The `pc-plan-apply` skill is authoritative for subagent waves, dependency orderi
 ## Tool and repository safety
 
 - Never expose or commit secrets, credentials, tokens, or production data.
-- Read before editing. Respect repository ownership, generated files, and existing local changes.
-- Run only commands appropriate to the task. Do not bypass checks, weaken tests, or silence lint rules to get a green result.
-- Commit, push, create pull requests, alter dependencies, or change deployment configuration only with the user's explicit approval and the repository's stated process.
+- Never overwrite a generated file, or uncommitted changes you did not make. The tree may be shared with a person and another agent.
+- Never bypass a check, weaken a test, or silence a lint rule to reach a green result. A green run that was arranged is worse than a red one, because nobody looks again.
+- Commit, push, open a pull request, change dependencies, or touch deployment configuration only with the user's explicit approval and the repository's stated process.
 
 ## Verification and completion
 
-- Run the applicable tests, lint, typecheck, and build before reporting completion.
-- A bug fix needs a test that would have caught the defect when practical.
-- Update specifications, architecture, or design documentation when the change makes their current statements inaccurate.
-- Report changed files, checks run, and any remaining risk or follow-up work.
-
-## Communication
-
-- Keep updates concise and factual.
-- State blockers early and explain the decision needed.
-- Use the repository's language and writing conventions for source, documentation, issues, commits, and pull requests.
-- Comments explain non-obvious reasons, constraints, or invariants. Do not add comments that restate code.
+- Never call a bug fixed without a test that would have caught it, where one is practical.
+- Never leave a specification, `ARCHITECTURE.md` or `DESIGN.md` asserting something this change made false.
+- Never end on a blocker without naming it and the decision it needs. An unattended run that stops quietly looks like one that finished.
 
 ## Skills
 
-Skills live in `.agents/skills/`. Always installed: `@pc-guardrails-generic`, `@pc-guardrails-project`, and `@browser-automation`. Editing, shell and spawning are blocked until every skill under your `## Abilities` is loaded, guardrails first, and a loaded skill can require further loads (`pc-system-reminders`). An entry under `## Abilities` is not a passive reference; call the `skill` tool once per `@skill-name`.
+Skills live in `.agents/skills/`. Always installed: `@pc-guardrails-generic`, `@pc-guardrails-project`, and `@browser-automation`. An entry under `## Abilities` is not a passive reference: call the `skill` tool once per `@skill-name`, guardrails first. Editing, shell and spawning stay blocked until you have (`pc-system-reminders`), and a loaded skill can require further loads.
 
 <!-- PC-PLATFORM-SKILLS-GUIDE-START -->
 <!-- PC-PLATFORM-SKILLS-GUIDE-END -->

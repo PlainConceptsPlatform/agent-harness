@@ -2,22 +2,41 @@
 
 From the project guardrails, architecture, and code analysis, extract concrete, testable risk indicators in these categories. Only include a category if you found real evidence for it.
 
-- **Calculation integrity**: changes to pricing, quoting, or calculation engines; modifications to formula inputs, salary tables, assumptions, or margin waterfalls. Any file under a calculation or quoting namespace is a risk indicator.
+- **Calculation integrity**: changes to whatever this project computes and cannot get wrong — an engine, its formula inputs, its reference tables, its assumptions. Any file under that namespace is an indicator. See the worked example below for the shape.
 - **Audit & compliance**: modifications to audit appenders, audit log storage, hash-chaining, or tamper-evident mechanisms. Any change that could affect regulatory traceability.
 - **Authentication & authorization**: changes to auth middleware, permission checks, role definitions, token issuance, or session management. Changes to `.RequirePermission()` calls or permission seed data.
 - **Data schema & migration**: EF Core entity changes, new migrations, column type changes, constraint additions/removals, or seed data modifications. Schema changes are always risky because they affect production data.
-- **Reference data versioning**: changes to effective-dated configuration, salary bands, assumptions, or any "magic number" that affects calculations. Changes to versioning or snapshot logic.
+- **Reference data versioning**: changes to effective-dated configuration, rate or band tables, assumptions, or any constant an output depends on. Changes to versioning or snapshot logic.
 - **Cross-boundary violations**: imports that break the layering direction (e.g. Domain referencing Application, Application referencing ASP.NET), cross-context data access bypassing ports.
 - **Security surface**: new endpoints without authorization, input validation removal, secrets exposure, dependency version downgrades, or changes to security scanning configuration.
-- **Financial correctness**: any change that could produce incorrect monetary values, incorrect tax calculations, incorrect currency handling, or rounding changes. Money is `decimal` — changes to precision or conversion logic are risk indicators.
+- **Financial correctness**: where the project handles money, any change that could produce a wrong amount — tax, currency, precision, rounding, or the type money is stored in.
 - **State machine transitions**: modifications to entity lifecycle transitions (e.g. quote status flow, approval gates, sign-off logic). Breaking a state machine can leave data in unrecoverable states.
 - **Integration contracts**: changes to external API contracts, webhook payloads, or CRM integration ports. Breaking integrations can cascade to downstream systems.
 
 Each indicator must be:
-- **Concrete**: "Changes to `QuoteCalculator.Calculate`" not "Changes to important calculations"
-- **Evidence-based**: derive from the project guardrails, architecture, and actual code paths
-- **Detectable**: an AI agent can find it by reading the PR diff (file paths, class names, method names, import changes)
-- **Exclusive**: do not duplicate indicators across categories — each belongs in its primary category
+
+- **Concrete**: name the type, method or path — "Changes to `OrderTotal.Calculate`" not "Changes to important calculations".
+- **Evidence-based**: derived from the project guardrails, the architecture, and actual code paths.
+- **Detectable**: findable by reading the PR diff alone — file paths, class names, method names, import changes.
+- **Exclusive**: each indicator belongs to one category. Never repeat it in a second.
+- **Not enforced elsewhere.** Skip anything CI already fails the build on. An indicator that duplicates a required check adds a human review the pipeline did not need.
+
+**At most 40 indicators, across all categories.** Rank by what a missed regression costs and cut from the bottom. A file this size is read on every merge decision, and past roughly this many, compliance drops regardless of how good each line is — so an indicator that will not change a verdict is worse than absent.
+
+## Worked example
+
+One project's calculation-integrity indicator, for shape only. Replace it with
+this repository's own: edits between the `PC-PROJECT-EXAMPLE` markers are
+carried over when the harness updates, and anything outside them is replaced by
+the shipped version.
+
+<!-- PC-PROJECT-EXAMPLE-START -->
+```markdown
+### Calculation Integrity
+- Any change under `src/pricing/engine/` — `RateEngine.Compute` is static and deterministic, and every change to it needs a golden vector in `PricingParityTests`. A wrong number here is invisible in review and correct-looking in production.
+- Any change to a rate table, band, or assumption constant, including its effective dates. The engine reads them by date, so an edit silently rewrites past outputs.
+```
+<!-- PC-PROJECT-EXAMPLE-END -->
 
 ## Skill template
 

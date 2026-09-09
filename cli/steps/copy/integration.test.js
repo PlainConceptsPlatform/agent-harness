@@ -166,6 +166,33 @@ describe('installSkills platform gating (real content/.agents/skills)', () => {
     expect(fs.existsSync(path.join(skillsDir, 'pc-plan-goal', 'SKILL.md'))).toBe(true)
   })
 
+  // pc-make-merge-risk-assess is a plain shipped skill, not a marker skill, so
+  // it took the syncSkillFiles path: a project that edited its example lost
+  // every later harness update to that file. The file's own prose promises the
+  // opposite — the slot is the project's, the rest is the harness's.
+  it('update mode keeps a project example and still refreshes the file around it', async () => {
+    const referencePath = path.join(
+      tmpDir, '.agents', 'skills', 'pc-make-merge-risk-assess', 'category-reference.md')
+    fs.mkdirSync(path.dirname(referencePath), { recursive: true })
+    fs.writeFileSync(referencePath, [
+      '# Stale heading a previous version shipped',
+      '',
+      '<!-- PC-PROJECT-EXAMPLE-START -->',
+      '### Calculation Integrity',
+      '- Any change under `src/billing/` needs a golden vector.',
+      '<!-- PC-PROJECT-EXAMPLE-END -->',
+    ].join('\n'))
+
+    await installSkills('github', 'github', { updateMode: true })
+
+    const merged = fs.readFileSync(referencePath, 'utf-8')
+    // The project's own example survives.
+    expect(merged).toContain('src/billing/')
+    // And the harness prose around it is now current.
+    expect(merged).toMatch(/at most 40 indicators/i)
+    expect(merged).not.toContain('Stale heading a previous version shipped')
+  })
+
   it('update mode preserves generated guardrails even though the skill is shipped', async () => {
     const skillsDir = path.join(tmpDir, '.agents', 'skills')
     // pc-guardrails-project is a shipped skill with a placeholder, but after

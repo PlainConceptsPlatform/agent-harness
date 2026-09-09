@@ -77,6 +77,9 @@ const REFRESHABLE_MARKER_SKILLS = new Set([
 // is the supported way to adapt one example to a project without forking the
 // file, which consumers have otherwise done by editing shipped prose in place.
 const PROJECT_SLOT_RE = /<!-- (PC-PROJECT-[A-Z0-9-]+)-START -->([\s\S]*?)<!-- \1-END -->/g
+// Separate, non-global: `.test()` on a /g/ regex advances lastIndex, so reusing
+// PROJECT_SLOT_RE for the check would answer false on every other call.
+const HAS_PROJECT_SLOT = /<!-- PC-PROJECT-[A-Z0-9-]+-START -->/
 
 function readProjectSlots(text) {
   const slots = new Map()
@@ -138,9 +141,26 @@ async function syncSkillFiles(src, dest, relativeRoot, cwd, manifest) {
       await fse.copyFile(sourcePath, destinationPath)
       await recordManagedFile(manifest, relativePath, sourcePath)
       success(`Updated skill: ${relativePath}`)
-    } else {
-      info(`Preserving modified skill file: ${relativePath}`)
+      continue
     }
+
+    // A shipped file that declares a PC-PROJECT-* slot states in its own prose
+    // that the slot is the project's and everything else is the harness's, so a
+    // hand-edited copy still takes the update: merge rather than preserve.
+    // Without this the file is frozen at whatever version the project edited,
+    // which is how five repos ended up with stale skills.
+    const shipped = await fse.readFile(sourcePath, 'utf-8')
+    if (HAS_PROJECT_SLOT.test(shipped)) {
+      const existing = await fse.readFile(destinationPath, 'utf-8')
+      const merged = writeProjectSlots(shipped, readProjectSlots(existing))
+      if (merged !== existing) {
+        await fse.writeFile(destinationPath, merged, 'utf-8')
+        success(`Refreshed skill, project slot kept: ${relativePath}`)
+      }
+      continue
+    }
+
+    info(`Preserving modified skill file: ${relativePath}`)
   }
 }
 

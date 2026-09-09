@@ -1,9 +1,9 @@
 # Guardrails category reference
 
-From the documents and code graph analysis, extract concrete, actionable rules in these categories. Only include a category if you found real evidence for it.
+From the documents and code graph analysis, extract the rules an agent could break without noticing. Only include a category if you found real evidence for it.
 
 - Architecture constraints: layer boundaries, module dependencies, forbidden imports, directory ownership rules (e.g. "src/api/ must not import from src/ui/"). Verify actual import boundaries with the project-selected analysis tools.
-- File organization: avoid god-files and dumping-ground constants. Each file should have one clear responsibility. Split by domain or feature instead (e.g. `user-constants.ts`, `order-types.ts`, `auth-config.ts`). A file that imports from 5+ unrelated modules is a sign it should be split.
+- File organization: the god-files and dumping-ground constants this project has already accumulated, named. The general principle is in `pc-guardrails-generic`; what belongs here is where this codebase keeps breaking it.
 - Naming conventions: file naming, component naming, API route conventions, branch naming
 - Code style: formatter config, lint rules, import ordering, max line length. Derive from actual config files.
 - Testing rules: test file locations, naming, coverage gates, what must be tested before merge
@@ -15,9 +15,14 @@ From the documents and code graph analysis, extract concrete, actionable rules i
 - Domain-specific rules: anything in `openspec/config.yaml` context or `ARCHITECTURE.md` constraints/risks sections
 
 Each rule must be:
-- Concrete: "Use `pnpm` not `npm`" not "Use the right package manager"
-- Evidence-based: derive from the files/code graph you analyzed, do not invent rules
-- Actionable: an agent can check it before acting
+
+- **Negative.** State the boundary and what breaks when it is crossed, not the behaviour you want: `Never import Microsoft.EntityFrameworkCore.* in Application; it is a layer violation and the build does not catch it`, not `Keep Application framework-free`. A prohibition removes an option; a preference competes with everything else the model knows about writing code, and loses.
+- **Concrete**: "Use `pnpm` not `npm`" not "Use the right package manager".
+- **Evidence-based**: derived from the files and code graph you analyzed. Never invent a rule the project does not state or demonstrate somewhere.
+- **Not enforced elsewhere.** Skip anything the formatter, linter, type checker, test suite, CI gate or a harness plugin already fails the build on. A rule restating `biome.json` is read on every load and changes nothing: the build was going to catch it. Write the rules that nothing but a careful reader would catch.
+- **Not already in `pc-guardrails-generic`.** That skill loads alongside this one, every request. Secrets, comment discipline, scratch-file location and one-responsibility-per-file are its rules, not this file's.
+
+**At most 40 rules, across all categories.** Rank by what a violation costs and cut from the bottom; a category with nothing consequential in it gets no rules at all. This cap is the point of the exercise, not tidiness: compliance falls away as a rule file grows, so the 41st rule does not just cost its own tokens, it dilutes the 40 that matter. If more than 40 survive every bar above, the excess is a sign the project's constraints belong in a linter rule or a CI check instead.
 
 ## Skill template
 
