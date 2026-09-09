@@ -29,6 +29,8 @@ When a dependency manifest changes, require its ecosystem lockfile to change whe
 
 When a check fails, repair only the current branch's relevant files and rerun the failed check. Continue until every applicable check passes or a hard blocker prevents progress. Never hide a failure by deleting tests, weakening checks, or reverting requested work.
 
+Once every check passes, run the project's lint fix command over the files you changed (`pnpm lint:fix`, `pnpm exec biome check --write <changed-files>`, or its equivalent). Formatting is not a review comment worth anybody's turn, and a branch that fails lint on arrival gets sent back for it. Where no fix command exists, run lint and correct what it reports.
+
 ## Step 4: Result
 
 Report a check matrix with command, affected project, result, and skip reason where applicable. Report `VERIFIED` only when every applicable check passed, every dependency change has consistent lockfiles, and no required ability is missing. Otherwise report `NOT VERIFIED`, the blockers, and the exact next command.
