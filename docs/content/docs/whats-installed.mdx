@@ -24,7 +24,9 @@ description: The files and directories agent-harness writes into your project.
       <File name="pc-subagents.tsx" annotation="Live Subagents panel" />
     </Folder>
     <Folder name="plugins">
-      <File name="pc-subagent-monitor.js" annotation="Mirrors subagent state to harness-run.json" />
+      <File name="pc-subagent-monitor.js" annotation="Mirrors subagent state to harness-run.json, holds a wave to agents.maxConcurrent" />
+      <File name="pc-subagent-tiers.js" annotation="Regenerates the agent files and their tier models on startup" />
+      <File name="pc-system-reminders.js" annotation="Gates work on the agent's abilities, denies the never-rules" />
     </Folder>
   </Folder>
   <Folder name=".agents" defaultOpen>

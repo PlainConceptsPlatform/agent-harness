@@ -46,7 +46,7 @@ describe('patchOpencodeJson()', () => {
     expect(config.agent.plan.disable).toBeUndefined()
     expect(config.agent.build.mode).toBe('primary')
     expect(config.agent.plan.mode).toBe('primary')
-    expect(config.agent.plan.permission.edit).toBe('deny')
+    expect(config.agent.plan.permission).toEqual({ edit: 'deny', task: 'deny' })
   })
 
   // fullstack-engineer became a subagent when build and plan took over as the
@@ -86,7 +86,7 @@ describe('patchOpencodeJson()', () => {
     const config = readConfig()
     expect(config.agent.build.mode).toBe('primary')
     expect(config.agent.plan.mode).toBe('primary')
-    expect(config.agent.plan.permission.edit).toBe('deny')
+    expect(config.agent.plan.permission).toEqual({ edit: 'deny', task: 'deny' })
     expect(config.agent.build.disable).toBeUndefined()
     expect(config.agent.plan.disable).toBeUndefined()
     expect(config.$schema).toBe('https://opencode.ai/config.json')
@@ -111,7 +111,7 @@ describe('patchOpencodeJson()', () => {
     const config = readConfig()
     expect(config.agent.build.mode).toBe('primary')
     expect(config.agent.plan.mode).toBe('primary')
-    expect(config.agent.plan.permission.edit).toBe('deny')
+    expect(config.agent.plan.permission).toEqual({ edit: 'deny', task: 'deny' })
     expect(config.agent.build.disable).toBeUndefined()
     expect(config.agent.plan.disable).toBeUndefined()
     expect(config.model).toBe('anthropic/claude-sonnet-4-5')
@@ -127,7 +127,7 @@ describe('patchOpencodeJson()', () => {
         default_agent: 'plan',
         agent: {
           build: { mode: 'primary' },
-          plan: { mode: 'primary', permission: { edit: 'deny' } },
+          plan: { mode: 'primary', permission: { edit: 'deny', task: 'deny' } },
         },
         permission: {
           question: 'allow',
@@ -153,7 +153,7 @@ describe('patchOpencodeJson()', () => {
         $schema: 'https://opencode.ai/config.json',
         agent: {
           build: { mode: 'primary' },
-          plan: { mode: 'primary', permission: { edit: 'deny' } },
+          plan: { mode: 'primary', permission: { edit: 'deny', task: 'deny' } },
         },
         permission: { skill: { 'internal-*': 'deny' } },
       }, null, 2),
@@ -207,7 +207,7 @@ describe('patchOpencodeJson()', () => {
         $schema: 'https://opencode.ai/config.json',
         agent: {
           build: { mode: 'primary' },
-          plan: { mode: 'primary', permission: { edit: 'deny' } },
+          plan: { mode: 'primary', permission: { edit: 'deny', task: 'deny' } },
         },
         permission: {
           question: 'allow',
@@ -231,7 +231,7 @@ describe('patchOpencodeJson()', () => {
         $schema: 'https://opencode.ai/config.json',
         agent: {
           build: { mode: 'primary' },
-          plan: { mode: 'primary', permission: { edit: 'deny' } },
+          plan: { mode: 'primary', permission: { edit: 'deny', task: 'deny' } },
         },
         permission: {
           question: 'allow',
@@ -314,7 +314,7 @@ describe('patchOpencodeJson()', () => {
         default_agent: 'plan',
         agent: {
           build: { mode: 'primary' },
-          plan: { mode: 'primary', permission: { edit: 'deny' } },
+          plan: { mode: 'primary', permission: { edit: 'deny', task: 'deny' } },
         },
         permission: {
           question: 'allow',

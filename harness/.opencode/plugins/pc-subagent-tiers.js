@@ -6,7 +6,8 @@
 // Agent topology:
 //   build.md / plan.md      mode: primary   the only agents a human selects.
 //                                           Both are fullstack-engineer with a
-//                                           tier model; plan cannot edit.
+//                                           tier model; plan can neither edit
+//                                           nor spawn.
 //   fullstack-engineer.md   mode: subagent  the shared body of build and plan,
 //                                           and the fallback worker.
 //   *-engineer.md           mode: subagent  specialists, spawned by task().
@@ -22,8 +23,10 @@ import path from "node:path"
 const TIERS = ["build", "fast", "plan"]
 
 // The two primaries, and the tier each takes its model from. plan denies edit
-// so a planning session cannot mutate the tree; bash stays allowed because the
-// planning skills shell out to git and openspec to read state.
+// and task: a planning session cannot mutate the tree itself, and it cannot
+// spawn a worker that would do it on its behalf. bash stays allowed because the
+// planning skills shell out to git and openspec to read state, and
+// pc-system-reminders holds it to inspection commands.
 //
 // Their colours are theme keywords rather than derived hexes, and they are
 // fixed: these are the two agents a human picks, so they should look the same
@@ -39,7 +42,7 @@ const PRIMARIES = {
     tier: "plan",
     color: "warning",
     description: "Explore and plan without touching the tree. Read-only: proposes work for build to carry out.",
-    permission: { edit: "deny" },
+    permission: { edit: "deny", task: "deny" },
   },
 }
 
@@ -228,8 +231,8 @@ export const PcSubagentTiers = async ({ directory }) => {
     if (model) lines.push(`model: ${model}`)
     lines.push(`color: ${yamlColor(spec.color)}`)
     lines.push('permission:')
-    // plan denies edit; everything else stays allowed so the planning skills can
-    // still read the tree, shell out to git and openspec, and spawn engineers.
+    // plan denies edit and task; the rest stays allowed so the planning skills
+    // can still read the tree and shell out to git and openspec.
     lines.push(`  edit: ${spec.permission?.edit ?? 'allow'}`)
     for (const key of ['bash', 'read', 'glob', 'grep', 'question', 'todowrite', 'task', 'skill']) {
       lines.push(`  ${key}: ${spec.permission?.[key] ?? 'allow'}`)

@@ -1,4 +1,4 @@
-## Simple English (optimization skill - MANDATORY LOAD)
+## Simple English (optimization skill)
 
-- **You MUST call `skill("simple-english")` via the skill tool before responding.** This is not optional. Apply Simplified Technical English to all prose responses.
+- Apply Simplified Technical English to all prose: `skill("simple-english")`. Editing, shell and spawning stay blocked until it is loaded (pc-system-reminders).
 - Keep code blocks, identifiers, CLI commands, file paths, quoted errors, and product names exact.

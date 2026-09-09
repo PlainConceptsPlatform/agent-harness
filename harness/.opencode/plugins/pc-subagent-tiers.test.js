@@ -70,20 +70,24 @@ describe("PcSubagentTiers primaries", () => {
     expect(frontmatter("plan.md")).toContain("model: p/plan")
   })
 
-  it("denies edit on plan and allows it on build", async () => {
+  it("denies edit and task on plan and allows both on build", async () => {
     await run()
 
+    // A plan session that can spawn a build worker is not read-only, it is
+    // read-only by convention. Denying task closes that route.
     expect(frontmatter("plan.md")).toContain("edit: deny")
+    expect(frontmatter("plan.md")).toContain("task: deny")
     expect(frontmatter("build.md")).toContain("edit: allow")
+    expect(frontmatter("build.md")).toContain("task: allow")
   })
 
-  it("leaves plan able to read, shell out and spawn engineers", async () => {
+  it("leaves plan able to read and shell out", async () => {
     await run()
 
     // Denying these would break the planning skills, which read git and
-    // openspec state and then spawn specialists.
+    // openspec state to work out what to propose.
     const fm = frontmatter("plan.md")
-    for (const key of ["bash", "read", "grep", "task", "skill"]) {
+    for (const key of ["bash", "read", "grep", "skill"]) {
       expect(fm).toContain(`${key}: allow`)
     }
   })

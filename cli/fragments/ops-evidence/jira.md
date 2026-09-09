@@ -1,4 +1,4 @@
-**NEVER use browser tools to navigate to atlassian.net: use `acli` CLI only. If `acli` is unavailable, skip publishing (report it) — do not fail the pipeline unless the caller declared publishing a ship gate.**
+Jira data comes from the `acli` CLI; a page fetch of atlassian.net is denied (pc-system-reminders). If `acli` is unavailable, skip publishing and report it; do not fail the pipeline unless the caller declared publishing a ship gate.
 
 Publish one status comment for every manifest. A `blocked` or `failed` manifest must include its status and reason, never a success claim.
 

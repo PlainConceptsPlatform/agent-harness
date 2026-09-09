@@ -1,4 +1,4 @@
-**ALL GitHub data MUST come from `gh` CLI. NEVER use webfetch, HTTP requests, or browser MCP tools for GitHub. If `gh` is unavailable, skip publishing (report it) — do not fail the pipeline over it unless the caller declared publishing a ship gate.**
+GitHub data comes from the `gh` CLI; a page fetch of github.com is denied (pc-system-reminders). If `gh` is unavailable, skip publishing and report it; do not fail the pipeline unless the caller declared publishing a ship gate.
 Always pass `--repo {owner}/{repo}` (or `repos/{owner}/{repo}` for `gh api`) explicitly.
 
 Publish one status comment for every manifest. A `blocked` or `failed` manifest must include its status and reason, never a success claim.

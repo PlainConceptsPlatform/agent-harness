@@ -1,4 +1,4 @@
-**Browser MCP tools are FORBIDDEN for all Azure DevOps operations. Use `az boards` CLI only. If `az` is unavailable, skip publishing (report it) — do not fail the pipeline unless the caller declared publishing a ship gate.**
+Azure DevOps data comes from the `az` CLI; a page fetch of dev.azure.com is denied (pc-system-reminders). If `az` is unavailable, skip publishing and report it; do not fail the pipeline unless the caller declared publishing a ship gate.
 
 Publish one status comment for every manifest. A `blocked` or `failed` manifest must include its status and reason, never a success claim.
 

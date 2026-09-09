@@ -1,4 +1,4 @@
-**ALL GitLab data MUST come from `glab` CLI. NEVER use webfetch, HTTP requests, or browser MCP tools for GitLab operations, even if glab CLI fails. If `glab` is unavailable, report as a blocker.**
+GitLab data comes from the `glab` CLI; a page fetch of gitlab.com is denied (pc-system-reminders). If `glab` is unavailable, report it as a blocker.
 Always pass `--repo {owner}/{repo}` explicitly, never rely on git context to resolve the repo.
 
 ---

@@ -1,4 +1,4 @@
-Every GitHub read and write goes through the `gh` CLI. Never webfetch, raw HTTP, or browser tools, even when `gh` fails: an unavailable `gh` is a blocker to report, not a reason to improvise.
+GitHub data comes from the `gh` CLI; a page fetch of github.com is denied (pc-system-reminders). If `gh` is unavailable, report it as a blocker.
 Always pass `--repo {owner}/{repo}` explicitly, never rely on git context to resolve the repo.
 
 ---
@@ -25,7 +25,7 @@ Save to: `openspec/changes/{change-name}/images/{feature}.png`
 
 ### Step 3: Commit and push
 
-The `pc-plan-apply` skill already committed each task group: usually only screenshots or small residuals remain. Stage **specific paths only** (never `git add .`, it sweeps unrelated files into the ship commit):
+The `pc-plan-apply` skill already committed each task group: usually only screenshots or small residuals remain. Stage the paths you actually changed; unscoped staging is denied (`pc-system-reminders`):
 
 ```bash
 git add openspec/changes/{change-name}/images/  # plus any other paths you actually changed

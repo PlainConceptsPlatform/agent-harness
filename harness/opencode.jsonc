@@ -41,7 +41,7 @@
     "build": { "mode": "primary" },
     "plan": {
       "mode": "primary",
-      "permission": { "edit": "deny" }
+      "permission": { "edit": "deny", "task": "deny" }
     }
   }
 }

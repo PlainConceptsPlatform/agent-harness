@@ -40,7 +40,7 @@ Command aliases: OpenSpec skills may reference `/opsx-propose`, `/opsx-apply`, `
 
 Inspect `.opencode/agents/*.md` before spawning. Prefer the most specialized custom engineer. `build` and `plan` are the only primaries and are never spawned; `fullstack-engineer` is the body they share and the fallback worker, so prefer a specialist over it. If no specialist matches, tell the user to create one with `/make-engineer`. Spawn only engineers present in that directory.
 
-The `pc-plan-apply` skill is authoritative for subagent waves, dependency ordering, retries, and concurrency. Read `agents.maxConcurrent` from `.opencode/harness.json` before spawning workers.
+The `pc-plan-apply` skill is authoritative for subagent waves, dependency ordering, retries, and concurrency. A spawn past `agents.maxConcurrent` is denied (`pc-subagent-monitor`); a denied spawn is not a failed task, so re-issue it in the next wave.
 
 ## Tool and repository safety
 
@@ -65,7 +65,7 @@ The `pc-plan-apply` skill is authoritative for subagent waves, dependency orderi
 
 ## Skills
 
-Skills live in `.agents/skills/`. Always installed: `@pc-guardrails-generic`, `@pc-guardrails-project`, and `@browser-automation`. The always-installed `pc-system-reminders` plugin reminds you every turn until each skill under your `## Abilities` is loaded, guardrails first. The reminder is not the load: call the `skill` tool yourself. Skills can require mandatory transitive loads. Keep `## Abilities` complete and do not treat entries as passive references.
+Skills live in `.agents/skills/`. Always installed: `@pc-guardrails-generic`, `@pc-guardrails-project`, and `@browser-automation`. Editing, shell and spawning are blocked until every skill under your `## Abilities` is loaded, guardrails first, and a loaded skill can require further loads (`pc-system-reminders`). An entry under `## Abilities` is not a passive reference; call the `skill` tool once per `@skill-name`.
 
 <!-- PC-PLATFORM-SKILLS-GUIDE-START -->
 <!-- PC-PLATFORM-SKILLS-GUIDE-END -->

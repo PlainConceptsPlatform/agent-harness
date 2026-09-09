@@ -54,7 +54,8 @@ export async function patchOpencodeJson(cwd = process.cwd()) {
   const needsAgentOverride = hasStaleDisable || !(
     parsed?.agent?.build?.mode === 'primary' &&
     parsed?.agent?.plan?.mode === 'primary' &&
-    parsed?.agent?.plan?.permission?.edit === 'deny'
+    parsed?.agent?.plan?.permission?.edit === 'deny' &&
+    parsed?.agent?.plan?.permission?.task === 'deny'
   )
 
   // default_agent pointing at fullstack-engineer is now invalid: it became a
@@ -97,6 +98,9 @@ export async function patchOpencodeJson(cwd = process.cwd()) {
     text = applyModify(text, ['agent', 'build', 'mode'], 'primary')
     text = applyModify(text, ['agent', 'plan', 'mode'], 'primary')
     text = applyModify(text, ['agent', 'plan', 'permission', 'edit'], 'deny')
+    // Read-only has to include spawning: a plan session that can call task()
+    // can have a build worker make the change for it.
+    text = applyModify(text, ['agent', 'plan', 'permission', 'task'], 'deny')
   }
   if (needsDefaultAgent) {
     text = applyModify(text, ['default_agent'], 'plan')

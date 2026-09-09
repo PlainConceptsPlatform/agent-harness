@@ -12,7 +12,7 @@ across projects and stacks.
 
 ```
 build                  primary. Implements. Full write access. The default.
-plan                   primary. Same body as build, but cannot edit files.
+plan                   primary. Same body as build, but cannot edit or spawn.
 fullstack-engineer     subagent. The body build and plan share, and the fallback worker.
 *-engineer             subagent. User-created specialists, spawned for parallel implementation.
 *-engineer.<tier>      subagent. The same specialist pinned to a plan/build/fast model.
@@ -21,9 +21,11 @@ fullstack-engineer     subagent. The body build and plan share, and the fallback
 `build` and `plan` are the only agents a human selects, and they are overrides of
 opencode's own two primaries rather than new names. The `pc-subagent-tiers` plugin
 regenerates both from `fullstack-engineer.md` on every startup, so they always carry
-the current abilities, each on its own tier model. `plan` differs from `build` in one
-frontmatter line: `edit: deny`. It can still read the tree, shell out to git and
-openspec, and spawn engineers, so planning works and cannot write.
+the current abilities, each on its own tier model. `plan` differs from `build` in two
+frontmatter lines: `edit: deny` and `task: deny`. Spawning is denied because a plan
+session that can call `task()` can have a build worker make the change for it, which
+is read-only by convention only. It keeps `bash` so planning can read git and openspec
+state, and `pc-system-reminders` holds that shell to inspection commands.
 
 Everything else is `mode: subagent` and reached through `task()`, never picked from
 the agent list. Project-specific specialization comes from user-created engineers via
@@ -91,3 +93,27 @@ creation directly into the `/ops-review` and `/ops-backlog` command files.
 Platform skills ship as suffixed variants (`pc-userstory-gh`, `pc-userstory-az`,
 `pc-userstory-jira`, `pc-userstory-browser`) and the installer copies only the
 matching one, renamed to its generic name.
+
+## Rules that are denied, not requested
+
+A rule the harness states as "never" is denied in a plugin hook wherever a
+predicate over the tool arguments can express it, and stated once next to the
+mechanism that enforces it. A denied call never runs: the model gets the rule
+and the fix as the tool result and keeps its turn, so it can adapt rather than
+stall.
+
+| Denied | By |
+| --- | --- |
+| Editing, shell and spawning before the agent's `## Abilities` are loaded | `pc-system-reminders` |
+| `git add -A`, `git add .`, `git commit -a` | `pc-system-reminders` |
+| `git clean` without `-- <paths>`, `git reset --hard`, `git stash drop`, `git checkout .` | `pc-system-reminders` |
+| `git push` of the default branch, and `--force` without `--force-with-lease` | `pc-system-reminders` |
+| Writing outside the repository, or to an OS temporary directory | `pc-system-reminders` |
+| Fetching github.com, dev.azure.com, atlassian.net or gitlab.com instead of using their CLI | `pc-system-reminders` |
+| Browser navigation off `localhost` unless the backlog is browser-based | `pc-system-reminders` |
+| Anything but inspection commands in a `plan` session | `pc-system-reminders` |
+| A spawn past `agents.maxConcurrent` | `pc-subagent-monitor` |
+
+Each guard fails open on its own bug: a guard that breaks the session it is
+guarding is worse than the rule it enforces. A skill named under `## Abilities`
+but not installed is skipped for the same reason.

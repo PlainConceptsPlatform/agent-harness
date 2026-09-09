@@ -40,6 +40,41 @@ describe("OpenCode config template", () => {
     expect(plugin).toContain("experimental.chat.messages.transform")
     expect(plugin).toContain("pc-guardrails-generic")
   })
+
+  // The rules the harness states as "never" are denied in a hook rather than
+  // argued for in prose. Two plugins carry that, and the prose that points at
+  // them (below) is only true while the hook is there.
+  it("enforces the never-rules in tool.execute.before", () => {
+    const plugins = path.join(CONTENT_DIR, ".opencode", "plugins")
+    const reminders = fs.readFileSync(path.join(plugins, "pc-system-reminders.js"), "utf-8")
+    const monitor = fs.readFileSync(path.join(plugins, "pc-subagent-monitor.js"), "utf-8")
+
+    expect(reminders).toContain("tool.execute.before")
+    expect(monitor).toContain("tool.execute.before")
+
+    // The agent never arrives with the hook input, so the deny needs the
+    // session-to-agent map that chat.params fills.
+    expect(reminders).toContain("chat.params")
+
+    // A gate over the tools that satisfy the gate would deadlock the session.
+    const gated = /GATED_TOOLS = new Set\(\[([^\]]*)\]\)/.exec(reminders)?.[1] ?? ""
+    expect(gated).toContain("edit")
+    expect(gated).toContain("bash")
+    expect(gated).toContain("task")
+    for (const tool of ["skill", "read", "grep", "glob"]) {
+      expect(gated).not.toContain(`"${tool}"`)
+    }
+  })
+
+  it("denies edit and task for the plan primary", () => {
+    const tiers = fs.readFileSync(path.join(CONTENT_DIR, ".opencode", "plugins", "pc-subagent-tiers.js"), "utf-8")
+    const config = parseJsonc(fs.readFileSync(path.join(CONTENT_DIR, "opencode.jsonc"), "utf-8"))
+
+    // Read-only has to include spawning: a plan session that can call task()
+    // can have a build worker make the change for it.
+    expect(tiers).toContain(`permission: { edit: "deny", task: "deny" }`)
+    expect(config.agent.plan.permission).toEqual({ edit: "deny", task: "deny" })
+  })
 })
 
 function skill(name, file = "SKILL.md") {
@@ -199,6 +234,38 @@ describe("each rule has one home", () => {
     expect(offenders.map(f => path.relative(CONTENT_DIR, f))).toEqual([])
   })
 
+  // A rule with a hook behind it is stated once, next to the mechanism that
+  // enforces it. Restating it elsewhere is how the three copies drifted apart.
+  it("states an enforced rule once, and says what enforces it", () => {
+    const offenders = authored.filter(f => /MANDATORY LOAD|not optional|you enforce the cap/i.test(read(f)))
+    expect(offenders.map(f => path.relative(CONTENT_DIR, f))).toEqual([])
+
+    // A skill that claims a plugin loads its abilities for it, or that the
+    // reminder is the load, was wrong even before the gate existed.
+    const claims = authored.filter(f => /plugin (loads|already loaded)/i.test(read(f)))
+    expect(claims.map(f => path.relative(CONTENT_DIR, f))).toEqual([])
+  })
+
+  // The transitive-load rule is parsed, not just read: pc-system-reminders
+  // pulls `skill("x")` out of the guardrails body and requires it. A worked
+  // example with a placeholder name put a skill nobody can install on that
+  // list, and the reminder then asked for it every turn for the whole session.
+  it("uses the parsed skill() form only for real skill names", () => {
+    const skillsDir = path.join(CONTENT_DIR, ".agents", "skills")
+    const installable = new Set(fs.readdirSync(skillsDir))
+    const referenced = [...walk(SKILLS_DIR), ...walk(FRAGMENTS_DIR)].flatMap(file =>
+      [...read(file).matchAll(/skill\(["`]([a-z0-9][a-z0-9-]*)["`]\)/gi)].map(match => ({
+        file: path.relative(CONTENT_DIR, file),
+        name: match[1],
+      })),
+    )
+
+    // Optimization skills are installed by `skills add`, not shipped here.
+    const external = new Set(["simple-english", "humanizer", "codegraph", "agentmemory"])
+    const dangling = referenced.filter(entry => !installable.has(entry.name) && !external.has(entry.name))
+    expect(dangling).toEqual([])
+  })
+
   // Shouting is not enforcement. Budget of two per file; the two ops-ship
   // fragments were the only ones over it.
   it("keeps all-caps imperatives within budget", () => {
@@ -223,7 +290,9 @@ describe("always-loaded context budget", () => {
       path.join(CONTENT_DIR, ".agents", "skills", "pc-guardrails-generic", "SKILL.md"),
     ].reduce((total, file) => total + fs.readFileSync(file, "utf-8").length, 0)
 
-    // Baseline at the time of the truth pass: 11,436 chars for these two.
-    expect(bytes).toBeLessThanOrEqual(11_600)
+    // 7,757 chars as shipped. A consumer pays more: the optimization
+    // fragments are injected into the guardrails markers and the engineer body
+    // is loaded on top, so this is the floor, not the total.
+    expect(bytes).toBeLessThanOrEqual(8_200)
   })
 })

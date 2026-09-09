@@ -1,4 +1,4 @@
-**NEVER use browser tools to navigate to atlassian.net: use `acli` CLI only.**
+Jira data comes from the `acli` CLI; a page fetch of atlassian.net is denied (pc-system-reminders). If `acli` is unavailable, report it as a blocker.
 
 ---
 

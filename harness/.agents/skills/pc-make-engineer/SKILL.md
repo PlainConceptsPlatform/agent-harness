@@ -195,7 +195,7 @@ After creating the persona engineer and validating its references, additively me
 4. Parse its existing `## Abilities` section to find which skills are already listed.
 5. Append-only: add only skills that are not already in the file (dedup by skill name).
 6. Preserve the frontmatter (mode, color, permissions, model if stamped), the identity paragraph, and all existing ability lines.
-7. Remove any old startup directive line. The `pc-system-reminders` plugin loads abilities for every session.
+7. Remove any old startup directive line telling the agent to load its abilities; `## Abilities` is read from the file and the loads are gated on it.
 8. Write the file back.
 
 Merge new skills into existing categories. If a new skill belongs to "Development" and that line already exists, append to it. If a new category is needed, add it. Do not overwrite the Abilities section.

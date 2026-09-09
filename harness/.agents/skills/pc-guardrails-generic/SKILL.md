@@ -6,7 +6,7 @@ license: MIT
 
 ## Transitive loads (optimization skills)
 
-The marker sections below may contain instructions for selected optimization skills. These are mandatory. If a section says "call `skill("xxx")`", you must call the skill tool with that exact name before doing any work.
+The marker sections below name the optimization skills this project selected. Load each one before doing any work: editing, shell and spawning stay blocked until every named skill that is installed has been loaded (pc-system-reminders).
 
 ## Secrets
 
@@ -24,9 +24,8 @@ The marker sections below may contain instructions for selected optimization ski
 
 ## Temporary files
 
-- Create scratch files only under `$REPO_ROOT/.opencode/.tmp/`; create a task-specific child directory when needed.
+- Never write outside `$REPO_ROOT`, and never to an operating-system temporary directory: the next step and the next agent cannot see it, and nobody cleans it up. Scratch goes under `$REPO_ROOT/.opencode/.tmp/`, in a task-specific child directory when needed (enforced by pc-system-reminders).
 - Keep final artifacts in their required repository path. Copy or move a scratch artifact into that path before reporting it.
-- Never use operating-system temporary directories or paths outside `$REPO_ROOT`.
 - Remove scratch files when the task ends unless they are needed to diagnose a failure.
 
 ## Security
@@ -60,7 +59,7 @@ The marker sections below may contain instructions for selected optimization ski
 
 When the lead spawns you via the task tool, your assigned task IDs and text are already in your prompt:
 
-1. Load every skill under your `## Abilities`, guardrails first, by calling the `skill` tool once per `@skill-name`. The `pc-system-reminders` plugin reminds you each turn until you have.
+1. Load every skill under your `## Abilities`, guardrails first, by calling the `skill` tool once per `@skill-name`. Editing, shell and spawning are blocked until you have (pc-system-reminders).
 2. Gather context using the project-selected tools described above.
 3. Implement your assigned tasks in dependency order. Edit only files within your assigned scope.
 4. Run the project's tests/lint before marking done (see Code above).

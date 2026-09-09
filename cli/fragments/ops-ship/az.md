@@ -1,5 +1,4 @@
-**Browser MCP tools are FORBIDDEN for all Azure DevOps operations.**
-Browser tools are ONLY permitted for screenshots of the LOCAL running app on `localhost` URLs.
+Azure DevOps data comes from the `az` CLI; a page fetch of dev.azure.com is denied (pc-system-reminders). If `az` is unavailable, report it as a blocker. Browser tools reach only the local app on `localhost`.
 
 ---
 
@@ -23,7 +22,7 @@ Save to: `openspec/changes/{change-name}/images/{feature}.png`
 
 ### Step 3: Commit and push
 
-The `pc-plan-apply` skill already committed each task group: usually only screenshots or small residuals remain. Stage **specific paths only** (never `git add .`, it sweeps unrelated files into the ship commit):
+The `pc-plan-apply` skill already committed each task group: usually only screenshots or small residuals remain. Stage the paths you actually changed; unscoped staging is denied (`pc-system-reminders`):
 
 ```bash
 git add openspec/changes/{change-name}/images/  # plus any other paths you actually changed

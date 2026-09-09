@@ -1,4 +1,4 @@
-**Browser MCP tools are FORBIDDEN for all Azure DevOps operations.**
+Azure DevOps data comes from the `az` CLI; a page fetch of dev.azure.com is denied (pc-system-reminders). If `az` is unavailable, report it as a blocker.
 
 ---
 

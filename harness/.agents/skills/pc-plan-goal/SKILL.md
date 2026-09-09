@@ -14,7 +14,7 @@ Move forward only when a phase returns its required result. On a hard failure, f
 
 **Token efficiency rules:** Batch git operations within a phase (combine `git add <paths> && git commit` in one tool call). Do not run status checks between sequential operations in the same phase. Minimize model turns: if a phase requires 3 git commands, call them in one tool call, not 3.
 
-**Stage paths, never `git add -A` or `git add .`.** A working tree is shared: a person or another agent may have edits in it, and staging everything puts their work in your commit under your message. It is not hypothetical. A Teams tool and its tests were committed inside a commit named after a YAML input rename, and nothing in that message said so. Two things go wrong, and the second is worse: the history lies about what changed, and unreviewed or half-finished work reaches the default branch under a heading nobody would look twice at. Saving a model turn is not worth either.
+Stage the paths a phase wrote; unscoped staging is denied (`pc-system-reminders`). A shared tree once put a Teams tool and its tests inside a commit named after a YAML input rename, so unreviewed work reached the default branch under a heading nobody would look twice at.
 
 Input: `$ARGUMENTS`
 

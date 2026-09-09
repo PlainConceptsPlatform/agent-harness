@@ -166,13 +166,13 @@ Current baseline uses a generic execution model:
 
 ```
 build                  primary. Implements. Full write access. The default.
-plan                   primary. Same body as build, but cannot edit files.
+plan                   primary. Same body as build, but cannot edit or spawn.
 fullstack-engineer     subagent. The body build and plan share, and the fallback worker.
 *-engineer             subagent. User-created specialists, spawned for parallel implementation.
 *-engineer.<tier>      subagent. The same specialist pinned to a plan/build/fast model.
 ```
 
-`build` and `plan` are the only agents a human selects, and they are overrides of opencode's own two primaries rather than new names. The `pc-subagent-tiers` plugin regenerates both from `fullstack-engineer.md` on every startup, so they always carry the current abilities, each on its own tier model. `plan` differs from `build` in one frontmatter line: `edit: deny`. It can still read the tree, shell out to git and openspec, and spawn engineers, so planning works and cannot write. Everything else is `mode: subagent` and reached through `task()`, never picked from the agent list. Project-specific specialization comes from user-created engineers via `/make-engineer`. During `/plan-apply` the lead inspects the engineers that actually exist in `.opencode/agents/` and spawns matching specialists. Prefer a specialist over `fullstack-engineer`; if none matches, create one.
+`build` and `plan` are the only agents a human selects, and they are overrides of opencode's own two primaries rather than new names. The `pc-subagent-tiers` plugin regenerates both from `fullstack-engineer.md` on every startup, so they always carry the current abilities, each on its own tier model. `plan` differs from `build` in two frontmatter lines: `edit: deny` and `task: deny`; spawning is denied because a plan session that can call `task()` can have a build worker make the change for it. It keeps `bash` so planning can read git and openspec state, and `pc-system-reminders` holds that shell to inspection commands. Everything else is `mode: subagent` and reached through `task()`, never picked from the agent list. Project-specific specialization comes from user-created engineers via `/make-engineer`. During `/plan-apply` the lead inspects the engineers that actually exist in `.opencode/agents/` and spawns matching specialists. Prefer a specialist over `fullstack-engineer`; if none matches, create one.
 
 ### Skills, platform knowledge
 
@@ -297,8 +297,8 @@ your-project/
 │   ├── tui/
 │   │   └── pc-subagents.tsx         ← TUI plugin: live Subagents panel in the sidebar
 │   └── plugins/
-│       ├── pc-subagent-monitor.js   ← server plugin: writes subagent state → .opencode/harness-run.json
-│       └── pc-system-reminders.js   ← loads every agent ability and its mandatory transitive skills
+│       ├── pc-subagent-monitor.js   ← server plugin: subagent state → .opencode/harness-run.json, and the wave cap
+│       └── pc-system-reminders.js   ← server plugin: gates work on the agent's abilities, denies the never-rules
 └── .agents/
     └── skills/
         ├── pc-guardrails-generic/  ← foundation for user guardrails
@@ -307,7 +307,7 @@ your-project/
         └── browser-automation/
 ```
 
-Platform skills ship as suffixed variants (`pc-userstory-gh`, `pc-userstory-az`, `pc-userstory-jira`, `pc-userstory-browser`) and the installer copies only the matching one, renamed to its generic name. Platform operations (ship, review, backlog) are injected directly into the `/ops-*` command files from `cli/fragments/ops-*/` during onboarding. Source-roots metadata lands in `.opencode/source-roots.json`. The always-shipped reminder plugin loads every agent ability, guardrails first, and repeats mandatory skill loads after compaction. Token-optimization guidance is injected into `pc-guardrails-generic` marker blocks during onboarding.
+Platform skills ship as suffixed variants (`pc-userstory-gh`, `pc-userstory-az`, `pc-userstory-jira`, `pc-userstory-browser`) and the installer copies only the matching one, renamed to its generic name. Platform operations (ship, review, backlog) are injected directly into the `/ops-*` command files from `cli/fragments/ops-*/` during onboarding. Source-roots metadata lands in `.opencode/source-roots.json`. The always-shipped reminder plugin holds editing, shell and spawning until every ability under the agent's `## Abilities` is loaded, guardrails first, and re-arms after compaction. Token-optimization guidance is injected into `pc-guardrails-generic` marker blocks during onboarding.
 
 ---
 
