@@ -84,6 +84,47 @@ describe("git staging and history", () => {
   })
 })
 
+describe("pushing the default branch", () => {
+  // The branch has to be configured, not assumed: detectDefaultBranch falls back to the machine's
+  // global init.defaultBranch, which is "master" on some developer machines and "main" on others,
+  // so a test that hardcodes either passes or fails depending on whose laptop it runs on.
+  const withDefaultBranch = async branch => {
+    const { execFileSync } = await import("node:child_process")
+    execFileSync("git", ["init", "--quiet"], { cwd: root })
+    execFileSync("git", ["config", "init.defaultBranch", branch], { cwd: root })
+    await load()
+  }
+
+  it.each([
+    "git push origin main",
+    "git push origin HEAD:main",
+    "git push --set-upstream origin main",
+  ])("denies %s", async command => {
+    await withDefaultBranch("main")
+    await expect(bash(command)).rejects.toThrow("default branch")
+  })
+
+  // The name must be delimited by start, end, whitespace or a colon. These hold "main" as a
+  // substring and are either somebody else's branch or a fully qualified ref.
+  it.each([
+    "git push origin mainline",
+    "git push origin feature/main-thing",
+    "git push origin refs/heads/main",
+  ])("allows %s", async command => {
+    await withDefaultBranch("main")
+    await expect(bash(command)).resolves.toBeUndefined()
+  })
+
+  // The match used to interpolate the name into `new RegExp`, so a name carrying regex
+  // metacharacters was read as a pattern: it failed to match itself, letting through the exact
+  // push this guard exists to refuse, and matched unrelated branches instead.
+  it("treats a branch name containing regex metacharacters literally", async () => {
+    await withDefaultBranch("release/v1.0+x")
+    await expect(bash("git push origin release/v1.0+x")).rejects.toThrow("default branch")
+    await expect(bash("git push origin release/v1.00000x")).resolves.toBeUndefined()
+  })
+})
+
 describe("force push", () => {
   beforeEach(() => load())
 

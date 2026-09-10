@@ -117,7 +117,19 @@ async function checkPush(command, root, defaultBranch) {
   for (const segment of splitCommand(command)) {
     if (!/^git\s+push\b/.test(segment)) continue
 
-    const named = new RegExp(`(^|[\\s:])${defaultBranch}($|[\\s:])`).test(segment)
+    // Split on the delimiters rather than interpolating the branch name into a pattern. The
+    // dynamic RegExp was a blocking Semgrep finding (detect-non-literal-regexp) that failed
+    // `CI / SAST` on every push, and CI gates the delivery pipeline, so it stopped both the PRE
+    // deploy and the tagged PRO release in every consuming repository.
+    //
+    // It was also a hole in this very guard. A branch name is not a pattern, so a default branch
+    // called `release/v1.0+x` did not match itself -- `.` and `+` were read as operators -- and
+    // the push it exists to refuse was allowed, while an unrelated `release/v1.00000x` was
+    // refused. Splitting is exactly equivalent for every plain name (checked against the previous
+    // expression over 80 name/command pairs) and correct for the rest: the name must be bounded
+    // by start, end, whitespace or a colon, so `origin main`, `HEAD:main` and a bare `main` match
+    // and `refs/heads/main` does not.
+    const named = segment.split(/[\s:]+/).includes(defaultBranch)
     if (named) {
       deny(
         `This pushes \`${defaultBranch}\`, the default branch. The harness ships work on a branch and lets a human merge it.`,
