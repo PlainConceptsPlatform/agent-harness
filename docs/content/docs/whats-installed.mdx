@@ -7,6 +7,8 @@ description: The files and directories agent-harness writes into your project.
   <File name="AGENTS.md" annotation="Bootstrap mode, replaced after the first /repo-initialize" />
   <File name="ARCHITECTURE.md" annotation="Prompt for agents to fill in from your codebase" />
   <File name="DESIGN.md" annotation="Prompt for agents to fill in from your design system" />
+  <File name=".markdownlint-cli2.jsonc" annotation="Only if absent: copied once, then yours to edit" />
+  <File name=".markdownlint-rules.cjs" annotation="The one enforced rule: no hard-wrapped prose" />
   <Folder name=".opencode" defaultOpen>
     <File name="opencode.json" annotation="Default model and plugin config" />
     <File name="harness.json" annotation="Harness config: platform, models, concurrency" />
@@ -53,3 +55,29 @@ files from `cli/presets/ops-*/` during onboarding, and token-optimization guidan
   Step 2 of the wizard removes stale AI files, but never your `.agents/skills/` directory. Any
   `SKILL.md` in a subdirectory there stays put and remains discoverable.
 </Callout>
+
+## Markdown linting
+
+`.markdownlint-cli2.jsonc` and `.markdownlint-rules.cjs` land at your project root like `AGENTS.md`
+does: copied once if you don't already have them, never overwritten after that. The one rule they
+enforce is `no-hard-wrapped-prose` — keep each paragraph on a single physical line instead of
+hard-wrapping it at a fixed column. These files are read mostly by agents, and a hard-wrapped `\n`
+is ambiguous between a paragraph break and a formatting artifact; one line per paragraph keeps it
+unambiguous. Every built-in markdownlint rule is off, including `MD013`, which enforces the
+opposite of this convention.
+
+The config ships inert. `pc-repo-verify` already discovers whatever lint script your `package.json`
+defines, so wiring it up is three small edits, done once:
+
+```json
+{
+  "scripts": { "lint:md": "markdownlint-cli2 \"**/*.md\"" },
+  "lint-staged": { "*.md": "markdownlint-cli2 --no-globs" },
+  "devDependencies": { "markdownlint-cli2": "0.23.2" }
+}
+```
+
+Add a matching block to your pre-commit hook if you have one; Lyceum's `.husky/pre-commit` is a
+working example, guarding on staged `*.md` files so an unrelated commit never pays the cost.
+
+Once `lint:md` exists, `pc-repo-verify` picks it up on its own — no further wiring needed.
