@@ -25,15 +25,9 @@ The caller provides (all optional):
 
 ## OpenSpec mode: parallel subagent waves
 
-Load `@openspec-apply-change` for change selection, status, and closing. Its
-own implement step does not apply here: annotated tasks are implemented only by
-spawning the annotated tier worker, and the lead never implements. Take that
-step from the protocol below instead.
+Load `@openspec-apply-change` for change selection, status, and closing. Its own implement step does not apply here: annotated tasks are implemented only by spawning the annotated tier worker, and the lead never implements. Take that step from the protocol below instead.
 
-Referring to it by number would break silently. `@openspec-apply-change` is
-installed by `openspec init --force` with no version pinned, so an inserted step
-upstream renumbers the one being replaced, and the sequential default would then
-run alongside these waves.
+Referring to it by number would break silently. `@openspec-apply-change` is installed by `openspec init --force` with no version pinned, so an inserted step upstream renumbers the one being replaced, and the sequential default would then run alongside these waves.
 
 **Implement via native subagent waves.**
 

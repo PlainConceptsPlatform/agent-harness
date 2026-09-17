@@ -68,9 +68,7 @@ capturePlan:
 
 ### Example `evidence.json`
 
-Adapt the routes and captions to this repository. Edits between the
-`PC-PROJECT-EXAMPLE` markers are carried over when the harness updates;
-anything outside them is replaced by the shipped version.
+Adapt the routes and captions to this repository. Edits between the `PC-PROJECT-EXAMPLE` markers are carried over when the harness updates; anything outside them is replaced by the shipped version.
 
 <!-- PC-PROJECT-EXAMPLE-START -->
 ```json

@@ -25,10 +25,7 @@ Each indicator must be:
 
 ## Worked example
 
-One project's calculation-integrity indicator, for shape only. Replace it with
-this repository's own: edits between the `PC-PROJECT-EXAMPLE` markers are
-carried over when the harness updates, and anything outside them is replaced by
-the shipped version.
+One project's calculation-integrity indicator, for shape only. Replace it with this repository's own: edits between the `PC-PROJECT-EXAMPLE` markers are carried over when the harness updates, and anything outside them is replaced by the shipped version.
 
 <!-- PC-PROJECT-EXAMPLE-START -->
 ```markdown

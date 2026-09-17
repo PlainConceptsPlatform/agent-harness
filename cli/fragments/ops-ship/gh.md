@@ -1,5 +1,4 @@
-GitHub data comes from the `gh` CLI; a page fetch of github.com is denied (pc-system-reminders). If `gh` is unavailable, report it as a blocker.
-Always pass `--repo {owner}/{repo}` explicitly, never rely on git context to resolve the repo.
+GitHub data comes from the `gh` CLI; a page fetch of github.com is denied (pc-system-reminders). If `gh` is unavailable, report it as a blocker. Always pass `--repo {owner}/{repo}` explicitly, never rely on git context to resolve the repo.
 
 ---
 

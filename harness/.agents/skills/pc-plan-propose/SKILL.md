@@ -21,8 +21,7 @@ The caller provides:
 
 ## Step 0.a: Check for unarchived changes (stop)
 
-Before proposing a new change, inspect `openspec/changes/` (ignore `openspec/changes/archive`).
-If any change folder exists in `openspec/changes/` (names vary by platform: `gh-*`, `us-*`, or a plain slug), list them in the question text, then call the `question` tool:
+Before proposing a new change, inspect `openspec/changes/` (ignore `openspec/changes/archive`). If any change folder exists in `openspec/changes/` (names vary by platform: `gh-*`, `us-*`, or a plain slug), list them in the question text, then call the `question` tool:
 
 ```json
 {
@@ -57,6 +56,7 @@ Load `@openspec-propose` skill and follow its instructions to generate proposal.
 1. List every `*-engineer.md` file in `.opencode/agents/`. For each file read:
    - `description:` from the YAML frontmatter: the engineer's specialization summary
    - `## Abilities` section: the skills listed under Development, Testing, Infrastructure (e.g. `@nodejs-backend`, `@secure-nextjs-api-routes`)
+
    Build a map of `agent-name -> { description, abilities }`.
 2. For each task, compare the task text and domain against every engineer's description AND abilities. Pick the engineer whose combined profile most closely matches. `fullstack-engineer` is the fallback worker and the body behind `build` and `plan`; prefer a real specialist over it, and never annotate a task with `build` or `plan`, which are the user's own primaries. If no specialist matches a task, leave the agent field blank and record the missing specialization in the proposal. An annotated OpenSpec task needs a real subagent; never substitute the lead or an obsolete generic agent name.
 3. Pick a tier, derive `depends_on`, derive `touches`, and annotate each task line. Follow the [task annotation](task-annotation.md) reference for the full tier selection guide, dependency derivation, touches derivation, and annotation format with examples.
