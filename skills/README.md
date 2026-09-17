@@ -1,13 +1,8 @@
 # skills/
 
-Skills **about** this CLI, for any AI agent that has to operate it. The CLI
-installs the Plain Concepts Platform Harness; these help an agent drive the CLI.
+Skills **about** this CLI, for any AI agent that has to operate it. The CLI installs the Plain Concepts Platform Harness; these help an agent drive the CLI.
 
-These are not the skills the CLI installs. Those live in
-[`harness/.agents/skills/`](../harness/.agents/skills) under the `pc-`
-prefix, and the CLI copies them into a target repository during install. The
-skills here never ship inside the npm package, because they document the CLI
-itself.
+These are not the skills the CLI installs. Those live in [`harness/.agents/skills/`](../harness/.agents/skills) under the `pc-` prefix, and the CLI copies them into a target repository during install. The skills here never ship inside the npm package, because they document the CLI itself.
 
 | Skill | Use it when |
 | --- | --- |
@@ -15,12 +10,10 @@ itself.
 
 ## Using one
 
-Point your agent at the directory, or copy a skill into wherever your tool
-discovers skills:
+Point your agent at the directory, or copy a skill into wherever your tool discovers skills:
 
 ```bash
 cp -r skills/agent-harness-cli ~/.claude/skills/
 ```
 
-Any `SKILL.md` in a subdirectory is discoverable by OpenCode and Claude Code
-alike, so no registration step is needed.
+Any `SKILL.md` in a subdirectory is discoverable by OpenCode and Claude Code alike, so no registration step is needed.

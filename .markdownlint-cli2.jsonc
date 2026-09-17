@@ -1,0 +1,13 @@
+{
+  "config": {
+    "default": false,
+    "no-hard-wrapped-prose": true
+  },
+  "customRules": [".markdownlint-rules.cjs"],
+  "ignores": [
+    "**/node_modules/**",
+    // Vendored third-party skills for developing this CLI itself (humanizer, caveman,
+    // create-agentsmd, writing-great-skills). Not our content to reflow.
+    ".agents/**"
+  ]
+}
