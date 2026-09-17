@@ -146,7 +146,7 @@ Commands that other commands (or agents) need to execute are thin wrappers aroun
 | `/make-architecture` | Generate or regenerate `ARCHITECTURE.md` from the codebase. |
 | `/make-design` | Generate or regenerate `DESIGN.md` from the design system. |
 | `/make-guardrails` | Generate a `pc-guardrails-project` skill from `ARCHITECTURE.md` and project config files. Extracts architecture boundaries, naming, code style, testing, and git workflow rules. Updates all `*-engineer.md` to load the skill. |
-| `/repo-verify` | Verify and repair current-branch changes against applicable fullstack abilities and dependency/lockfile rules, while always running immutable dependency installs/restores, configured builds, and tests for every discovered project. Runs automatically in `/plan-goal`. |
+| `/repo-verify` | Write a reproduction plan for the current branch's change as a journey of agent-browser waypoints, stored in `verification-plan.md` with the change. Backend-only changes are traced through to the frontend when their contract is consumed there; a `not-applicable` stub is written when no UI surface is reachable. Does not run checks or take screenshots — the checks gate lives in `/plan-apply`, and the plan is executed later by a separate agent-browser skill. Runs automatically in `/plan-goal`. |
 | `/make-user-model [user] <tier> <model>` | Set the model for a tier (`plan`, `build`, `fast`). Writes to `harness.json` (team) or `harness.user.json` (user override, gitignored) when `user` prefix is used. Restart to pick up changes: the `pc-subagent-tiers` plugin rebuilds tier agents at startup. Pass a model id or `current` for the active session model. |
 
 ---
@@ -216,7 +216,7 @@ Built-in skills (`pc-` prefix) shipped with agent-harness:
 | `pc-plan-goal` | Autonomous full-lifecycle pipeline behind `/plan-goal` |
 | `pc-plan-quick` | Quick task checklist behind `/plan-quick` |
 | `pc-repo-audit` | Read-only health audit across configured source roots and fullstack abilities |
-| `pc-repo-verify` | Current-branch verification and repair gate used by `/repo-verify` and `/plan-goal` |
+| `pc-repo-verify` | Writes the verification plan (`verification-plan.md`): a reproduction journey of agent-browser waypoints, stored with the change archive. Used by `/repo-verify` and `/plan-goal` |
 | `pc-repo-initialize` | Project initialization behind `/repo-initialize` |
 | `pc-repo-onboard` | Guided project tour behind `/repo-onboard` |
 | `pc-repo-help` | The command reference displayed by `/repo-help`; used by `/repo-initialize` |
@@ -271,7 +271,7 @@ lead
 7. Verify with tests, build, and lint according to task scope
 8. Ship or update pull request via lead flow
 
-For unattended Loop Task runs, keep a concrete shell verification task as the final exit-code gate. `/repo-verify` runs inside `/plan-goal` first, applying fullstack abilities, every discovered project's immutable dependency install or restore, configured build and test commands, and change-aware repair checks; the shell task independently proves the critical commands passed before commit or pull request actions.
+For unattended Loop Task runs, keep a concrete shell verification task as the final exit-code gate. Inside `/plan-goal`, `/plan-apply` step 10 runs lint, typecheck, test, and build commands and is the checks gate; `/repo-verify` then writes `verification-plan.md` (a reproduction journey for a later agent-browser executor). The final shell task independently proves the critical commands passed before commit or pull request actions.
 
 Agents run as native OpenCode subagents in parallel waves: no external plugin, no git worktrees. The lead's Todo pane is the live board, and the `pc-subagent-monitor` plugin mirrors state to `.opencode/harness-run.json`. Navigate into any running subagent with `ctrl+x ↓` then `←`/`→`.
 

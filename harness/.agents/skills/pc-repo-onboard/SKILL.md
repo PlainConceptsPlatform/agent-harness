@@ -23,7 +23,7 @@ A guided tour of this repository and the harness installed in it, for somebody w
    | Implementation | `/plan-apply`, `/plan-archive` |
    | Maintenance | `/make-architecture`, `/make-design`, `/make-engineer`, `/make-guardrails` |
    | Shipping | `/ops-ship`, `/ops-review`, `/ops-backlog`, `/ops-evidence` |
-   | Quality | `/repo-audit` (read-only), `/repo-verify` (the branch gate) |
+   | Quality | `/repo-audit` (read-only), `/repo-verify` (writes the verification plan) |
    | Setup | `/init`, `/make-user-model`, `/repo-help` |
 
 4. **The skills** installed in `.agents/skills/`, one line each, marking which are platform-specific.

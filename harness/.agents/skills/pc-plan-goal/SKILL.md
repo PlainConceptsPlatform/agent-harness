@@ -64,7 +64,7 @@ Tick `propose` when the proposal commit exists.
 
 Load `pc-plan-apply` in autonomous mode with `start_from: load-plan`. It owns worker resolution, subagent waves, commits, verification, and re-waves.
 
-Require it to return every task complete and `VERIFIED`, then load `pc-repo-verify`. Tick `apply` and `verify` only when both phases return `VERIFIED`.
+Require it to return every task complete and `VERIFIED`, then load `pc-repo-verify`. Tick `apply` when apply returns `VERIFIED`; tick `verify` when `pc-repo-verify` returns `PLAN_WRITTEN` or `STUB_WRITTEN`.
 
 ## Phase 5: Archive
 

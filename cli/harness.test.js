@@ -146,14 +146,14 @@ describe("planning skill templates", () => {
     expect(audit).toContain("without modifying files")
     expect(audit).toContain("fullstack-engineer.md")
 
-    // Pin what verification means, not how the skill words its steps: a scoped
-    // diff, an immutable install (so a stale lockfile fails instead of being
-    // silently updated), and the sentinel the pipeline gates on.
+    // Verification now produces a reproduction plan for a later agent-browser
+    // executor, not a check matrix. Pin what the plan is, not its wording.
+    expect(verify).toContain("verification-plan.md")
     expect(verify).toContain("git diff")
-    expect(verify).toMatch(/immutable/)
-    expect(verify).toMatch(/lockfile/)
-    expect(verify).toMatch(/\bVERIFIED\b/)
-    expect(verify).toMatch(/NOT VERIFIED/)
+    expect(verify).toContain("PLAN_WRITTEN")
+    expect(verify).toContain("STUB_WRITTEN")
+    expect(verify).toContain("not-applicable")
+    expect(verify).toContain("agent-browser")
   })
 
   it("keeps plan-explore delegating to openspec-explore", () => {

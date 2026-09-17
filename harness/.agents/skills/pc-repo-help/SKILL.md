@@ -60,7 +60,7 @@ Display the following reference to the user exactly as written. Do not summarize
 
 **`/make-guardrails`**: Generate a `pc-guardrails-project` skill from `ARCHITECTURE.md` and project config files. Extracts concrete rules (architecture boundaries, naming, code style, testing, git workflow) that all agents must follow. Updates every `*-engineer.md` to load the skill.
 
-**`/repo-verify`**: Verify the current branch against applicable guardrails and project checks. Runs immutable dependency installs/restores, configured builds, and tests for every discovered project, repairs relevant failures, checks dependency/lockfile consistency, and reports `VERIFIED` only when every required check passes. It runs automatically in `/plan-goal`.
+**`/repo-verify`**: Write a reproduction plan for the current branch's change as a journey of agent-browser waypoints stored with the change in `verification-plan.md`. Traces backend-only changes through to the frontend when the changed contract is consumed there; writes a `not-applicable` stub when no UI surface is reachable. Does not run checks, launch a browser, or take screenshots — the checks gate lives in `pc-plan-apply` step 10, and the plan is executed later by a separate agent-browser skill. It runs automatically in `/plan-goal`.
 
 **`/make-user-model <tier> <model>`**: Set the model for a tier (`plan`, `build`, or `fast`). Writes to `.opencode/harness.json` (`models`). Use `user` prefix for a personal override: `/make-user-model user fast opencode/big-pickle`. Use a model id or `current` for the active session model. Restart opencode for the `pc-subagent-tiers` plugin to rebuild tier agents.
 
