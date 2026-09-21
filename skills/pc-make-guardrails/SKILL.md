@@ -14,6 +14,7 @@ Turn this project's own documentation into `.agents/skills/pc-guardrails-project
 - Never invent a rule the project does not state somewhere. A guardrail that came from nowhere is one nobody agreed to, and it will be followed anyway.
 - Never write an empty category. Omit it.
 - Never touch a tier variant (`*-engineer.build.md`, `*-engineer.fast.md`, `*-engineer.plan.md`): they are regenerated from the base templates every startup.
+- Before writing the file, run the self-check defined in the [category reference](category-reference.md): count rules, cut positive phrasing and reference facts, strip anything already enforced by tooling or by `pc-guardrails-generic`, and re-count. The file is not written until the self-check passes.
 
 ## Sources
 

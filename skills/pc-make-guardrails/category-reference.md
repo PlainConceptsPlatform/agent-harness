@@ -24,7 +24,21 @@ Each rule must be:
 
 **At most 40 rules, across all categories.** Rank by what a violation costs and cut from the bottom; a category with nothing consequential in it gets no rules at all. This cap is the point of the exercise, not tidiness: compliance falls away as a rule file grows, so the 41st rule does not just cost its own tokens, it dilutes the 40 that matter. If more than 40 survive every bar above, the excess is a sign the project's constraints belong in a linter rule or a CI check instead.
 
+## Contrastive example
+
+**Bad** (reference fact — cut):
+> - The SQL Server database name is `myapp`, lowercase.
+
+The agent reads the connection string in config. It costs tokens on every load and the agent cannot "break" it.
+
+**Good** (negative constraint with consequence — keep):
+> - Never add a cached column for a value that is derived from another entity; a later edit to the source leaves the cache stale, and nothing in the build catches it.
+
+The agent could break this without noticing, nothing mechanically enforces it, and the consequence is stated.
+
 ## Skill template
+
+Each section holds constraints an agent could break without noticing, not reference facts. "Naming Conventions" does not mean "list how files are named" — it means "name the conventions whose violation is silent and costly." "Build & Deployment" does not mean "list the build commands" — it means "name the build rules a developer could violate without CI catching it." If a section has only reference facts, omit it entirely.
 
 Write (or update) `.agents/skills/pc-guardrails-project/SKILL.md`:
 
@@ -71,3 +85,28 @@ license: MIT
 ```
 
 Only include sections that have real rules. Omit empty sections.
+
+## Self-check (before writing the file)
+
+Re-read the output you are about to write. Then:
+
+1. **Count the rules** (every bullet under every section). If there are more than 40, cut from the bottom — rank by what a violation costs and remove the cheapest until you are at or under 40. A rule file past 40 dilutes the ones that matter.
+
+2. **Scan for positive phrasing and reference facts.** Cut or rewrite any rule that:
+   - States what something is named, rather than what must not be named that way and why.
+   - Lists a port number, a database name, a package version, a SDK version, or a connection string. The agent discovers these by reading config.
+   - Describes how something works (e.g. "auth uses a smart scheme that forwards to JWT or Cookies"), rather than what must not be done with it.
+   - Restates a project's tech stack as a list ("Frontend: React 19, Next.js 15, TypeScript…"). That is reference material, not a constraint.
+
+3. **Strip anything already enforced by tooling.** Remove a rule if any of these already fails the build on its violation:
+   - Biome / ESLint / Prettier / Steiger / lint:fsd
+   - NetArchTest / architecture test projects
+   - Semgrep / Trivy / TruffleHog / SBOM checks
+   - Coverage gates (`scripts/check-coverage.mjs`)
+   - `.editorconfig`, `Directory.Build.props`, NuGet audit gates
+   - CI workflow steps (`app-ci.yml`, `ci.yml`)
+   - GitHub branch protection / required checks. If the build catches it, the rule costs tokens and adds nothing. The only exception is a rule whose enforcement is partial or non-obvious (e.g. architecture tests enforce layering but a developer could still import a namespace through reflection or a transitive dependency — that nuance is worth a rule).
+
+4. **Strip anything already in `pc-guardrails-generic`.** That skill loads on every request alongside this one. Its rules are: secrets discipline, comment discipline (WHY not WHAT, 10% ceiling), scratch-file location, one-responsibility-per-file, and the engineer workflow. Do not restate any of them here.
+
+5. **Re-count after cutting.** If you are still over 40, you are writing reference material, not constraints. Cut harder.
