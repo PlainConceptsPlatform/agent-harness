@@ -400,7 +400,13 @@ Data the CLI reads lives in two places, split by kind:
 
 Every filename the harness writes into a project is declared once in `cli/utils/paths.js`. Change it there, and remember the OpenCode plugins under `harness/.opencode/plugins/` read those same names at runtime.
 
-`skills/` holds skills *about this CLI*, for agents that have to operate it. See [skills/README.md](./skills/README.md). They are not published to npm, and they are separate from the `pc-*` skills in `harness/` that get installed into your project.
+`skills/` holds both the installable `pc-*` skills and the `agent-harness-cli` skill for agents operating this CLI. See [skills/README.md](./skills/README.md). All of them ship to npm and are discoverable by `npx skills`, so you can install individual skills into any project without the full harness:
+
+```bash
+npx skills add PlainConceptsPlatform/agent-harness
+# or scope to a single skill:
+npx skills add PlainConceptsPlatform/agent-harness --skill pc-ops-ship
+```
 
 ```bash
 git clone https://github.com/PlainConceptsPlatform/agent-harness.git
