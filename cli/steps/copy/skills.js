@@ -5,7 +5,7 @@ import { info, success } from '../../utils/exec.js'
 import { canUpdateManagedFile, readUpdateManifest, recordManagedFile, writeUpdateManifest } from '../../utils/update-manifest.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const CONTENT_SKILLS_DIR = path.resolve(__dirname, '../../../harness/.agents/skills')
+const CONTENT_SKILLS_DIR = path.resolve(__dirname, '../../../skills')
 const CONTENT_SKILLS_LOCK = path.resolve(__dirname, '../../../harness/skills-lock.json')
 
 // Userstory skills parse backlog work items: selected by backlogPlatform only.
@@ -28,7 +28,16 @@ export const SKILL_RENAME = {
   'pc-userstory-browser': 'pc-userstory',
 }
 
+// Skills that ship in the source tree but must never be copied into a target
+// project. agent-harness-cli documents the CLI itself for agents working on
+// THIS repo; it has no value in a consumer repo and would clutter .agents/skills.
+// Listed by directory name as read from CONTENT_SKILLS_DIR.
+export const NON_INSTALLABLE_SKILLS = new Set([
+  'agent-harness-cli',
+])
+
 function shouldInstallSkill(skill, backlogPlatform, _repoPlatform) {
+  if (NON_INSTALLABLE_SKILLS.has(skill)) return false
   if (skill in BACKLOG_PLATFORM_SKILLS) return BACKLOG_PLATFORM_SKILLS[skill] === backlogPlatform
   return true
 }
@@ -185,7 +194,8 @@ async function installObSkills(backlogPlatform = 'github', repoPlatform, { force
   // Build the set of skill names we ship (source dirs, after rename).
   // Only these may be removed during forceOverwrite — project-generated
   // skills (pc-merge-risk-assess, custom loops, etc.) must survive.
-  const contentSkills = await fse.readdir(CONTENT_SKILLS_DIR)
+  const contentSkills = (await fse.readdir(CONTENT_SKILLS_DIR))
+    .filter(name => !NON_INSTALLABLE_SKILLS.has(name))
   const shippedNames = new Set()
   for (const skill of contentSkills) {
     const stat = await fse.stat(path.join(CONTENT_SKILLS_DIR, skill)).catch(() => null)

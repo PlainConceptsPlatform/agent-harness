@@ -9,24 +9,26 @@ Key technologies: Node.js 18+, ESM (`"type": "module"`), pnpm, Vitest, ESLint fl
 ## Architecture
 
 ```
-src/
-  index.js                    CLI entry point, dispatches to commands
-  commands/                   CLI commands (wizard, single, join, update)
+cli/                         CLI entry point, commands, steps, presets, utils
+  index.js                    Dispatches to commands
+  commands/                   CLI commands (wizard, single, join, update, migrate)
   steps/                      Wizard steps (copy, platform, models, openspec, browser, clean, metadata, optimization, source)
   presets/                    JSON/MD data files that parameterize steps (platforms, models, skills, source, etc.)
   utils/                      Shared utilities (copy, exec, process, terminal, models-cache, models-pricing)
-  content/                    Template files copied into target projects during onboarding
-    .agents/skills/           pc-* skills shipped with the CLI (plan-goal, make-engineer, repo-initialize, etc.)
-    .opencode/commands/       Slash command thin wrappers that load skills
-    .opencode/                opencode.json, tui plugins, opencode config
-    .opencode/plugins/        Server-side plugins (subagent monitor, tiers, system reminders)
-    AGENTS.md                 Template AGENTS.md installed into target projects
-    ARCHITECTURE.md            Template architecture doc
-    DESIGN.md                 Template design doc
+harness/                     Template files copied into target projects during onboarding
+  .opencode/                  opencode.jsonc, commands, plugins, agents dir, package.json
+  AGENTS.md                   Template AGENTS.md installed into target projects
+  ARCHITECTURE.md             Template architecture doc
+  DESIGN.md                   Template design doc
+  skills-lock.json            Lockfile for third-party skills the harness installs on demand
+skills/                      Skills shipped with the CLI (auto-discovered by `npx skills`)
+  pc-*/                       Plain Concepts skills the CLI installs into target projects (.agents/skills/ there)
+  browser-automation/         Browser automation skill
+  agent-harness-cli/          CLI-self skill for agents working on THIS repo (never copied to target projects)
 docs/                         Landing page (static HTML/CSS/JS), deployed via GitHub Pages
 ```
 
-The core pattern: `harness/.opencode/commands/*.md` are thin wrappers (just "Load the `pc-*` skill and follow every step defined in it."). The actual procedure lives in `harness/.agents/skills/pc-*/SKILL.md`. This makes commands composable since any agent can load a skill mid-conversation.
+The core pattern: `harness/.opencode/commands/*.md` are thin wrappers (just "Load the `pc-*` skill and follow every step defined in it."). The actual procedure lives in `skills/pc-*/SKILL.md` at the repo root. This makes commands composable since any agent can load a skill mid-conversation.
 
 The copy step (`cli/steps/copy/index.js`) resolves `CONTENT_DIR` relative to the source file, copies it to the target project, then patches files in-place based on platform selection (e.g., injecting gh/az/jira/glab CLI commands into skills and AGENTS.md).
 
@@ -71,21 +73,22 @@ Tests mock `execa` and `../../utils/exec.js` to avoid real shell commands. The `
 
 ### Path resolution
 
-Source files in `cli/steps/copy/` resolve `CONTENT_DIR` via `path.resolve(__dirname, '../../content')` (two levels up from `cli/steps/copy/`). When you move files, update the relative path depth.
+Source files in `cli/steps/copy/` resolve `CONTENT_DIR` via `path.resolve(__dirname, '../../../harness')` (three levels up from `cli/steps/copy/`), and `CONTENT_SKILLS_DIR` via `path.resolve(__dirname, '../../../skills')`. When you move files, update the relative path depth.
 
 ### Template patching
 
-Patchers (`agents.js`, `commands.js`, `skills.js`) read template files from `harness/`, modify them based on platform, and write to the target project. The integration tests verify these patchers against real templates. Markers like `<!-- PC-PLATFORM-WORKFLOW-START -->` / `<!-- PC-PLATFORM-WORKFLOW-END -->` are used for safe string replacement.
+Patchers (`agents.js`, `commands.js`, `skills.js`) read template files from `harness/` and `skills/`, modify them based on platform, and write to the target project. The integration tests verify these patchers against real templates. Markers like `<!-- PC-PLATFORM-WORKFLOW-START -->` / `<!-- PC-PLATFORM-WORKFLOW-END -->` are used for safe string replacement.
 
 ### Skill loading
 
-Skills live in `.agents/skills/pc-*/SKILL.md` with YAML frontmatter (`name`, `description`, `license`). Commands in `.opencode/commands/*.md` are thin wrappers that say "Load the `pc-*` skill and follow every step defined in it." To convert a command to a skill, move the body to a SKILL.md, add frontmatter, and replace the command with the wrapper line.
+Skills live in `skills/pc-*/SKILL.md` at the repo root with YAML frontmatter (`name`, `description`, `license`). The CLI copies them into target projects at `.agents/skills/`. Commands in `.opencode/commands/*.md` are thin wrappers that say "Load the `pc-*` skill and follow every step defined in it." To convert a command to a skill, move the body to a SKILL.md, add frontmatter, and replace the command with the wrapper line.
 
 ## Project-specific notes
 
-- `.agents/skills/` at the repo root contains skills for working on THIS repo (caveman, create-agentsmd, humanizer, writing-great-skills). These are development tools, not part of the CLI content shipped to users. Do not confuse them with `harness/.agents/skills/` which are the template skills shipped by the CLI.
+- `skills/` at the repo root is the single home for skills: `pc-*` + `browser-automation` (CLI installable, the harness copies into target projects) plus `agent-harness-cli` (CLI-self, never copied). `agent-harness-cli` is excluded from installs via `NON_INSTALLABLE_SKILLS` in `cli/steps/copy/skills.js`. Skills shipped with the CLI are auto-discovered by `npx skills`.
+- `.agents/skills/` at the repo root (if present) contains dev-only third-party skills for working on THIS repo (caveman, create-agentsmd, humanizer, writing-great-skills). These are development tools sourced via `skills-lock.json`, not part of the CLI content shipped to users.
 - `harness/.opencode/node_modules/` and `harness/.opencode/package-lock.json` exist because the content templates include their own package.json for the TUI plugins. These are gitignored and excluded from ESLint.
-- The `files` field in `package.json` controls what ships to npm: `src` (excluding tests and `__tests__`) and `harness` (excluding node_modules).
+- The `files` field in `package.json` controls what ships to npm: `cli`, `harness`, and `skills` (each excluding tests and node_modules).
 
 ## PR instructions
 

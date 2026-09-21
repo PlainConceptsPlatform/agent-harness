@@ -7,6 +7,7 @@ import { SKILL_RENAME } from "./steps/copy/skills.js"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const CONTENT_DIR = path.resolve(__dirname, "../harness")
+const SOURCE_SKILLS_DIR = path.resolve(__dirname, "../skills")
 
 // Flags rules that are near-verbatim restatements of each other, by content-word
 // overlap. Takes {label: text}, returns the collisions.
@@ -131,7 +132,7 @@ describe("OpenCode config template", () => {
 })
 
 function skill(name, file = "SKILL.md") {
-  return fs.readFileSync(path.join(CONTENT_DIR, ".agents", "skills", name, file), "utf-8")
+  return fs.readFileSync(path.join(SOURCE_SKILLS_DIR, name, file), "utf-8")
 }
 
 describe("planning skill templates", () => {
@@ -229,13 +230,15 @@ describe("planning skill templates", () => {
     expect(evidence).toContain("capturePlan")
   })
 
-  it("requires evidence skill to write capturePlan and scaffold to be deprecated", () => {
-    const scaffold = skill("pc-make-evidence-scaffold")
+  it("ships evidence skill with capturePlan and no deprecated scaffold", () => {
     const evidence = skill("pc-ops-evidence")
 
-    expect(scaffold).toContain("DEPRECATED")
     expect(evidence).toContain("capturePlan")
     expect(evidence).toContain("Visual Evidence CI workflow")
+    // pc-make-evidence-scaffold was dropped: it was deprecated and pointed
+    // users at pc-ops-evidence, which ships the same functionality.
+    const scaffold = path.join(SOURCE_SKILLS_DIR, "pc-make-evidence-scaffold", "SKILL.md")
+    expect(fs.existsSync(scaffold)).toBe(false)
   })
 })
 
@@ -251,7 +254,7 @@ describe("planning skill templates", () => {
 //   story format                  pc-plan-story
 //   scoped verification           pc-repo-verify
 describe("each rule has one home", () => {
-  const SKILLS_DIR = path.join(CONTENT_DIR, ".agents", "skills")
+  const SKILLS_DIR = SOURCE_SKILLS_DIR
   const FRAGMENTS_DIR = path.resolve(__dirname, "fragments")
 
   const walk = walkMd
@@ -310,7 +313,7 @@ describe("each rule has one home", () => {
   // example with a placeholder name put a skill nobody can install on that
   // list, and the reminder then asked for it every turn for the whole session.
   it("uses the parsed skill() form only for real skill names", () => {
-    const skillsDir = path.join(CONTENT_DIR, ".agents", "skills")
+    const skillsDir = SOURCE_SKILLS_DIR
     const installable = new Set(fs.readdirSync(skillsDir))
     const referenced = [...walk(SKILLS_DIR), ...walk(FRAGMENTS_DIR)].flatMap(file =>
       [...read(file).matchAll(/skill\(["`]([a-z0-9][a-z0-9-]*)["`]\)/gi)].map(match => ({
@@ -352,7 +355,7 @@ describe("each rule has one home", () => {
 
 // Structure a reader (or a patcher) can rely on without opening the file.
 describe("skills hold together as files", () => {
-  const SKILLS_DIR = path.join(CONTENT_DIR, ".agents", "skills")
+  const SKILLS_DIR = SOURCE_SKILLS_DIR
   const skillDirs = fs.readdirSync(SKILLS_DIR, { withFileTypes: true })
     .filter(entry => entry.isDirectory())
     .map(entry => entry.name)
@@ -425,7 +428,7 @@ describe("skills hold together as files", () => {
 // rules and 10,354 rendered characters.
 describe("always-loaded context budget", () => {
   const AGENTS = path.join(CONTENT_DIR, "AGENTS.md")
-  const GUARDRAILS = path.join(CONTENT_DIR, ".agents", "skills", "pc-guardrails-generic", "SKILL.md")
+  const GUARDRAILS = path.join(SOURCE_SKILLS_DIR, "pc-guardrails-generic", "SKILL.md")
   const read = file => fs.readFileSync(file, "utf-8")
   const bullets = text => text.match(/^\s*[-*] /gm) ?? []
   const rulesIn = text => text.split(/\r?\n/).filter(line => /^\s*[-*] /.test(line))
@@ -500,7 +503,7 @@ describe("the guardrail generators state their bar", () => {
     ["pc-make-merge-risk-assess", "indicators"],
   ])("%s caps the output and skips what is already enforced", (skill, noun) => {
     const reference = fs.readFileSync(
-      path.join(CONTENT_DIR, ".agents", "skills", skill, "category-reference.md"), "utf-8")
+      path.join(SOURCE_SKILLS_DIR, skill, "category-reference.md"), "utf-8")
 
     expect(reference).toMatch(new RegExp(`at most 40 ${noun}`, "i"))
     expect(reference).toMatch(/already fails the build on|already fails the build|CI already fails/i)
@@ -510,7 +513,7 @@ describe("the guardrail generators state their bar", () => {
   // so every other project inherited its business as the example.
   it("ships no project's domain as the canonical wording", () => {
     const reference = fs.readFileSync(
-      path.join(CONTENT_DIR, ".agents", "skills", "pc-make-merge-risk-assess", "category-reference.md"), "utf-8")
+      path.join(SOURCE_SKILLS_DIR, "pc-make-merge-risk-assess", "category-reference.md"), "utf-8")
     const [, slot = ""] = /<!-- PC-PROJECT-EXAMPLE-START -->([\s\S]*?)<!-- PC-PROJECT-EXAMPLE-END -->/.exec(reference) ?? []
     const outsideSlot = reference.replace(slot, "")
 

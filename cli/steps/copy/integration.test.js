@@ -19,8 +19,9 @@ import { resolvePlatform } from '../../commands/single.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const CONTENT_DIR = path.resolve(__dirname, '../../../harness')
+const SOURCE_SKILLS_DIR = path.resolve(__dirname, '../../../skills')
 const REAL_AGENTS_MD = fs.readFileSync(path.join(CONTENT_DIR, 'AGENTS.md'), 'utf-8')
-const REAL_OB_INIT_MD = fs.readFileSync(path.join(CONTENT_DIR, '.agents', 'skills', 'pc-repo-initialize', 'SKILL.md'), 'utf-8')
+const REAL_OB_INIT_MD = fs.readFileSync(path.join(SOURCE_SKILLS_DIR, 'pc-repo-initialize', 'SKILL.md'), 'utf-8')
 
 let tmpDir
 
@@ -108,7 +109,7 @@ describe('patchAgentGuidance mixed platforms against the real template', () => {
   })
 })
 
-describe('installSkills platform gating (real content/.agents/skills)', () => {
+describe('installSkills platform gating (real content/skills)', () => {
   async function installedSkill(name) {
     const p = path.join(tmpDir, '.agents', 'skills', name, 'SKILL.md')
     return fs.existsSync(p) ? fs.readFileSync(p, 'utf-8') : null
@@ -236,7 +237,7 @@ describe('ops command patching (real presets + real templates)', () => {
     for (const skill of ['pc-ops-ship', 'pc-ops-evidence']) {
       fs.mkdirSync(path.join(tmpDir, '.agents', 'skills', skill), { recursive: true })
       fs.copyFileSync(
-        path.join(CONTENT_DIR, '.agents', 'skills', skill, 'SKILL.md'),
+        path.join(SOURCE_SKILLS_DIR, skill, 'SKILL.md'),
         path.join(tmpDir, '.agents', 'skills', skill, 'SKILL.md'),
       )
     }
@@ -292,7 +293,7 @@ describe('ops command patching (real presets + real templates)', () => {
 // only ever reached fresh installs.
 describe('update refreshes marker skills but keeps project-owned content', () => {
   const shipped = name =>
-    fs.readFileSync(path.join(CONTENT_DIR, '.agents', 'skills', name, 'SKILL.md'), 'utf-8')
+    fs.readFileSync(path.join(SOURCE_SKILLS_DIR, name, 'SKILL.md'), 'utf-8')
 
   const installed = name =>
     fs.readFileSync(path.join(tmpDir, '.agents', 'skills', name, 'SKILL.md'), 'utf-8')
