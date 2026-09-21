@@ -20,7 +20,7 @@ Each rule must be:
 - **Concrete**: "Use `pnpm` not `npm`" not "Use the right package manager".
 - **Evidence-based**: derived from the files and code graph you analyzed. Never invent a rule the project does not state or demonstrate somewhere.
 - **Not enforced elsewhere.** Skip anything the formatter, linter, type checker, test suite, CI gate or a harness plugin already fails the build on. A rule restating `biome.json` is read on every load and changes nothing: the build was going to catch it. Write the rules that nothing but a careful reader would catch.
-- **Not already in `pc-guardrails-generic`.** That skill loads alongside this one, every request. Secrets, comment discipline, scratch-file location and one-responsibility-per-file are its rules, not this file's.
+- **Not already in `pc-guardrails-generic`.** That skill loads alongside this one, every request. Secrets, zero-comment default, scratch-file location, one-responsibility-per-file, minimal-test discipline, and the engineer workflow are its rules, not this file's.
 
 **At most 40 rules, across all categories.** Rank by what a violation costs and cut from the bottom; a category with nothing consequential in it gets no rules at all. This cap is the point of the exercise, not tidiness: compliance falls away as a rule file grows, so the 41st rule does not just cost its own tokens, it dilutes the 40 that matter. If more than 40 survive every bar above, the excess is a sign the project's constraints belong in a linter rule or a CI check instead.
 
@@ -107,6 +107,6 @@ Re-read the output you are about to write. Then:
    - CI workflow steps (`app-ci.yml`, `ci.yml`)
    - GitHub branch protection / required checks. If the build catches it, the rule costs tokens and adds nothing. The only exception is a rule whose enforcement is partial or non-obvious (e.g. architecture tests enforce layering but a developer could still import a namespace through reflection or a transitive dependency — that nuance is worth a rule).
 
-4. **Strip anything already in `pc-guardrails-generic`.** That skill loads on every request alongside this one. Its rules are: secrets discipline, comment discipline (WHY not WHAT, 10% ceiling), scratch-file location, one-responsibility-per-file, and the engineer workflow. Do not restate any of them here.
+4. **Strip anything already in `pc-guardrails-generic`.** That skill loads on every request alongside this one. Its rules are: secrets discipline, zero-comment default (WHY not WHAT, 10% ceiling, no auto-generated docstrings), scratch-file location, one-responsibility-per-file, minimal-test discipline (one regression test per bug, no framework/library tests, no integration/e2e/snapshot unless asked, no mock-assertion of third-party calls), and the engineer workflow. Do not restate any of them here.
 
 5. **Re-count after cutting.** If you are still over 40, you are writing reference material, not constraints. Cut harder.
