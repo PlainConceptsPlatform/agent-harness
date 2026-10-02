@@ -52,8 +52,14 @@ export async function installQuota(options = {}) {
     const opencodeDir = path.join(process.cwd(), '.opencode')
     const opencodePath = path.join(process.cwd(), 'opencode.jsonc')
     const pkgPath = path.join(opencodeDir, 'package.json')
-    const quotaDir = path.join(opencodeDir, 'opencode-quota')
-    const quotaPath = path.join(quotaDir, 'quota-toast.json')
+
+    // opencode-quota 5.x reads its settings from `opencode-quota/quota-toast.jsonc`
+    // next to the OpenCode config (project root), not from `.opencode/`. The old
+    // `.opencode/opencode-quota/quota-toast.json` is the v4 location and is migrated
+    // below so the settings actually take effect.
+    const quotaDir = path.join(process.cwd(), 'opencode-quota')
+    const quotaPath = path.join(quotaDir, 'quota-toast.jsonc')
+    const legacyQuotaPath = path.join(opencodeDir, 'opencode-quota', 'quota-toast.json')
 
     let opencodeText = JSON.stringify({ $schema: 'https://opencode.ai/config.json' }, null, 2)
     let opencode
@@ -95,16 +101,31 @@ export async function installQuota(options = {}) {
     await fse.writeFile(opencodePath, opencodeText, 'utf-8')
     await fse.writeJson(pkgPath, pkg, { spaces: 2 })
 
-    const quotaConfig = await fse.pathExists(quotaPath)
-      ? await fse.readJson(quotaPath)
-      : {}
+    // Carry over any existing settings (new location first, then the legacy
+    // v4 file) and layer the recommended defaults on top. The edge defaults
+    // disable toasts and reset notifications and keep slash reports inline.
+    let quotaConfig = {}
+    if (await fse.pathExists(quotaPath)) {
+      quotaConfig = await fse.readJson(quotaPath)
+    } else if (await fse.pathExists(legacyQuotaPath)) {
+      quotaConfig = await fse.readJson(legacyQuotaPath)
+    }
 
     Object.assign(quotaConfig, quotaPreset.defaults)
 
     await fse.ensureDir(quotaDir)
     await fse.writeJson(quotaPath, quotaConfig, { spaces: 2 })
 
-    success('opencode-quota configured (manual setup)')
+    if (await fse.pathExists(legacyQuotaPath)) {
+      await fse.remove(legacyQuotaPath)
+      const legacyDir = path.dirname(legacyQuotaPath)
+      if ((await fse.readdir(legacyDir)).length === 0) {
+        await fse.remove(legacyDir)
+      }
+      info('Moved opencode-quota settings to opencode-quota/quota-toast.jsonc')
+    }
+
+    success('opencode-quota configured (popups and notifications disabled)')
     info('Restart OpenCode and run /quota to verify')
     return { optedIn: true, installed: true }
   } catch (err) {

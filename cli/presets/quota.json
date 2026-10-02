@@ -11,6 +11,10 @@
     "percentDisplayMode": "used",
     "showSessionTokens": true,
     "enableToast": false,
-    "tuiCommandDisplay": "inline"
+    "resetNotifications": { "enabled": false },
+    "tuiCommandDisplay": "inline",
+    "tuiCompactStatus": { "enabled": false },
+    "tuiPromptBar": { "enabled": false },
+    "tuiSidebarPanel": { "enabled": true }
   }
 }
