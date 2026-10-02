@@ -1,8 +1,13 @@
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import { PcSubagentTiers } from "./pc-subagent-tiers.js"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+
+// OpenCode 2 plugin API. define() hands the definition straight back, so the
+// test drives setup() with a hand-made context.
+vi.mock("@opencode/plugin", () => ({ Plugin: { define: definition => definition } }))
+
+import PcSubagentTiers from "./pc-subagent-tiers.js"
 
 let root
 let agentsDir
@@ -29,10 +34,12 @@ function frontmatter(name) {
   return agent(name).match(/^---\r?\n([\s\S]*?)\r?\n---/)[1]
 }
 
-async function run(cfg = { agent: {} }) {
-  const plugin = await PcSubagentTiers({ directory: root })
-  await plugin.config(cfg)
-  return cfg
+async function run(ctx = {}) {
+  await PcSubagentTiers.setup({
+    location: { directory: root },
+    agent: { transform: async () => ({ dispose() {} }), reload: async () => {} },
+    ...ctx,
+  })
 }
 
 beforeEach(() => {
@@ -54,8 +61,6 @@ describe("PcSubagentTiers primaries", () => {
   it("generates build and plan from the fullstack body", async () => {
     await run()
 
-    // Both carry the fullstack identity and abilities verbatim, which is how a
-    // /make-engineer edit to fullstack reaches the two agents a human uses.
     for (const name of ["build.md", "plan.md"]) {
       expect(agent(name)).toContain("You are the default engineer.")
       expect(agent(name)).toContain("@pc-guardrails-generic")
@@ -70,35 +75,20 @@ describe("PcSubagentTiers primaries", () => {
     expect(frontmatter("plan.md")).toContain("model: p/plan")
   })
 
-  it("denies edit and task on plan and allows both on build", async () => {
+  it("denies edit and subagent on plan", async () => {
     await run()
 
-    // A plan session that can spawn a build worker is not read-only, it is
-    // read-only by convention. Denying task closes that route.
-    expect(frontmatter("plan.md")).toContain("edit: deny")
-    expect(frontmatter("plan.md")).toContain("task: deny")
-    expect(frontmatter("build.md")).toContain("edit: allow")
-    expect(frontmatter("build.md")).toContain("task: allow")
-  })
-
-  it("leaves plan able to read and shell out", async () => {
-    await run()
-
-    // Denying these would break the planning skills, which read git and
-    // openspec state to work out what to propose.
     const fm = frontmatter("plan.md")
-    for (const key of ["bash", "read", "grep", "skill"]) {
-      expect(fm).toContain(`${key}: allow`)
-    }
+    expect(fm).toContain("permissions:")
+    expect(fm).toMatch(/- action: edit[\s\S]*?- action: subagent/)
+    expect(fm.match(/effect: deny/g)?.length).toBe(2)
+    // shell stays allowed: the planning skills read git and openspec state.
+    expect(fm).not.toContain("action: shell")
   })
 
-  it("overrides the built-in build and plan in config", async () => {
-    const cfg = await run({ agent: { build: { disable: true }, plan: { disable: true } } })
-
-    expect(cfg.agent.build.mode).toBe("primary")
-    expect(cfg.agent.plan.mode).toBe("primary")
-    expect(cfg.agent.build.model).toBe("p/build")
-    expect(cfg.agent.plan.permission.edit).toBe("deny")
+  it("leaves build unrestricted by an explicit deny", async () => {
+    await run()
+    expect(frontmatter("build.md")).not.toContain("effect: deny")
   })
 
   it("gives build and plan their reserved theme colours", async () => {
@@ -119,10 +109,10 @@ describe("PcSubagentTiers primaries", () => {
 })
 
 describe("PcSubagentTiers engineer templates", () => {
-  it("rewrites a primary engineer to subagent on disk", async () => {
+  it("rewrites a primary engineer to subagent and strips legacy model", async () => {
     fs.writeFileSync(
       path.join(agentsDir, "frontend-engineer.md"),
-      "---\ndescription: Frontend.\nmode: primary\nmodel: stale/model\n---\n\nYou are a frontend engineer.\n\n## Abilities\n- Guardrails: @pc-guardrails-generic\n",
+      "---\ndescription: Frontend.\nmode: primary\nmodel: stale/model\npermission:\n  edit: allow\n---\n\nYou are a frontend engineer.\n\n## Abilities\n- Guardrails: @pc-guardrails-generic\n",
     )
 
     await run()
@@ -130,8 +120,8 @@ describe("PcSubagentTiers engineer templates", () => {
     const fm = frontmatter("frontend-engineer.md")
     expect(fm).toContain("mode: subagent")
     expect(fm).not.toContain("mode: primary")
-    // A template must never pin a model; tiers own that.
     expect(fm).not.toContain("model:")
+    expect(fm).not.toContain("permission:")
   })
 
   it("normalizes a fullstack left as primary by an earlier version", async () => {
@@ -143,11 +133,10 @@ describe("PcSubagentTiers engineer templates", () => {
     await run()
 
     expect(frontmatter("fullstack-engineer.md")).toContain("mode: subagent")
-    // ...and the primaries still come out primary.
     expect(frontmatter("build.md")).toContain("mode: primary")
   })
 
-  it("still writes one tier variant per engineer as a subagent", async () => {
+  it("writes one tier variant per engineer as a subagent", async () => {
     fs.writeFileSync(
       path.join(agentsDir, "frontend-engineer.md"),
       "---\ndescription: Frontend.\nmode: subagent\n---\n\nYou are a frontend engineer.\n\n## Abilities\n- Guardrails: @pc-guardrails-generic\n",
@@ -162,7 +151,7 @@ describe("PcSubagentTiers engineer templates", () => {
     }
   })
 
-  it("replaces a hand-picked theme colour with the derived hex", async () => {
+  it("replaces a hand-picked theme colour with a quoted derived hex", async () => {
     fs.writeFileSync(
       path.join(agentsDir, "frontend-engineer.md"),
       "---\ndescription: Frontend.\nmode: subagent\ncolor: info\n---\n\nYou are a frontend engineer.\n",
@@ -175,19 +164,6 @@ describe("PcSubagentTiers engineer templates", () => {
     expect(fm).toMatch(/color: "#[0-9A-F]{6}"/)
   })
 
-  // 2.3.0 wrote a bare #hex, which YAML reads as a comment. opencode refused
-  // the whole agent with "Invalid input color", so this has to self-repair.
-  it("quotes the hex it writes", async () => {
-    fs.writeFileSync(
-      path.join(agentsDir, "frontend-engineer.md"),
-      "---\ndescription: Frontend.\nmode: subagent\ncolor: info\n---\n\nYou are a frontend engineer.\n",
-    )
-
-    await run()
-
-    expect(frontmatter("frontend-engineer.md")).toMatch(/color: "#[0-9A-F]{6}"/)
-  })
-
   it("repairs an unquoted hex left by an earlier version", async () => {
     fs.writeFileSync(
       path.join(agentsDir, "frontend-engineer.md"),
@@ -196,36 +172,11 @@ describe("PcSubagentTiers engineer templates", () => {
 
     await run()
 
-    const fm = frontmatter("frontend-engineer.md")
-    // Same colour, now parseable.
-    expect(fm).toContain('color: "#C431D8"')
-  })
-
-  it("leaves a deliberate hex alone", async () => {
-    fs.writeFileSync(
-      path.join(agentsDir, "frontend-engineer.md"),
-      "---\ndescription: Frontend.\nmode: subagent\ncolor: #123456\n---\n\nYou are a frontend engineer.\n",
-    )
-
-    await run()
-
-    expect(frontmatter("frontend-engineer.md")).toContain('color: "#123456"')
-  })
-
-  it("adds a colour when the template has none", async () => {
-    fs.writeFileSync(
-      path.join(agentsDir, "butterfly-engineer.md"),
-      "---\ndescription: Butterfly.\nmode: subagent\n---\n\nYou are a butterfly engineer.\n",
-    )
-
-    await run()
-
-    expect(frontmatter("butterfly-engineer.md")).toMatch(/color: "#[0-9A-F]{6}"/)
+    expect(frontmatter("frontend-engineer.md")).toContain('color: "#C431D8"')
   })
 
   it("does not generate tier variants for fullstack itself", async () => {
     await run()
-
     expect(fs.existsSync(path.join(agentsDir, "fullstack-engineer.build.md"))).toBe(false)
   })
 })

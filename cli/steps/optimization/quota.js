@@ -16,11 +16,6 @@ export function splitPackageSpec(spec) {
   return { name: spec.slice(0, separator), version: spec.slice(separator + 1) }
 }
 
-function ensurePlugin(config) {
-  if (!Array.isArray(config.plugin)) config.plugin = []
-  if (!config.plugin.includes(PLUGIN)) config.plugin.push(PLUGIN)
-}
-
 export async function installQuota(options = {}) {
   if (!options.skipHeader) header('Installing opencode-quota')
 
@@ -57,7 +52,6 @@ export async function installQuota(options = {}) {
     const opencodeDir = path.join(process.cwd(), '.opencode')
     const opencodePath = path.join(process.cwd(), 'opencode.jsonc')
     const pkgPath = path.join(opencodeDir, 'package.json')
-    const tuiPath = path.join(opencodeDir, 'tui.json')
     const quotaDir = path.join(opencodeDir, 'opencode-quota')
     const quotaPath = path.join(quotaDir, 'quota-toast.json')
 
@@ -78,18 +72,20 @@ export async function installQuota(options = {}) {
       ? await fse.readJson(pkgPath)
       : {}
 
-    const tui = await fse.pathExists(tuiPath)
-      ? await fse.readJson(tuiPath)
-      : { $schema: 'https://opencode.ai/tui.json' }
-
-    const plugins = Array.isArray(opencode.plugin) ? opencode.plugin : []
+    // V2 configures server plugins under `plugins`. A V1 `plugin` array found
+    // here is carried over so the quota entry is not lost when the config
+    // patcher has not run first.
+    const plugins = Array.isArray(opencode.plugins)
+      ? [...opencode.plugins]
+      : Array.isArray(opencode.plugin)
+        ? [...opencode.plugin]
+        : []
     if (!plugins.includes(PLUGIN)) {
       plugins.push(PLUGIN)
-      opencodeText = applyEdits(opencodeText, modify(opencodeText, ['plugin'], plugins, {
+      opencodeText = applyEdits(opencodeText, modify(opencodeText, ['plugins'], plugins, {
         formattingOptions: { insertSpaces: true, tabSize: 2 },
       }))
     }
-    ensurePlugin(tui)
 
     if (!pkg.dependencies) pkg.dependencies = {}
     const { name: pkgName, version: pkgVersion } = splitPackageSpec(PLUGIN)
@@ -98,7 +94,6 @@ export async function installQuota(options = {}) {
     await fse.ensureDir(opencodeDir)
     await fse.writeFile(opencodePath, opencodeText, 'utf-8')
     await fse.writeJson(pkgPath, pkg, { spaces: 2 })
-    await fse.writeJson(tuiPath, tui, { spaces: 2 })
 
     const quotaConfig = await fse.pathExists(quotaPath)
       ? await fse.readJson(quotaPath)

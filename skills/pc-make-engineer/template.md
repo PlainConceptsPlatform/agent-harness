@@ -6,12 +6,6 @@ The whole file, with nothing else in it:
 ---
 description: <one sentence naming the persona + top 3-5 detected technologies>
 mode: subagent
-permission:
-  edit: allow
-  bash: allow
-  read: allow
-  glob: allow
-  grep: allow
 ---
 
 <One paragraph: "You are a {persona} engineer specializing in {top technologies}. You own all work in {scope/files}." Keep it to 2-3 sentences max.>

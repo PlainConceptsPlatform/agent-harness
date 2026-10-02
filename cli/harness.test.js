@@ -67,67 +67,64 @@ describe("OpenCode config template", () => {
     expect(fs.existsSync(path.join(CONTENT_DIR, ".opencode", "opencode.json"))).toBe(false)
   })
 
-  it("pins external OpenCode plugins and the agent-browser MCP server", () => {
+  it("pins the OpenCode 2 plugin API and the agent-browser MCP server", () => {
     const config = parseJsonc(fs.readFileSync(path.join(CONTENT_DIR, "opencode.jsonc"), "utf-8"))
     const packageConfig = JSON.parse(fs.readFileSync(path.join(CONTENT_DIR, ".opencode", "package.json"), "utf-8"))
     const quota = JSON.parse(fs.readFileSync(path.join(__dirname, "presets", "quota.json"), "utf-8"))
 
-    expect(config.plugin).toEqual([
-      "@mohak34/opencode-notifier@0.2.8",
-    ])
-    expect(config.mcp["agent-browser"]).toEqual({
+    expect(config.mcp.servers["agent-browser"]).toEqual({
       type: "local",
       command: ["agent-browser", "mcp", "--tools", "core"],
-      enabled: true,
+      disabled: false,
     })
-    expect(config.plugin.join(" ")).not.toContain("@different-ai/opencode-browser")
-    expect(packageConfig.dependencies["@opencode-ai/plugin"]).toBe("1.18.19")
-    expect(packageConfig.dependencies["@opentui/core"]).toBe("0.5.6")
-    expect(packageConfig.dependencies["@different-ai/opencode-browser"]).toBeUndefined()
-    expect(packageConfig.dependencies["@mohak34/opencode-notifier"]).toBe("0.2.8")
-    expect(quota.plugin).toBe("@slkiser/opencode-quota@4.2.0")
+    expect(config.plugins).toBeUndefined()
+    expect(packageConfig.dependencies["@opencode/plugin"]).toBe("2.0.22")
+    expect(packageConfig.dependencies["@opencode-ai/plugin"]).toBeUndefined()
+    expect(packageConfig.dependencies["@mohak34/opencode-notifier"]).toBeUndefined()
+    expect(quota.plugin).toBe("@slkiser/opencode-quota@5.0.1")
   })
 
   it("ships the always-on system reminder plugin", () => {
     const plugin = fs.readFileSync(path.join(CONTENT_DIR, ".opencode", "plugins", "pc-system-reminders.js"), "utf-8")
 
-    expect(plugin).toContain("experimental.chat.messages.transform")
+    expect(plugin).toContain("permission.hook")
     expect(plugin).toContain("pc-guardrails-generic")
   })
 
-  // The rules the harness states as "never" are denied in a hook rather than
-  // argued for in prose. Two plugins carry that, and the prose that points at
-  // them (below) is only true while the hook is there.
-  it("enforces the never-rules in tool.execute.before", () => {
+  // The rules the harness states as "never" are denied in a permission hook
+  // rather than argued for in prose. Two plugins carry that, and the prose that
+  // points at them (below) is only true while the hook is there.
+  it("enforces the never-rules in the permission evaluate hook", () => {
     const plugins = path.join(CONTENT_DIR, ".opencode", "plugins")
     const reminders = fs.readFileSync(path.join(plugins, "pc-system-reminders.js"), "utf-8")
     const monitor = fs.readFileSync(path.join(plugins, "pc-subagent-monitor.js"), "utf-8")
 
-    expect(reminders).toContain("tool.execute.before")
-    expect(monitor).toContain("tool.execute.before")
+    expect(reminders).toContain("permission.hook")
+    expect(reminders).toContain('"evaluate"')
+    expect(monitor).toContain("permission.hook")
 
-    // The agent never arrives with the hook input, so the deny needs the
-    // session-to-agent map that chat.params fills.
-    expect(reminders).toContain("chat.params")
-
-    // A gate over the tools that satisfy the gate would deadlock the session.
-    const gated = /GATED_TOOLS = new Set\(\[([^\]]*)\]\)/.exec(reminders)?.[1] ?? ""
+    // A gate over the actions that satisfy the gate would deadlock the session.
+    const gated = /GATED_ACTIONS = new Set\(\[([^\]]*)\]\)/.exec(reminders)?.[1] ?? ""
     expect(gated).toContain("edit")
-    expect(gated).toContain("bash")
-    expect(gated).toContain("task")
-    for (const tool of ["skill", "read", "grep", "glob"]) {
-      expect(gated).not.toContain(`"${tool}"`)
+    expect(gated).toContain("shell")
+    expect(gated).toContain("subagent")
+    for (const action of ["skill", "read", "grep", "glob"]) {
+      expect(gated).not.toContain(`"${action}"`)
     }
   })
 
-  it("denies edit and task for the plan primary", () => {
+  it("denies edit and subagent for the plan primary", () => {
     const tiers = fs.readFileSync(path.join(CONTENT_DIR, ".opencode", "plugins", "pc-subagent-tiers.js"), "utf-8")
     const config = parseJsonc(fs.readFileSync(path.join(CONTENT_DIR, "opencode.jsonc"), "utf-8"))
 
-    // Read-only has to include spawning: a plan session that can call task()
-    // can have a build worker make the change for it.
-    expect(tiers).toContain(`permission: { edit: "deny", task: "deny" }`)
-    expect(config.agent.plan.permission).toEqual({ edit: "deny", task: "deny" })
+    // Read-only has to include spawning: a plan session that can launch a build
+    // worker can have one make the change for it.
+    expect(tiers).toContain('action: "edit"')
+    expect(tiers).toContain('action: "subagent"')
+    expect(config.agents.plan.permissions).toEqual([
+      { action: "edit", resource: "*", effect: "deny" },
+      { action: "subagent", resource: "*", effect: "deny" },
+    ])
   })
 })
 

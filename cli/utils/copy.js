@@ -40,7 +40,6 @@ function isTemplateTest(relativePath) {
 export function isManagedContentPath(relativePath) {
   const normalized = relativePath.split(path.sep).join('/')
   if (normalized.startsWith('.opencode/plugins/')) return true
-  if (normalized === '.opencode/tui/pc-subagents.tsx') return true
   if (normalized.startsWith('.opencode/commands/') && !MARKER_COMMANDS.has(normalized)) return true
   return normalized === 'openspec/specs/.gitkeep' || normalized === 'openspec/changes/archive/.gitkeep'
 }

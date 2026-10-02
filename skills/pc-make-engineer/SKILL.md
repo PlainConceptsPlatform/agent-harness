@@ -11,7 +11,7 @@ Create one file, `.opencode/agents/{persona}-engineer.md`, from the [template](t
 - Never write the agent file before the user has confirmed the skill set and it is installed. An engineer whose abilities do not exist cannot work.
 - Never write `model:` or `color:`. `pc-subagent-tiers` injects both at startup, so a hand-picked colour is overwritten.
 - Never create `*.build.md`, `*.fast.md`, `*.plan.md`, `build.md` or `plan.md`. The plugin regenerates all of them every startup and anything written there is lost.
-- `mode: subagent`. Engineers are reached through `task()`, and a primary would clutter the two-entry list a human picks from.
+- `mode: subagent`. Engineers are reached through the subagent tool, and a primary would clutter the two-entry list a human picks from.
 - The only `##` heading is `## Abilities`, and the identity paragraph is two or three sentences carrying no project knowledge.
 - Every `@skill` under `## Abilities` exists in `.agents/skills/` and in `skills-lock.json`. A name that is not installed is skipped rather than blocking the worker, so a typo costs the agent that ability in silence.
 - Project-local installs only: `npx skills add -y ...`, never `-g`.

@@ -87,7 +87,7 @@ Skills live in `skills/pc-*/SKILL.md` at the repo root with YAML frontmatter (`n
 
 - `skills/` at the repo root is the single home for skills: `pc-*` + `browser-automation` (CLI installable, the harness copies into target projects) plus `agent-harness-cli` (CLI-self, never copied). `agent-harness-cli` is excluded from installs via `NON_INSTALLABLE_SKILLS` in `cli/steps/copy/skills.js`. Skills shipped with the CLI are auto-discovered by `npx skills`.
 - `.agents/skills/` at the repo root (if present) contains dev-only third-party skills for working on THIS repo (caveman, create-agentsmd, humanizer, writing-great-skills). These are development tools sourced via `skills-lock.json`, not part of the CLI content shipped to users.
-- `harness/.opencode/node_modules/` and `harness/.opencode/package-lock.json` exist because the content templates include their own package.json for the TUI plugins. These are gitignored and excluded from ESLint.
+- `harness/.opencode/node_modules/` and `harness/.opencode/package-lock.json` exist because the content templates include their own package.json for the server plugins. These are gitignored and excluded from ESLint.
 - The `files` field in `package.json` controls what ships to npm: `cli`, `harness`, and `skills` (each excluding tests and node_modules).
 
 ## PR instructions

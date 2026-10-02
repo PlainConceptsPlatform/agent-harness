@@ -21,175 +21,186 @@ afterEach(() => {
   fs.rmSync(tmpDir, { recursive: true, force: true })
 })
 
+function writeConfig(config) {
+  fs.writeFileSync(path.join(tmpDir, 'opencode.jsonc'), JSON.stringify(config, null, 2))
+}
+
 function readConfig() {
   return JSON.parse(fs.readFileSync(path.join(tmpDir, 'opencode.jsonc'), 'utf-8'))
 }
 
-describe('patchOpencodeJson()', () => {
-  // Repos onboarded by 2.0.x carry `disable: true` on both agents. Leaving it
-  // would hide build and plan entirely, since disable wins over mode.
-  it('clears the disable flag left by earlier versions', async () => {
-    fs.writeFileSync(
-      path.join(tmpDir, 'opencode.jsonc'),
-      JSON.stringify({
-        $schema: 'https://opencode.ai/config.json',
-        default_agent: 'fullstack-engineer',
-        agent: { build: { disable: true }, plan: { disable: true } },
-      }, null, 2),
-    )
+const NATIVE_PLAN_PERMISSIONS = [
+  { action: 'edit', resource: '*', effect: 'deny' },
+  { action: 'subagent', resource: '*', effect: 'deny' },
+]
 
+describe('patchOpencodeJson()', () => {
+  it('creates the file with the native V2 agent block when missing', async () => {
     const result = await patchOpencodeJson()
     expect(result.patched).toBe(true)
 
     const config = readConfig()
-    expect(config.agent.build.disable).toBeUndefined()
-    expect(config.agent.plan.disable).toBeUndefined()
-    expect(config.agent.build.mode).toBe('primary')
-    expect(config.agent.plan.mode).toBe('primary')
-    expect(config.agent.plan.permission).toEqual({ edit: 'deny', task: 'deny' })
+    expect(config.$schema).toBe('https://opencode.ai/config.json')
+    expect(config.default_agent).toBe('plan')
+    expect(config.agents.build.mode).toBe('primary')
+    expect(config.agents.plan.mode).toBe('primary')
+    expect(config.agents.plan.permissions).toEqual(NATIVE_PLAN_PERMISSIONS)
+    expect(config.skills).toEqual(['.agents/skills'])
   })
 
-  // fullstack-engineer became a subagent when build and plan took over as the
-  // only primaries, so a default_agent pointing at it leaves opencode with no
-  // valid agent to open a session with.
-  it('repoints a default_agent left on fullstack-engineer', async () => {
-    fs.writeFileSync(
-      path.join(tmpDir, 'opencode.jsonc'),
-      JSON.stringify({ default_agent: 'fullstack-engineer' }, null, 2),
-    )
+  it('migrates a V1 agent block: disable, mode and permission map', async () => {
+    writeConfig({
+      $schema: 'https://opencode.ai/config.json',
+      default_agent: 'fullstack-engineer',
+      agent: {
+        build: { disable: true },
+        plan: { disable: true, permission: { edit: 'deny', task: 'deny' } },
+      },
+    })
 
     await patchOpencodeJson()
 
-    expect(readConfig().default_agent).toBe('plan')
-  })
-
-  it('defaults a config that never had one to plan', async () => {
-    await patchOpencodeJson()
-
-    expect(readConfig().default_agent).toBe('plan')
+    const config = readConfig()
+    expect(config.agent).toBeUndefined()
+    expect(config.agents.build.disabled).toBeUndefined()
+    expect(config.agents.build.disable).toBeUndefined()
+    expect(config.agents.build.mode).toBe('primary')
+    expect(config.agents.plan.permissions).toEqual(NATIVE_PLAN_PERMISSIONS)
+    expect(config.default_agent).toBe('plan')
   })
 
   it('leaves a deliberate choice of build alone', async () => {
-    fs.writeFileSync(
-      path.join(tmpDir, 'opencode.jsonc'),
-      JSON.stringify({ default_agent: 'build' }, null, 2),
-    )
-
+    writeConfig({ default_agent: 'build' })
     await patchOpencodeJson()
-
     expect(readConfig().default_agent).toBe('build')
   })
 
-  it('creates the file with agent block when missing', async () => {
-    await patchOpencodeJson()
-
-    const config = readConfig()
-    expect(config.agent.build.mode).toBe('primary')
-    expect(config.agent.plan.mode).toBe('primary')
-    expect(config.agent.plan.permission).toEqual({ edit: 'deny', task: 'deny' })
-    expect(config.agent.build.disable).toBeUndefined()
-    expect(config.agent.plan.disable).toBeUndefined()
-    expect(config.$schema).toBe('https://opencode.ai/config.json')
-    expect(config.permission.question).toBe('allow')
-    expect(config.permission.todowrite).toBe('allow')
-    expect(config.permission.skill).toBe('allow')
-    expect(config.skills.paths).toEqual(['.agents/skills'])
-  })
-
-  it('adds agent block to existing config without touching other keys', async () => {
-    fs.writeFileSync(
-      path.join(tmpDir, 'opencode.jsonc'),
-      JSON.stringify({
-        $schema: 'https://opencode.ai/config.json',
-        model: 'anthropic/claude-sonnet-4-5',
-        plugin: ['some-plugin'],
-      }, null, 2),
-    )
+  it('moves a V1 permission map into permission rules and drops todowrite', async () => {
+    writeConfig({
+      permission: { question: 'allow', todowrite: 'allow', skill: 'allow' },
+    })
 
     await patchOpencodeJson()
 
     const config = readConfig()
-    expect(config.agent.build.mode).toBe('primary')
-    expect(config.agent.plan.mode).toBe('primary')
-    expect(config.agent.plan.permission).toEqual({ edit: 'deny', task: 'deny' })
-    expect(config.agent.build.disable).toBeUndefined()
-    expect(config.agent.plan.disable).toBeUndefined()
-    expect(config.model).toBe('anthropic/claude-sonnet-4-5')
-    expect(config.plugin).toEqual(['some-plugin'])
-    expect(config.skills.paths).toEqual(['.agents/skills'])
+    expect(config.permission).toBeUndefined()
+    expect(config.permissions).toEqual(
+      expect.arrayContaining([
+        { action: 'question', resource: '*', effect: 'allow' },
+        { action: 'skill', resource: '*', effect: 'allow' },
+      ]),
+    )
+    expect(config.permissions.find(rule => rule.action === 'todowrite')).toBeUndefined()
   })
 
-  it('does not write when build/plan are already overridden and skill loading is allowed', async () => {
-    fs.writeFileSync(
-      path.join(tmpDir, 'opencode.jsonc'),
-      JSON.stringify({
-        $schema: 'https://opencode.ai/config.json',
-        default_agent: 'plan',
-        agent: {
-          build: { mode: 'primary' },
-          plan: { mode: 'primary', permission: { edit: 'deny', task: 'deny' } },
-        },
-        permission: {
-          question: 'allow',
-          todowrite: 'allow',
-          skill: 'allow',
-        },
-        skills: { paths: ['.agents/skills'] },
-        compaction: { auto: true, prune: true },
-        mcp: {
-          'agent-browser': { type: 'local', command: ['agent-browser', 'mcp', '--tools', 'core'], enabled: true },
-        },
-      }, null, 2),
-    )
+  it('renames V1 action names inside agent permissions', async () => {
+    writeConfig({ agent: { reviewer: { permission: { bash: 'deny', task: 'ask' } } } })
+
+    await patchOpencodeJson()
+
+    expect(readConfig().agents.reviewer.permissions).toEqual([
+      { action: 'shell', resource: '*', effect: 'deny' },
+      { action: 'subagent', resource: '*', effect: 'ask' },
+    ])
+  })
+
+  it('converts skills.paths into the V2 skills array, preserving other paths', async () => {
+    writeConfig({ skills: { paths: ['/custom/skills'] } })
+
+    await patchOpencodeJson()
+
+    expect(readConfig().skills).toEqual(['/custom/skills', '.agents/skills'])
+  })
+
+  it('drops compaction.prune and moves reserved to buffer', async () => {
+    writeConfig({ compaction: { auto: true, prune: true, reserved: 12000 } })
+
+    await patchOpencodeJson()
+
+    const config = readConfig()
+    expect(config.compaction.prune).toBeUndefined()
+    expect(config.compaction.reserved).toBeUndefined()
+    expect(config.compaction.auto).toBe(true)
+    expect(config.compaction.buffer).toBe(12000)
+  })
+
+  it('moves V1 plugins to plugins, dropping the plugin API and the native-replaced notifier', async () => {
+    writeConfig({
+      plugin: [
+        '@opencode-ai/plugin@1.17.13',
+        '@mohak34/opencode-notifier@0.2.8',
+        '@different-ai/opencode-browser@4.6.1',
+        '@slkiser/opencode-quota@4.2.0',
+        'some-other-plugin',
+      ],
+    })
+
+    await patchOpencodeJson()
+
+    const config = readConfig()
+    expect(config.plugin).toBeUndefined()
+    expect(config.plugins).toEqual(['@slkiser/opencode-quota@5.0.1', 'some-other-plugin'])
+  })
+
+  it('moves MCP servers under mcp.servers and inverts enabled', async () => {
+    writeConfig({
+      mcp: {
+        playwright: { type: 'local', command: ['npx', '@playwright/mcp'], enabled: true, timeout: 120000 },
+      },
+    })
+
+    await patchOpencodeJson()
+
+    const config = readConfig()
+    expect(config.mcp.servers.playwright).toEqual({
+      type: 'local',
+      command: ['npx', '@playwright/mcp'],
+      disabled: false,
+      timeout: { catalog: 120000, execution: 120000 },
+    })
+    expect(config.mcp.timeout).toEqual({ catalog: 120000, execution: 120000 })
+  })
+
+  it('strips V1-only experimental fields', async () => {
+    writeConfig({ experimental: { openTelemetry: true, mcp_timeout: 300000, keep_me: 1 } })
+
+    await patchOpencodeJson()
+
+    expect(readConfig().experimental).toEqual({ keep_me: 1 })
+  })
+
+  it('is a no-op on a config that is already native V2', async () => {
+    writeConfig({
+      $schema: 'https://opencode.ai/config.json',
+      default_agent: 'plan',
+      agents: {
+        build: { mode: 'primary' },
+        plan: { mode: 'primary', permissions: NATIVE_PLAN_PERMISSIONS },
+      },
+      permissions: [
+        { action: 'question', resource: '*', effect: 'allow' },
+        { action: 'skill', resource: '*', effect: 'allow' },
+      ],
+      skills: ['.agents/skills'],
+      compaction: { auto: true, buffer: 10000 },
+      mcp: {
+        servers: { 'agent-browser': { type: 'local', command: ['agent-browser', 'mcp', '--tools', 'core'], disabled: false } },
+        timeout: { catalog: 300000, execution: 300000 },
+      },
+    })
 
     const result = await patchOpencodeJson()
     expect(result.patched).toBe(false)
   })
 
-  it('allows all skills when only skill permission is missing', async () => {
-    fs.writeFileSync(
-      path.join(tmpDir, 'opencode.jsonc'),
-      JSON.stringify({
-        $schema: 'https://opencode.ai/config.json',
-        agent: {
-          build: { mode: 'primary' },
-          plan: { mode: 'primary', permission: { edit: 'deny', task: 'deny' } },
-        },
-        permission: { skill: { 'internal-*': 'deny' } },
-      }, null, 2),
-    )
-
-    const result = await patchOpencodeJson()
-    expect(result.patched).toBe(true)
-
-    const config = readConfig()
-    expect(config.permission.skill).toBe('allow')
-  })
-
-  it('creates skill permissions when the file is missing', async () => {
-    await patchOpencodeJson()
-
-    const config = readConfig()
-    expect(config.permission.skill).toBe('allow')
-    expect(config.permission.question).toBe('allow')
-    expect(config.permission.todowrite).toBe('allow')
-    expect(config.skills.paths).toEqual(['.agents/skills'])
-  })
-
-  it('preserves comments in JSONC files', async () => {
-    const jsonc = `{
-  // This is a comment
-  "$schema": "https://opencode.ai/config.json",
-  "model": "anthropic/claude-sonnet-4-5"
-}
-`
-    fs.writeFileSync(path.join(tmpDir, 'opencode.jsonc'), jsonc)
+  it('preserves keys it does not know about', async () => {
+    writeConfig({ model: 'plainconcepts/quasar-438b', custom_key: { keep: true } })
 
     await patchOpencodeJson()
 
-    const content = fs.readFileSync(path.join(tmpDir, 'opencode.jsonc'), 'utf-8')
-    expect(content).toContain('This is a comment')
-    expect(content).toContain('"mode": "primary"')
+    const config = readConfig()
+    expect(config.model).toBe('plainconcepts/quasar-438b')
+    expect(config.custom_key).toEqual({ keep: true })
   })
 
   it('returns patched:false on parse error', async () => {
@@ -199,143 +210,10 @@ describe('patchOpencodeJson()', () => {
     expect(result.patched).toBe(false)
     expect(result.reason).toBe('parse error')
   })
-
-  it('adds .agents/skills to skills.paths when missing', async () => {
-    fs.writeFileSync(
-      path.join(tmpDir, 'opencode.jsonc'),
-      JSON.stringify({
-        $schema: 'https://opencode.ai/config.json',
-        agent: {
-          build: { mode: 'primary' },
-          plan: { mode: 'primary', permission: { edit: 'deny', task: 'deny' } },
-        },
-        permission: {
-          question: 'allow',
-          todowrite: 'allow',
-          skill: 'allow',
-        },
-      }, null, 2),
-    )
-
-    const result = await patchOpencodeJson()
-    expect(result.patched).toBe(true)
-
-    const config = readConfig()
-    expect(config.skills.paths).toEqual(['.agents/skills'])
-  })
-
-  it('appends .agents/skills to existing skills.paths without removing other paths', async () => {
-    fs.writeFileSync(
-      path.join(tmpDir, 'opencode.jsonc'),
-      JSON.stringify({
-        $schema: 'https://opencode.ai/config.json',
-        agent: {
-          build: { mode: 'primary' },
-          plan: { mode: 'primary', permission: { edit: 'deny', task: 'deny' } },
-        },
-        permission: {
-          question: 'allow',
-          todowrite: 'allow',
-          skill: 'allow',
-        },
-        skills: { paths: ['/custom/skills'] },
-      }, null, 2),
-    )
-
-    const result = await patchOpencodeJson()
-    expect(result.patched).toBe(true)
-
-    const config = readConfig()
-    expect(config.skills.paths).toEqual(['/custom/skills', '.agents/skills'])
-  })
-
-  // agent-browser replaced the @different-ai/opencode-browser plugin: update
-  // must strip any stale plugin entry and add the agent-browser MCP server.
-  it('strips the stale opencode-browser plugin and adds the agent-browser MCP server', async () => {
-    fs.writeFileSync(
-      path.join(tmpDir, 'opencode.jsonc'),
-      JSON.stringify({
-        $schema: 'https://opencode.ai/config.json',
-        plugin: [
-          '@different-ai/opencode-browser@4.6.1',
-          '@mohak34/opencode-notifier@0.2.8',
-        ],
-      }, null, 2),
-    )
-
-    const result = await patchOpencodeJson()
-    expect(result.patched).toBe(true)
-
-    const config = readConfig()
-    expect(config.plugin).toEqual(['@mohak34/opencode-notifier@0.2.8'])
-    expect(config.mcp['agent-browser']).toEqual({
-      type: 'local',
-      command: ['agent-browser', 'mcp', '--tools', 'core'],
-      enabled: true,
-    })
-  })
-
-  it('adds the agent-browser MCP server on fresh configs', async () => {
-    await patchOpencodeJson()
-
-    const config = readConfig()
-    expect(config.mcp['agent-browser']).toEqual({
-      type: 'local',
-      command: ['agent-browser', 'mcp', '--tools', 'core'],
-      enabled: true,
-    })
-  })
-
-  it('leaves mcp untouched when another server is configured', async () => {
-    fs.writeFileSync(
-      path.join(tmpDir, 'opencode.jsonc'),
-      JSON.stringify({
-        $schema: 'https://opencode.ai/config.json',
-        mcp: {
-          playwright: { type: 'local', command: ['npx', '@playwright/mcp'] },
-          'agent-browser': { type: 'local', command: ['agent-browser', 'mcp', '--tools', 'core'], enabled: true },
-        },
-      }, null, 2),
-    )
-
-    const result = await patchOpencodeJson()
-    expect(result.patched).toBe(true)
-
-    const config = readConfig()
-    expect(config.mcp.playwright).toEqual({ type: 'local', command: ['npx', '@playwright/mcp'] })
-    expect(config.mcp['agent-browser'].command).toEqual(['agent-browser', 'mcp', '--tools', 'core'])
-  })
-
-  it('is a no-op when the agent-browser MCP server is already exact', async () => {
-    fs.writeFileSync(
-      path.join(tmpDir, 'opencode.jsonc'),
-      JSON.stringify({
-        $schema: 'https://opencode.ai/config.json',
-        default_agent: 'plan',
-        agent: {
-          build: { mode: 'primary' },
-          plan: { mode: 'primary', permission: { edit: 'deny', task: 'deny' } },
-        },
-        permission: {
-          question: 'allow',
-          todowrite: 'allow',
-          skill: 'allow',
-        },
-        skills: { paths: ['.agents/skills'] },
-        compaction: { auto: true, prune: true },
-        mcp: {
-          'agent-browser': { type: 'local', command: ['agent-browser', 'mcp', '--tools', 'core'], enabled: true },
-        },
-      }, null, 2),
-    )
-
-    const result = await patchOpencodeJson()
-    expect(result.patched).toBe(false)
-  })
 })
 
 describe('patchOpencodePackage()', () => {
-  it('updates only the shipped OpenCode plugin dependencies', async () => {
+  it('pins the V2 plugin API and removes the V1 packages', async () => {
     const packagePath = path.join(tmpDir, '.opencode', 'package.json')
     fs.mkdirSync(path.dirname(packagePath), { recursive: true })
     fs.writeFileSync(packagePath, JSON.stringify({
@@ -344,6 +222,7 @@ describe('patchOpencodePackage()', () => {
         '@opentui/core': '0.3.4',
         '@opentui/solid': '0.3.4',
         'solid-js': '1.9.10',
+        '@mohak34/opencode-notifier': '0.2.8',
         custom: '1.0.0',
       },
     }))
@@ -352,30 +231,8 @@ describe('patchOpencodePackage()', () => {
 
     const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf-8'))
     expect(packageJson.dependencies).toEqual({
-      '@opencode-ai/plugin': '1.18.19',
-      '@opentui/core': '0.5.6',
-      '@opentui/solid': '0.5.6',
-      'solid-js': '1.9.12',
+      '@opencode/plugin': '2.0.22',
       custom: '1.0.0',
     })
-  })
-
-  it('removes the retired opencode-browser dependency', async () => {
-    const packagePath = path.join(tmpDir, '.opencode', 'package.json')
-    fs.mkdirSync(path.dirname(packagePath), { recursive: true })
-    fs.writeFileSync(packagePath, JSON.stringify({
-      dependencies: {
-        '@opencode-ai/plugin': '1.18.19',
-        '@different-ai/opencode-browser': '4.6.1',
-        '@mohak34/opencode-notifier': '0.2.8',
-      },
-    }))
-
-    await patchOpencodePackage()
-
-    const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf-8'))
-    expect(packageJson.dependencies['@different-ai/opencode-browser']).toBeUndefined()
-    expect(packageJson.dependencies['@opencode-ai/plugin']).toBe('1.18.19')
-    expect(packageJson.dependencies['@mohak34/opencode-notifier']).toBe('0.2.8')
   })
 })

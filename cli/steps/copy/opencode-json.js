@@ -1,29 +1,262 @@
 import fse from 'fs-extra'
-import { applyEdits, modify, parse } from 'jsonc-parser'
+import { parse } from 'jsonc-parser'
 import path from 'node:path'
 import { success } from '../../utils/exec.js'
 
-// The reminder plugin loads every agent ability before work, including
-// user-installed skills outside the pc-* and openspec-* namespaces.
-const SHARED_PERMISSIONS = [
-  ['question', 'allow'],
-  ['todowrite', 'allow'],
-]
+// The harness targets OpenCode 2. This patcher migrates a repository's
+// opencode.jsonc from the V1 shape to the native V2 shape, preserving any keys
+// it does not know about. V2 reads V1 config in memory, but the harness wants a
+// file that is already native so behaviour does not depend on the compatibility
+// layer, and the CI merge step requires comment-free JSON.
+//
+// V1 -> V2 field map this handles:
+//   plugin[]            -> plugins[]
+//   permissions object  -> ordered permissions[] rules (bash->shell, task->subagent)
+//   agent{}             -> agents{} (prompt->system, permission->permissions)
+//   skills.paths[]      -> skills[]
+//   mcp.<name>          -> mcp.servers.<name> (enabled -> !disabled)
+//   compaction.prune    -> removed
+//   compaction.reserved -> compaction.buffer
+//   experimental.mcp_timeout -> mcp.timeout.{catalog,execution}
+//   instructions        -> removed (V2 loads AGENTS.md, not this field)
 
-// agent-browser replaced the @different-ai/opencode-browser plugin; any entry
-// with that prefix in the plugin array is stale and gets stripped on update.
-const STALE_BROWSER_PLUGIN_PREFIX = '@different-ai/opencode-browser'
-const AGENT_BROWSER_MCP = {
-  type: 'local',
-  command: ['agent-browser', 'mcp', '--tools', 'core'],
-  enabled: true,
+const CONFIG_SCHEMA = 'https://opencode.ai/config.json'
+
+// Third-party plugins the harness configures, and how they move to V2. The
+// notifier is dropped: V2 has native attention notifications and sounds.
+const OPENCODE_QUOTA_PACKAGE = '@slkiser/opencode-quota'
+const OPENCODE_QUOTA_VERSION = '5.0.1'
+const DROPPED_PLUGIN_PREFIXES = ['@opencode-ai/', '@mohak34/opencode-notifier', '@different-ai/opencode-browser']
+
+// V1 permission keys -> V2 permission actions.
+const ACTION_RENAMES = {
+  bash: 'shell',
+  task: 'subagent',
+  write: 'edit',
+  patch: 'edit',
 }
 
-function applyModify(text, jsonPath, value) {
-  const edits = modify(text, jsonPath, value, {
-    formattingOptions: { insertSpaces: true, tabSize: 2 },
-  })
-  return applyEdits(text, edits)
+function basePackageName(entry) {
+  if (typeof entry !== 'string') return ''
+  const at = entry.lastIndexOf('@')
+  return at > 0 ? entry.slice(0, at) : entry
+}
+
+// V1 permission keys that are not V2 permission actions. todowrite is a built-in
+// tool allowed by the base policy, so it needs no rule.
+const NON_ACTION_PERMISSION_KEYS = new Set(['todowrite'])
+
+function permissionMapToRules(map) {
+  const rules = []
+  for (const [key, value] of Object.entries(map ?? {})) {
+    if (value !== 'allow' && value !== 'deny' && value !== 'ask') continue
+    if (NON_ACTION_PERMISSION_KEYS.has(key)) continue
+    rules.push({ action: ACTION_RENAMES[key] ?? key, resource: '*', effect: value })
+  }
+  return rules
+}
+
+function upsertRules(existing, additions) {
+  const merged = [...existing]
+  for (const rule of additions) {
+    const index = merged.findIndex(r => r.action === rule.action && r.resource === rule.resource)
+    if (index === -1) merged.push(rule)
+    else merged[index] = rule
+  }
+  return merged
+}
+
+function migratePluginArray(obj) {
+  if (!Array.isArray(obj.plugin)) return false
+  const plugins = []
+  for (const entry of obj.plugin) {
+    if (typeof entry !== 'string') {
+      plugins.push(entry)
+      continue
+    }
+    const base = basePackageName(entry)
+    if (DROPPED_PLUGIN_PREFIXES.some(prefix => base.startsWith(prefix))) continue
+    if (base === OPENCODE_QUOTA_PACKAGE) {
+      plugins.push(`${OPENCODE_QUOTA_PACKAGE}@${OPENCODE_QUOTA_VERSION}`)
+      continue
+    }
+    plugins.push(entry)
+  }
+  obj.plugins = plugins
+  delete obj.plugin
+  return true
+}
+
+function migrateAgents(obj) {
+  let changed = false
+  const agents = { ...(obj.agents ?? {}) }
+
+  if (obj.agent && typeof obj.agent === 'object' && !Array.isArray(obj.agent)) {
+    for (const [id, raw] of Object.entries(obj.agent)) {
+      if (!raw || typeof raw !== 'object') continue
+      const agent = { ...raw }
+      if (agent.prompt !== undefined) {
+        agent.system = agent.prompt
+        delete agent.prompt
+      }
+      if (agent.disable !== undefined) {
+        agent.disabled = agent.disable
+        delete agent.disable
+      }
+      if (agent.permission && typeof agent.permission === 'object') {
+        agent.permissions = upsertRules(agent.permissions ?? [], permissionMapToRules(agent.permission))
+        delete agent.permission
+      }
+      delete agent.maxSteps
+      agents[id] = agent
+    }
+    delete obj.agent
+    changed = true
+  }
+
+  // build and plan are the only primaries; plan is read-only. Guarantee both
+  // even when the repo never had an explicit entry.
+  const build = { ...(agents.build ?? {}), mode: 'primary' }
+  delete build.disabled
+  delete build.disable
+  if (JSON.stringify(agents.build) !== JSON.stringify(build)) {
+    agents.build = build
+    changed = true
+  }
+  const plan = {
+    ...(agents.plan ?? {}),
+    mode: 'primary',
+    permissions: upsertRules(agents.plan?.permissions ?? [], [
+      { action: 'edit', resource: '*', effect: 'deny' },
+      { action: 'subagent', resource: '*', effect: 'deny' },
+    ]),
+  }
+  delete plan.disabled
+  delete plan.disable
+  if (JSON.stringify(agents.plan) !== JSON.stringify(plan)) {
+    agents.plan = plan
+    changed = true
+  }
+
+  if (changed) obj.agents = agents
+  return changed
+}
+
+function migrateMcp(obj) {
+  if (!obj.mcp || typeof obj.mcp !== 'object' || Array.isArray(obj.mcp)) return false
+  if (obj.mcp.servers) return false
+  const servers = {}
+  let inheritedTimeout = 300000
+  for (const [name, raw] of Object.entries(obj.mcp)) {
+    if (!raw || typeof raw !== 'object') continue
+    const server = { ...raw }
+    if ('enabled' in server) {
+      server.disabled = !server.enabled
+      delete server.enabled
+    }
+    if (typeof server.timeout === 'number') {
+      inheritedTimeout = server.timeout
+      server.timeout = { catalog: server.timeout, execution: server.timeout }
+    }
+    servers[name] = server
+  }
+  obj.mcp = {
+    servers,
+    timeout: { catalog: inheritedTimeout, execution: inheritedTimeout },
+  }
+  return true
+}
+
+/** Mutate `obj` in place to the native V2 shape; returns true when it changed. */
+function migrateToV2(obj) {
+  let changed = false
+
+  if (obj.$schema !== CONFIG_SCHEMA) {
+    obj.$schema = CONFIG_SCHEMA
+    changed = true
+  }
+
+  if ('instructions' in obj) {
+    delete obj.instructions
+    changed = true
+  }
+
+  if (obj.experimental && typeof obj.experimental === 'object') {
+    for (const key of ['openTelemetry', 'batch_tool', 'primary_tools', 'continue_loop_on_deny', 'mcp_timeout']) {
+      if (key in obj.experimental) {
+        delete obj.experimental[key]
+        changed = true
+      }
+    }
+    if (Object.keys(obj.experimental).length === 0) {
+      delete obj.experimental
+      changed = true
+    }
+  }
+
+  const compaction = obj.compaction && typeof obj.compaction === 'object' ? { ...obj.compaction } : {}
+  if ('prune' in compaction) {
+    delete compaction.prune
+    changed = true
+  }
+  if (compaction.auto !== true) {
+    compaction.auto = true
+    changed = true
+  }
+  if ('reserved' in compaction) {
+    compaction.buffer = compaction.reserved
+    delete compaction.reserved
+    changed = true
+  }
+  if (!Number.isFinite(compaction.buffer)) {
+    compaction.buffer = 10000
+    changed = true
+  }
+  if (JSON.stringify(obj.compaction) !== JSON.stringify(compaction)) {
+    obj.compaction = compaction
+    changed = true
+  }
+
+  const additions = []
+  if (obj.permission && typeof obj.permission === 'object' && !Array.isArray(obj.permission)) {
+    additions.push(...permissionMapToRules(obj.permission))
+    delete obj.permission
+    changed = true
+  }
+  if (additions.length > 0) {
+    const merged = upsertRules(Array.isArray(obj.permissions) ? obj.permissions : [], additions)
+    if (JSON.stringify(obj.permissions) !== JSON.stringify(merged)) {
+      obj.permissions = merged
+      changed = true
+    }
+  }
+
+  if (obj.skills && typeof obj.skills === 'object' && !Array.isArray(obj.skills)) {
+    const paths = Array.isArray(obj.skills.paths) ? obj.skills.paths : []
+    obj.skills = paths.includes('.agents/skills') ? paths : [...paths, '.agents/skills']
+    changed = true
+  } else if (Array.isArray(obj.skills)) {
+    if (!obj.skills.includes('.agents/skills')) {
+      obj.skills = [...obj.skills, '.agents/skills']
+      changed = true
+    }
+  } else {
+    obj.skills = ['.agents/skills']
+    changed = true
+  }
+
+  if (migrateAgents(obj)) changed = true
+  if (migrateMcp(obj)) changed = true
+  if (migratePluginArray(obj)) changed = true
+
+  // A session starts read-only: fullstack-engineer is a subagent now, so a
+  // default_agent left pointing at it has no valid primary to open with.
+  if (obj.default_agent !== 'plan' && obj.default_agent !== 'build') {
+    obj.default_agent = 'plan'
+    changed = true
+  }
+
+  return changed
 }
 
 export async function patchOpencodeJson(cwd = process.cwd()) {
@@ -33,146 +266,38 @@ export async function patchOpencodeJson(cwd = process.cwd()) {
   if (await fse.pathExists(opencodePath)) {
     text = await fse.readFile(opencodePath, 'utf-8')
   } else {
-    text = JSON.stringify({ $schema: 'https://opencode.ai/config.json' }, null, 2)
+    text = JSON.stringify({ $schema: CONFIG_SCHEMA }, null, 2)
   }
 
   const errors = []
   const parsed = parse(text, errors)
-  if (errors.length > 0 || typeof parsed !== 'object') {
+  if (errors.length > 0 || typeof parsed !== 'object' || parsed === null) {
     return { patched: false, reason: 'parse error' }
   }
 
-  // build and plan are overridden, not disabled. Earlier versions disabled them
-  // and pointed default_agent at fullstack-engineer; now they are the only two
-  // primaries and pc-subagent-tiers regenerates their agent files from
-  // fullstack-engineer.md. A repo patched by an earlier version still carries
-  // `disable: true`, which would hide both agents, so that flag is cleared here.
-  const hasStaleDisable = (
-    parsed?.agent?.build?.disable !== undefined ||
-    parsed?.agent?.plan?.disable !== undefined
-  )
-  const needsAgentOverride = hasStaleDisable || !(
-    parsed?.agent?.build?.mode === 'primary' &&
-    parsed?.agent?.plan?.mode === 'primary' &&
-    parsed?.agent?.plan?.permission?.edit === 'deny' &&
-    parsed?.agent?.plan?.permission?.task === 'deny'
-  )
-
-  // default_agent pointing at fullstack-engineer is now invalid: it became a
-  // subagent when build and plan took over as the only primaries, so opencode
-  // has no valid default to open a session with. A deliberate choice of build
-  // or plan is left alone; anything else is repointed at plan, so a session
-  // starts read-only.
-  const currentDefault = parsed?.default_agent
-  const needsDefaultAgent = currentDefault !== 'plan' && currentDefault !== 'build'
-  const needsSkillPermission = parsed?.permission?.skill !== 'allow'
-  const missingSharedPermissions = SHARED_PERMISSIONS.filter(
-    ([key, value]) => parsed?.permission?.[key] !== value,
-  )
-  // opencode only scans .opencode/skills/ by default, but we install to .agents/skills/
-  const needsSkillsPaths = !(
-    Array.isArray(parsed?.skills?.paths) &&
-    parsed.skills.paths.includes('.agents/skills')
-  )
-  const needsCompaction = !(
-    parsed?.compaction?.auto === true &&
-    parsed?.compaction?.prune === true
-  )
-  const staleBrowserPlugins = (Array.isArray(parsed?.plugin) ? parsed.plugin : [])
-    .filter(entry => typeof entry === 'string' && entry.startsWith(STALE_BROWSER_PLUGIN_PREFIX))
-  const needsBrowserMcp = JSON.stringify(parsed?.mcp?.['agent-browser']) !== JSON.stringify(AGENT_BROWSER_MCP)
-
-  if (!needsAgentOverride && !needsDefaultAgent && !needsSkillPermission && missingSharedPermissions.length === 0 && !needsSkillsPaths && !needsCompaction && staleBrowserPlugins.length === 0 && !needsBrowserMcp) {
+  if (!migrateToV2(parsed)) {
     return { patched: false }
   }
 
-  // Apply edits sequentially so offsets stay correct
-  if (needsAgentOverride) {
-    // undefined removes the key, clearing the disable left by earlier versions.
-    if (parsed?.agent?.build?.disable !== undefined) {
-      text = applyModify(text, ['agent', 'build', 'disable'], undefined)
-    }
-    if (parsed?.agent?.plan?.disable !== undefined) {
-      text = applyModify(text, ['agent', 'plan', 'disable'], undefined)
-    }
-    text = applyModify(text, ['agent', 'build', 'mode'], 'primary')
-    text = applyModify(text, ['agent', 'plan', 'mode'], 'primary')
-    text = applyModify(text, ['agent', 'plan', 'permission', 'edit'], 'deny')
-    // Read-only has to include spawning: a plan session that can call task()
-    // can have a build worker make the change for it.
-    text = applyModify(text, ['agent', 'plan', 'permission', 'task'], 'deny')
-  }
-  if (needsDefaultAgent) {
-    text = applyModify(text, ['default_agent'], 'plan')
-  }
-  if (needsSkillPermission) text = applyModify(text, ['permission', 'skill'], 'allow')
-  for (const [key, value] of missingSharedPermissions) {
-    text = applyModify(text, ['permission', key], value)
-  }
-
-  // Ensure .agents/skills is in skills.paths so opencode discovers installed skills
-  if (needsSkillsPaths) {
-    const existingPaths = Array.isArray(parsed?.skills?.paths) ? parsed.skills.paths : []
-    if (!existingPaths.includes('.agents/skills')) {
-      const updatedPaths = [...existingPaths, '.agents/skills']
-      text = applyModify(text, ['skills', 'paths'], updatedPaths)
-    }
-  }
-
-  // Enable context pruning to reduce token costs in long agent sessions
-  if (needsCompaction) {
-    text = applyModify(text, ['compaction', 'auto'], true)
-    text = applyModify(text, ['compaction', 'prune'], true)
-    text = applyModify(text, ['compaction', 'reserved'], 10000)
-  }
-
-  // Swap the retired opencode-browser plugin for the agent-browser MCP server
-  if (staleBrowserPlugins.length > 0) {
-    const keptPlugins = parsed.plugin.filter(entry => !staleBrowserPlugins.includes(entry))
-    text = applyModify(text, ['plugin'], keptPlugins)
-  }
-  if (needsBrowserMcp) {
-    text = applyModify(text, ['mcp', 'agent-browser'], AGENT_BROWSER_MCP)
-  }
-
-  await fse.writeFile(opencodePath, text, 'utf-8')
-  if (needsAgentOverride) {
-    success('Set build/plan as the primary agents in opencode.jsonc (plan is read-only)')
-  }
-  if (needsDefaultAgent) {
-    success(`default_agent -> plan${currentDefault ? ` (was ${currentDefault})` : ''}`)
-  }
-  if (needsSkillPermission) {
-    success('Allowed skill loading in opencode.jsonc')
-  }
-  if (missingSharedPermissions.length > 0) {
-    success('Allowed question/todowrite tools in opencode.jsonc')
-  }
-  if (needsSkillsPaths) {
-    success('Added .agents/skills to skills.paths in opencode.jsonc')
-  }
-  if (needsCompaction) {
-    success('Enabled context pruning (compaction.prune) in opencode.jsonc')
-  }
-  if (staleBrowserPlugins.length > 0) {
-    success(`Removed ${staleBrowserPlugins.length} stale opencode-browser plugin entr${staleBrowserPlugins.length === 1 ? 'y' : 'ies'} in opencode.jsonc`)
-  }
-  if (needsBrowserMcp) {
-    success('Configured agent-browser MCP server in opencode.jsonc')
-  }
-
+  await fse.writeFile(opencodePath, `${JSON.stringify(parsed, null, 2)}\n`, 'utf-8')
+  success('Migrated opencode.jsonc to the native OpenCode 2 shape')
   return { patched: true }
 }
 
+// OpenCode 2 plugin packages. @opencode/plugin is the V2 plugin API; the V1
+// @opencode-ai/plugin and the retired TUI peers are removed on update.
 const OPENCODE_PACKAGE_DEPENDENCIES = {
-  '@opencode-ai/plugin': '1.18.19',
-  '@opentui/core': '0.5.6',
-  '@opentui/solid': '0.5.6',
-  'solid-js': '1.9.12',
+  '@opencode/plugin': '2.0.22',
 }
 
-// agent-browser replaced this plugin; remove it from consumer installs on update
-const STALE_PACKAGE_DEPENDENCIES = ['@different-ai/opencode-browser']
+const STALE_PACKAGE_DEPENDENCIES = [
+  '@opencode-ai/plugin',
+  '@mohak34/opencode-notifier',
+  '@different-ai/opencode-browser',
+  '@opentui/core',
+  '@opentui/solid',
+  'solid-js',
+]
 
 export async function patchOpencodePackage(cwd = process.cwd()) {
   const packagePath = path.join(cwd, '.opencode', 'package.json')
@@ -183,7 +308,7 @@ export async function patchOpencodePackage(cwd = process.cwd()) {
 
   let patched = false
   for (const [name, version] of Object.entries(OPENCODE_PACKAGE_DEPENDENCIES)) {
-    if (!(name in packageJson.dependencies) || packageJson.dependencies[name] === version) continue
+    if (packageJson.dependencies[name] === version) continue
     packageJson.dependencies[name] = version
     patched = true
   }

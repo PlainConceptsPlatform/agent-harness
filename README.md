@@ -284,17 +284,15 @@ your-project/
 ├── AGENTS.md                        ← bootstrap mode, replaced after first "/repo-initialize"
 ├── ARCHITECTURE.md                  ← prompt for agents to fill in from your codebase
 ├── DESIGN.md                        ← prompt for agents to fill in from your codebase
+├── opencode.jsonc                   ← native OpenCode 2 config: agents, permissions, MCP servers
 ├── .opencode/
-│   ├── opencode.json                ← default model + plugin config
 │   ├── harness.json                 ← harness config: platform, models, maxConcurrentAgents
 │   ├── harness-managed.json         ← hashes of every managed file, so "update" spares your edits
 │   ├── agents/                      ← build.md + plan.md (generated primaries), fullstack-engineer,
 │   │                                   and user-created *-engineer files (all subagents)
-│   ├── tui.json                     ← registers the Subagents sidebar panel
-│   ├── tui/
-│   │   └── pc-subagents.tsx         ← TUI plugin: live Subagents panel in the sidebar
 │   └── plugins/
 │       ├── pc-subagent-monitor.js   ← server plugin: subagent state → .opencode/harness-run.json, and the wave cap
+│       ├── pc-subagent-tiers.js     ← server plugin: derives tier agents and the two primaries
 │       └── pc-system-reminders.js   ← server plugin: gates work on the agent's abilities, denies the never-rules
 └── .agents/
     └── skills/
@@ -303,6 +301,8 @@ your-project/
         ├── pc-userstory/           ← the variant matching your backlog platform, renamed on install
         └── browser-automation/
 ```
+
+On OpenCode 2 the terminal client is configured globally (`~/.config/opencode/cli.json`), so the harness ships no project-local `tui.json`; the native session sidebar shows subagents without a sidecar panel.
 
 Platform skills ship as suffixed variants (`pc-userstory-gh`, `pc-userstory-az`, `pc-userstory-jira`, `pc-userstory-browser`) and the installer copies only the matching one, renamed to its generic name. Platform operations (ship, review, backlog) are injected directly into the `/ops-*` command files from `cli/fragments/ops-*/` during onboarding. Source-roots metadata lands in `.opencode/source-roots.json`. The always-shipped reminder plugin holds editing, shell and spawning until every ability under the agent's `## Abilities` is loaded, guardrails first, and re-arms after compaction. Token-optimization guidance is injected into `pc-guardrails-generic` marker blocks during onboarding.
 

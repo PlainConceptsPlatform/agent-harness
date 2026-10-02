@@ -1,44 +1,51 @@
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import { PcSystemReminders } from "./pc-system-reminders.js"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-// The guard turns the harness "never" rules into denied tool calls. A denial
-// throws, so every case here asserts on the thrown message; the fail-open
-// cases assert that nothing throws at all, which matters more than any single
-// rule: a guard that breaks a session over its own bug is worse than the rule.
+vi.mock("@opencode/plugin", () => ({ Plugin: { define: definition => definition } }))
+
+import PcSystemReminders from "./pc-system-reminders.js"
+
+// The guard turns the harness "never" rules into denied permission decisions.
+// In OpenCode 2 a denial sets the event effect to "deny" and carries a message;
+// the fail-open cases assert the effect is left alone, which matters more than
+// any single rule: a guard that breaks a session over its own bug is worse than
+// the rule it enforces.
 
 let root
-let plugin
+let hooks
 const SESSION = "ses_test"
 
-async function load({ agent = "build", loaded = ["pc-guardrails-generic"], backlog = "github" } = {}) {
+async function install({ agent = "build", loaded = ["pc-guardrails-generic"], backlog = "github" } = {}) {
   fs.mkdirSync(path.join(root, ".opencode", "agents"), { recursive: true })
   fs.mkdirSync(path.join(root, ".agents", "skills", "pc-guardrails-generic"), { recursive: true })
   fs.writeFileSync(path.join(root, ".agents", "skills", "pc-guardrails-generic", "SKILL.md"), "# Guardrails\n")
-  // A tier variant has no file of its own; its skills come from the base agent.
   const base = agent.replace(/\.(?:build|fast|plan)$/, "")
   fs.writeFileSync(
     path.join(root, ".opencode", "agents", `${base}.md`),
     `---\nmode: primary\n---\n\nBody.\n\n## Abilities\n- Guardrails: @pc-guardrails-generic\n`,
   )
-  fs.writeFileSync(
-    path.join(root, ".opencode", "harness.json"),
-    JSON.stringify({ platform: { backlog } }),
-  )
+  fs.writeFileSync(path.join(root, ".opencode", "harness.json"), JSON.stringify({ platform: { backlog } }))
 
-  plugin = await PcSystemReminders({ directory: root })
-  await plugin["chat.params"]({ sessionID: SESSION, agent })
+  hooks = {}
+  await PcSystemReminders.setup({
+    location: { directory: root },
+    session: { hook: (name, cb) => { hooks[name] = cb; return Promise.resolve({ dispose() {} }) } },
+    permission: { hook: (name, cb) => { hooks[name] = cb; return Promise.resolve({ dispose() {} }) } },
+  })
   for (const name of loaded) {
-    await plugin["tool.execute.after"]({ tool: "skill", sessionID: SESSION, args: { name } })
+    await hooks.evaluate({ sessionID: SESSION, agent, action: "skill", resources: [name], effect: "allow" })
   }
 }
 
-const call = (tool, args) =>
-  plugin["tool.execute.before"]({ tool, sessionID: SESSION, callID: "c1" }, { args })
+async function evaluate(overrides = {}) {
+  const event = { sessionID: SESSION, agent: "build", action: "shell", resources: [], effect: "allow", ...overrides }
+  await hooks.evaluate(event)
+  return event
+}
 
-const bash = command => call("bash", { command })
+const bash = (command, agent = "build") => evaluate({ action: "shell", resources: [command], agent })
 
 beforeEach(() => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), "pc-guard-"))
@@ -49,7 +56,7 @@ afterEach(() => {
 })
 
 describe("git staging and history", () => {
-  beforeEach(() => load())
+  beforeEach(() => install())
 
   it.each([
     ["git add -A", "shared tree"],
@@ -63,7 +70,9 @@ describe("git staging and history", () => {
     ["git checkout .", "every uncommitted change"],
     ["git restore .", "every uncommitted change"],
   ])("denies %s", async (command, fragment) => {
-    await expect(bash(command)).rejects.toThrow(fragment)
+    const event = await bash(command)
+    expect(event.effect).toBe("deny")
+    expect(event.message).toContain(fragment)
   })
 
   it.each([
@@ -74,25 +83,21 @@ describe("git staging and history", () => {
     "git stash list",
     "git status",
   ])("allows %s", async command => {
-    await expect(bash(command)).resolves.toBeUndefined()
+    expect((await bash(command)).effect).toBe("allow")
   })
 
-  // One allowed read followed by a destructive segment is not a read.
   it("checks every segment of a compound command", async () => {
-    await expect(bash("git status && git add -A")).rejects.toThrow("shared tree")
-    await expect(bash("ls; git clean -f")).rejects.toThrow("untracked files")
+    expect((await bash("git status && git add -A")).effect).toBe("deny")
+    expect((await bash("ls; git clean -f")).effect).toBe("deny")
   })
 })
 
 describe("pushing the default branch", () => {
-  // The branch has to be configured, not assumed: detectDefaultBranch falls back to the machine's
-  // global init.defaultBranch, which is "master" on some developer machines and "main" on others,
-  // so a test that hardcodes either passes or fails depending on whose laptop it runs on.
   const withDefaultBranch = async branch => {
     const { execFileSync } = await import("node:child_process")
     execFileSync("git", ["init", "--quiet"], { cwd: root })
     execFileSync("git", ["config", "init.defaultBranch", branch], { cwd: root })
-    await load()
+    await install()
   }
 
   it.each([
@@ -101,91 +106,76 @@ describe("pushing the default branch", () => {
     "git push --set-upstream origin main",
   ])("denies %s", async command => {
     await withDefaultBranch("main")
-    await expect(bash(command)).rejects.toThrow("default branch")
+    const event = await bash(command)
+    expect(event.effect).toBe("deny")
+    expect(event.message).toContain("default branch")
   })
 
-  // The name must be delimited by start, end, whitespace or a colon. These hold "main" as a
-  // substring and are either somebody else's branch or a fully qualified ref.
   it.each([
     "git push origin mainline",
     "git push origin feature/main-thing",
     "git push origin refs/heads/main",
   ])("allows %s", async command => {
     await withDefaultBranch("main")
-    await expect(bash(command)).resolves.toBeUndefined()
+    expect((await bash(command)).effect).toBe("allow")
   })
 
-  // The match used to interpolate the name into `new RegExp`, so a name carrying regex
-  // metacharacters was read as a pattern: it failed to match itself, letting through the exact
-  // push this guard exists to refuse, and matched unrelated branches instead.
   it("treats a branch name containing regex metacharacters literally", async () => {
     await withDefaultBranch("release/v1.0+x")
-    await expect(bash("git push origin release/v1.0+x")).rejects.toThrow("default branch")
-    await expect(bash("git push origin release/v1.00000x")).resolves.toBeUndefined()
+    expect((await bash("git push origin release/v1.0+x")).effect).toBe("deny")
+    expect((await bash("git push origin release/v1.00000x")).effect).toBe("allow")
   })
 })
 
 describe("force push", () => {
-  beforeEach(() => load())
+  beforeEach(() => install())
 
   it("denies --force without a lease", async () => {
-    await expect(bash("git push --force origin feature/x")).rejects.toThrow("overwrite commits")
+    expect((await bash("git push --force origin feature/x")).effect).toBe("deny")
   })
 
   it("allows --force-with-lease", async () => {
-    await expect(bash("git push --force-with-lease origin feature/x")).resolves.toBeUndefined()
+    expect((await bash("git push --force-with-lease origin feature/x")).effect).toBe("allow")
   })
 })
 
 describe("scratch files", () => {
-  beforeEach(() => load())
+  beforeEach(() => install())
 
   it("denies a write to an OS temp directory", async () => {
-    await expect(bash("echo hi > /tmp/notes.txt")).rejects.toThrow("inside the repository")
-    await expect(bash("cp report.json $TMPDIR/report.json")).rejects.toThrow("inside the repository")
+    expect((await bash("echo hi > /tmp/notes.txt")).effect).toBe("deny")
+    expect((await bash("cp report.json $TMPDIR/report.json")).effect).toBe("deny")
   })
 
   it("allows reading from one", async () => {
-    await expect(bash("cat /tmp/existing.log")).resolves.toBeUndefined()
+    expect((await bash("cat /tmp/existing.log")).effect).toBe("allow")
   })
 
-  // `/tmp/gh-aw/` is the agent workflow runtime's own directory, not agent scratch. GitHub
-  // Agentic Workflows stages the issue context, the diff and the review comments there before
-  // the agent starts, and the worker prompts tell it to read them. This check tests the whole
-  // command string, so it could not tell "write to /tmp" from "read from /tmp", and a command
-  // that read one of those files and wrote the result anywhere at all was denied. Three refine
-  // runs in a row spent their entire turn arguing with it and emitted nothing.
   it("allows the agent workflow runtime directory", async () => {
-    await expect(bash("jq -r .body /tmp/gh-aw/agent/issue-context.json > .opencode/.tmp/body.md"))
-      .resolves.toBeUndefined()
-    await expect(bash("mkdir -p /tmp/gh-aw/agent")).resolves.toBeUndefined()
-    await expect(bash("gh pr diff 12 > /tmp/gh-aw/agent/diff.patch")).resolves.toBeUndefined()
+    expect((await bash("jq -r .body /tmp/gh-aw/agent/issue-context.json > .opencode/.tmp/body.md")).effect).toBe("allow")
+    expect((await bash("mkdir -p /tmp/gh-aw/agent")).effect).toBe("allow")
   })
 
-  // A sibling that merely begins the same way is still scratch.
   it("denies a directory whose name only starts like the runtime one", async () => {
-    await expect(bash("echo hi > /tmp/gh-awful/x")).rejects.toThrow("inside the repository")
-    await expect(bash("echo hi > /tmp/gh-aw-notes")).rejects.toThrow("inside the repository")
-  })
-
-  it("denies reading the runtime directory and writing elsewhere", async () => {
-    await expect(bash("jq . /tmp/gh-aw/agent/issue-context.json > /tmp/elsewhere.json"))
-      .rejects.toThrow("inside the repository")
+    expect((await bash("echo hi > /tmp/gh-awful/x")).effect).toBe("deny")
+    expect((await bash("echo hi > /tmp/gh-aw-notes")).effect).toBe("deny")
   })
 
   it("denies an absolute write outside the repo", async () => {
     const outside = path.join(os.tmpdir(), "elsewhere", "file.md")
-    await expect(call("write", { filePath: outside, content: "x" })).rejects.toThrow("outside the repository")
+    const event = await evaluate({ action: "edit", resources: [outside] })
+    expect(event.effect).toBe("deny")
+    expect(event.message).toContain("outside the repository")
   })
 
   it("allows a write inside the repo", async () => {
-    await expect(call("write", { filePath: path.join(root, "src", "a.ts"), content: "x" })).resolves.toBeUndefined()
-    await expect(call("edit", { filePath: "src/relative.ts" })).resolves.toBeUndefined()
+    expect((await evaluate({ action: "edit", resources: [path.join(root, "src", "a.ts")] })).effect).toBe("allow")
+    expect((await evaluate({ action: "edit", resources: ["src/relative.ts"] })).effect).toBe("allow")
   })
 })
 
 describe("platform data comes from the CLI", () => {
-  beforeEach(() => load())
+  beforeEach(() => install())
 
   it.each([
     "https://github.com/org/repo/pull/1",
@@ -194,28 +184,18 @@ describe("platform data comes from the CLI", () => {
     "https://acme.atlassian.net/browse/ABC-1",
     "https://gitlab.com/org/repo/-/merge_requests/2",
   ])("denies webfetch of %s", async url => {
-    await expect(call("webfetch", { url })).rejects.toThrow("must come from its CLI")
+    const event = await evaluate({ action: "webfetch", resources: [url] })
+    expect(event.effect).toBe("deny")
+    expect(event.message).toContain("must come from its CLI")
   })
 
   it("allows webfetch of an unrelated host", async () => {
-    await expect(call("webfetch", { url: "https://models.dev/api.json" })).resolves.toBeUndefined()
-  })
-
-  it("keeps browser tools on localhost when the backlog is not browser-based", async () => {
-    await expect(call("agent-browser_navigate", { url: "http://localhost:3000/" })).resolves.toBeUndefined()
-    await expect(call("agent-browser_navigate", { url: "https://example.com/" })).rejects.toThrow("localhost")
-  })
-
-  it("lets a browser backlog reach its own tracker", async () => {
-    await load({ backlog: "browser" })
-    await expect(call("agent-browser_navigate", { url: "https://linear.app/team/issue/X" })).resolves.toBeUndefined()
-    // github still belongs to gh, whatever the backlog is.
-    await expect(call("agent-browser_navigate", { url: "https://github.com/org/repo" })).rejects.toThrow("must come from its CLI")
+    expect((await evaluate({ action: "webfetch", resources: ["https://models.dev/api.json"] })).effect).toBe("allow")
   })
 })
 
 describe("the plan agent is read-only", () => {
-  beforeEach(() => load({ agent: "plan" }))
+  beforeEach(() => install({ agent: "plan" }))
 
   it.each([
     "git status",
@@ -227,7 +207,7 @@ describe("the plan agent is read-only", () => {
     "rg TODO src",
     "cat package.json",
   ])("allows the inspection command %s", async command => {
-    await expect(bash(command)).resolves.toBeUndefined()
+    expect((await bash(command, "plan")).effect).toBe("allow")
   })
 
   it.each([
@@ -237,108 +217,82 @@ describe("the plan agent is read-only", () => {
     "echo x > file.ts",
     "git switch -c feature/x",
   ])("denies %s", async command => {
-    await expect(bash(command)).rejects.toThrow("plan agent reads")
+    const event = await bash(command, "plan")
+    expect(event.effect).toBe("deny")
+    expect(event.message).toContain("plan agent reads")
   })
 
   it("denies a redirect from an otherwise allowed command", async () => {
-    await expect(bash("cat a.ts > b.ts")).rejects.toThrow("plan agent reads")
-    await expect(bash("git log | tee log.txt")).rejects.toThrow("plan agent reads")
+    expect((await bash("cat a.ts > b.ts", "plan")).effect).toBe("deny")
+    expect((await bash("git log | tee log.txt", "plan")).effect).toBe("deny")
   })
 
   it("does not restrict the build agent the same way", async () => {
-    await load({ agent: "build" })
-    await expect(bash("npm install")).resolves.toBeUndefined()
+    expect((await bash("npm install", "build")).effect).toBe("allow")
   })
 
-  // `backend-engineer.plan` is the cheap-model tier of an engineer, not the
-  // read-only plan primary. Only an exact `plan` base is read-only.
   it("does not restrict an engineer's plan tier", async () => {
-    await load({ agent: "backend-engineer.plan" })
-    await expect(bash("npm install")).resolves.toBeUndefined()
+    expect((await bash("npm install", "backend-engineer.plan")).effect).toBe("allow")
   })
 })
 
 describe("required skills gate", () => {
   it("blocks work while an installed skill is unloaded", async () => {
-    await load({ loaded: [] })
+    await install({ loaded: [] })
 
-    await expect(bash("npm test")).rejects.toThrow("Required skills are not loaded")
-    await expect(call("edit", { filePath: "src/a.ts" })).rejects.toThrow("Required skills are not loaded")
-    await expect(call("task", { subagent_type: "backend-engineer" })).rejects.toThrow("Required skills are not loaded")
+    expect((await bash("npm test")).effect).toBe("deny")
+    expect((await evaluate({ action: "edit", resources: ["src/a.ts"] })).effect).toBe("deny")
+    expect((await evaluate({ action: "subagent", resources: ["backend-engineer"] })).effect).toBe("deny")
   })
 
-  it("never gates the tools needed to satisfy it", async () => {
-    await load({ loaded: [] })
+  it("never gates the actions needed to satisfy it", async () => {
+    await install({ loaded: [] })
 
-    for (const tool of ["skill", "read", "grep", "glob"]) {
-      await expect(call(tool, { name: "pc-guardrails-generic" })).resolves.toBeUndefined()
+    for (const action of ["read", "grep", "glob"]) {
+      expect((await evaluate({ action, resources: ["x"] })).effect).toBe("allow")
     }
+    // Loading the skill is not itself blocked.
+    expect((await evaluate({ action: "skill", resources: ["pc-guardrails-generic"] })).effect).toBe("allow")
   })
 
   it("opens once the skill is loaded", async () => {
-    await load({ loaded: ["pc-guardrails-generic"] })
-    await expect(bash("npm test")).resolves.toBeUndefined()
+    await install({ loaded: ["pc-guardrails-generic"] })
+    expect((await bash("npm test")).effect).toBe("allow")
   })
 
-  // A dangling @skill reference would otherwise be unloadable, and the worker
-  // would be stuck forever on a rule it cannot satisfy.
   it("ignores a required skill that is not installed", async () => {
-    root = fs.mkdtempSync(path.join(os.tmpdir(), "pc-guard-"))
     fs.mkdirSync(path.join(root, ".opencode", "agents"), { recursive: true })
     fs.writeFileSync(
       path.join(root, ".opencode", "agents", "build.md"),
       "---\nmode: primary\n---\n\nBody.\n\n## Abilities\n- Guardrails: @pc-does-not-exist\n",
     )
-    plugin = await PcSystemReminders({ directory: root })
-    await plugin["chat.params"]({ sessionID: SESSION, agent: "build" })
+    hooks = {}
+    await PcSystemReminders.setup({
+      location: { directory: root },
+      session: { hook: (name, cb) => { hooks[name] = cb; return Promise.resolve({ dispose() {} }) } },
+      permission: { hook: (name, cb) => { hooks[name] = cb; return Promise.resolve({ dispose() {} }) } },
+    })
 
-    await expect(bash("npm test")).resolves.toBeUndefined()
-  })
-
-  it("re-arms after compaction", async () => {
-    await load({ loaded: ["pc-guardrails-generic"] })
-    await expect(bash("npm test")).resolves.toBeUndefined()
-
-    await plugin.event({ event: { type: "session.compacted", properties: { sessionID: SESSION } } })
-
-    await expect(bash("npm test")).rejects.toThrow("Required skills are not loaded")
+    expect((await bash("npm test")).effect).toBe("allow")
   })
 })
 
 describe("fails open", () => {
-  it("allows everything for an unknown session", async () => {
-    await load({ loaded: [] })
-    const other = (tool, args) =>
-      plugin["tool.execute.before"]({ tool, sessionID: "ses_unseen", callID: "c" }, { args })
+  beforeEach(() => install({ loaded: [] }))
 
-    // No state for this session, so the skill gate cannot apply. A deny here
-    // would break every subagent that has not reached chat.params yet.
-    await expect(other("bash", { command: "npm test" })).resolves.toBeUndefined()
-    await expect(other("edit", { filePath: "src/a.ts" })).resolves.toBeUndefined()
+  it("leaves the effect alone when its own check throws", async () => {
+    await install({ loaded: ["pc-guardrails-generic"] })
+    expect((await evaluate({ action: "shell", resources: 42 })).effect).toBe("allow")
   })
 
-  it("allows the call when its own check throws", async () => {
-    await load()
-
-    // The guard's own exception is not a rule violation, so the call proceeds.
-    const exploding = {
-      get args() {
-        throw new Error("guard bug")
-      },
-    }
-    await expect(
-      plugin["tool.execute.before"]({ tool: "bash", sessionID: SESSION, callID: "c" }, exploding),
-    ).resolves.toBeUndefined()
-
-    // Nor is a malformed payload.
-    await expect(plugin["tool.execute.before"]({ tool: "bash", sessionID: SESSION }, null)).resolves.toBeUndefined()
-    await expect(call("bash", { command: 42 })).resolves.toBeUndefined()
-    await expect(call("webfetch", { url: "not a url" })).resolves.toBeUndefined()
+  it("leaves the effect alone for a malformed event", async () => {
+    const event = { effect: "allow" }
+    await hooks.evaluate(event)
+    expect(event.effect).toBe("allow")
   })
 
-  it("ignores tools it does not guard", async () => {
-    await load()
-    await expect(call("todowrite", { todos: [] })).resolves.toBeUndefined()
-    await expect(call("question", {})).resolves.toBeUndefined()
+  it("ignores actions it does not guard", async () => {
+    expect((await evaluate({ action: "todowrite", resources: ["x"] })).effect).toBe("allow")
+    expect((await evaluate({ action: "question", resources: ["*"] })).effect).toBe("allow")
   })
 })

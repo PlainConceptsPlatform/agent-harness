@@ -1,219 +1,184 @@
-// pc-subagent-monitor: tracks spawned subagents in .opencode/harness-run.json for
-// live TUI display and crash recovery, and holds a wave to agents.maxConcurrent.
+// pc-subagent-monitor: holds a spawn wave to agents.maxConcurrent and keeps a
+// live record of child sessions in .opencode/harness-run.json.
 //
-// It throws in exactly one case: to deny a spawn over the cap. Every other
-// failure, including its own bugs, is swallowed — a monitor that breaks the run
-// it is watching is worse than no monitor.
+// OpenCode 2 denies through the permission system, not by throwing from a tool
+// hook, so the cap is a `subagent` permission rule: an `evaluate` hook counts
+// the children of the asking session and denies the launch over the limit.
+//
+// Child sessions are observed from the event stream. V2 does not document the
+// event type strings (the payload schema is an opaque `string`), so the handler
+// is deliberately tolerant and, with PC_HARNESS_DEBUG set, prints every event
+// type once so the names can be pinned from a real run. Counting via the event
+// stream is the iteration-one mechanism; `ctx.session` in the plugin context is
+// not documented to expose `list`, so it is not used here.
 
+import { Plugin } from "@opencode/plugin"
 import fs from "node:fs/promises"
 import path from "node:path"
 
-// A spawn that has been allowed but whose session has not appeared yet. A wave
-// is one assistant turn, and opencode calls tool.execute.before for every
-// task() in that turn before the first child session exists, so counting live
-// sessions alone would let an entire wave through whatever the cap says.
-//
-// The slot is released when the session lands, and expires otherwise:
-// tool.execute.after never fires for a tool that threw, so a failed spawn must
-// not hold a slot for the rest of the run.
 const PENDING_TTL_MS = 15_000
 
-export const PcSubagentMonitor = async ({ directory, client }) => {
-  const root = directory || process.cwd()
-  const statePath = path.join(root, ".opencode", "harness-run.json")
-  const state = { updatedAt: null, agents: {} }
-  const pending = []
+export default Plugin.define({
+  id: "pc.subagent-monitor",
+  async setup(ctx) {
+    const root = ctx.location.directory || process.cwd()
+    const statePath = path.join(root, ".opencode", "harness-run.json")
+    const state = { updatedAt: null, agents: {} }
+    const pending = []
+    const seenTypes = new Set()
+    let capCache = null
 
-  try {
-    const prev = JSON.parse(await fs.readFile(statePath, "utf-8"))
-    if (prev?.agents && typeof prev.agents === "object") {
-      for (const [id, entry] of Object.entries(prev.agents)) {
-        if (entry?.status === "running") entry.stale = true
-        state.agents[id] = entry
-      }
-    }
-  } catch {
-    // fresh start
-  }
-
-  let _modelsCache = null
-  async function loadModels() {
-    if (_modelsCache) return _modelsCache
-    const result = { build: null, fast: null, plan: null }
-    for (const file of ["harness.user.json", "harness.json"]) {
-      try {
-        const raw = await fs.readFile(path.join(root, ".opencode", file), "utf-8")
-        const { models = {} } = JSON.parse(raw)
-        for (const tier of ["build", "fast", "plan"]) {
-          if (!result[tier] && models[tier]) result[tier] = models[tier]
-        }
-      } catch {
-        continue
-      }
-    }
-    _modelsCache = result
-    return result
-  }
-
-  async function modelForAgent(agent) {
-    if (!agent) return null
-    const dotIdx = agent.lastIndexOf(".")
-    const tier = dotIdx !== -1 ? agent.slice(dotIdx + 1) : null
-    if (tier && ["build", "fast", "plan"].includes(tier)) {
-      const models = await loadModels()
-      return models[tier] ?? null
-    }
-    return null
-  }
-
-  function parseTasks(title) {
-    if (!title) return []
-    const m = /^\s*([\d]+(?:\.[\d]+)*(?:\s*,\s*[\d]+(?:\.[\d]+)*)*)/.exec(title)
-    return m ? m[1].split(",").map(s => s.trim()) : []
-  }
-
-  // Debounced persist: coalesce rapid writes when multiple subagents spawn
-  // in the same microtask batch (e.g. a wave of 5 task() calls).
-  let _persistScheduled = false
-  async function persist() {
-    if (_persistScheduled) return
-    _persistScheduled = true
-    queueMicrotask(async () => {
-      _persistScheduled = false
-      state.updatedAt = new Date().toISOString()
-      try {
-        await fs.mkdir(path.dirname(statePath), { recursive: true })
-        const tmpPath = `${statePath}.tmp`
-        await fs.writeFile(tmpPath, JSON.stringify(state, null, 2), "utf-8")
-        await fs.rename(tmpPath, statePath)
-      } catch {
-        // best-effort
-      }
-    })
-  }
-
-  function sessionInfo(props) {
-    const info = props?.info ?? props ?? {}
-    return {
-      id: info.id ?? info.sessionID ?? props?.sessionID,
-      parentID: info.parentID ?? info.parentId,
-      agent: info.agent,
-      title: info.title,
-    }
-  }
-
-  function pruneStale() {
-    for (const [id, entry] of Object.entries(state.agents)) {
-      if (entry?.stale) delete state.agents[id]
-    }
-  }
-
-  let _capCache = null
-  async function maxConcurrent() {
-    if (_capCache) return _capCache
-    let configured = 3
     try {
-      const raw = await fs.readFile(path.join(root, ".opencode", "harness.json"), "utf-8")
-      const value = JSON.parse(raw)?.agents?.maxConcurrent
-      if (Number.isFinite(value)) configured = value
+      const prev = JSON.parse(await fs.readFile(statePath, "utf-8"))
+      if (prev?.agents && typeof prev.agents === "object") {
+        for (const [id, entry] of Object.entries(prev.agents)) {
+          if (entry?.status === "running") entry.stale = true
+          state.agents[id] = entry
+        }
+      }
     } catch {
-      // no config yet; the CLI's own default is 3
+      // fresh start
     }
-    _capCache = Math.min(5, Math.max(1, Math.trunc(configured)))
-    return _capCache
-  }
 
-  function runningFor(parentID) {
-    return Object.values(state.agents)
-      .filter(entry => entry?.status === "running" && !entry.stale && entry.parentID === parentID)
-      .length
-  }
-
-  function livePending(parentID) {
-    const now = Date.now()
-    for (let i = pending.length - 1; i >= 0; i--) {
-      if (now - pending[i].at > PENDING_TTL_MS) pending.splice(i, 1)
+    let persistScheduled = false
+    function persist() {
+      if (persistScheduled) return
+      persistScheduled = true
+      queueMicrotask(async () => {
+        persistScheduled = false
+        state.updatedAt = new Date().toISOString()
+        try {
+          await fs.mkdir(path.dirname(statePath), { recursive: true })
+          const tmpPath = `${statePath}.tmp`
+          await fs.writeFile(tmpPath, JSON.stringify(state, null, 2), "utf-8")
+          await fs.rename(tmpPath, statePath)
+        } catch {
+          // best-effort
+        }
+      })
     }
-    return pending.filter(entry => entry.parentID === parentID).length
-  }
 
-  function releasePending(parentID) {
-    const index = pending.findIndex(entry => entry.parentID === parentID)
-    if (index !== -1) pending.splice(index, 1)
-  }
+    function pruneStale() {
+      for (const [id, entry] of Object.entries(state.agents)) {
+        if (entry?.stale) delete state.agents[id]
+      }
+    }
 
-  return {
-    // The cap was prose in pc-plan-apply ("you enforce the cap"), which asked
-    // the lead to count its own parallel calls. Six disjoint groups and a cap
-    // of three is exactly the moment a model stops counting.
-    "tool.execute.before": async (input) => {
-      if (input?.tool !== "task") return
+    async function maxConcurrent() {
+      if (capCache) return capCache
+      let configured = 3
+      try {
+        const raw = await fs.readFile(path.join(root, ".opencode", "harness.json"), "utf-8")
+        const value = JSON.parse(raw)?.agents?.maxConcurrent
+        if (Number.isFinite(value)) configured = value
+      } catch {
+        // no config yet; the CLI's own default is 3
+      }
+      capCache = Math.min(5, Math.max(1, Math.trunc(configured)))
+      return capCache
+    }
 
+    function runningFor(parentID) {
+      return Object.values(state.agents)
+        .filter(entry => entry?.status === "running" && !entry.stale && entry.parentID === parentID)
+        .length
+    }
+
+    function livePending(parentID) {
+      const now = Date.now()
+      for (let i = pending.length - 1; i >= 0; i--) {
+        if (now - pending[i].at > PENDING_TTL_MS) pending.splice(i, 1)
+      }
+      return pending.filter(entry => entry.parentID === parentID).length
+    }
+
+    function releasePending(parentID) {
+      const index = pending.findIndex(entry => entry.parentID === parentID)
+      if (index !== -1) pending.splice(index, 1)
+    }
+
+    // The cap was prose in pc-plan-apply ("you enforce the cap"), which asked the
+    // lead to count its own parallel calls. Six disjoint groups and a cap of
+    // three is exactly the moment a model stops counting.
+    await ctx.permission.hook("evaluate", async event => {
+      if (event.action !== "subagent") return
       let cap
       let live
       try {
         pruneStale()
         cap = await maxConcurrent()
-        live = runningFor(input.sessionID) + livePending(input.sessionID)
+        live = runningFor(event.sessionID) + livePending(event.sessionID)
         if (live < cap) {
-          pending.push({ parentID: input.sessionID, at: Date.now() })
+          pending.push({ parentID: event.sessionID, at: Date.now() })
           return
         }
       } catch (error) {
-        // Compute inside the try, deny outside it, so this catch can never
-        // swallow the one exception the hook is meant to raise.
         console.error(`[harness] concurrency check failed open: ${error?.message}`)
         return
       }
+      deny(event, live, cap)
+    })
 
-      throw new Error(
+    function deny(event, live, cap) {
+      event.effect = "deny"
+      event.message =
         `[harness] ${live} subagents are already in flight and agents.maxConcurrent is ${cap}.\n` +
-        "Collect a running worker before spawning another. A denied spawn is not a failed task: re-issue it in the next wave.",
-      )
-    },
-    event: async ({ event }) => {
+        "Collect a running worker before spawning another. A denied spawn is not a failed task: re-issue it in the next wave."
+    }
+
+    function extractSession(event) {
+      const data = event?.data ?? event?.properties ?? event ?? {}
+      const info = data?.info ?? data?.session ?? data ?? {}
+      const id = info.id ?? info.sessionID ?? data.sessionID
+      const parentID = info.parentID ?? info.parentId ?? data.parentID
+      const status = info.status ?? data.status
+      return { id, parentID, agent: info.agent ?? null, title: info.title ?? null, status }
+    }
+
+    const controller = new AbortController()
+    void (async () => {
       try {
-        if (!event?.type?.startsWith("session.")) return
-        const info = sessionInfo(event.properties)
-        if (!info.id) return
+        for await (const event of ctx.event.subscribe({ signal: controller.signal })) {
+          try {
+            const type = String(event?.type ?? "")
+            if (process.env.PC_HARNESS_DEBUG && type && !seenTypes.has(type)) {
+              seenTypes.add(type)
+              console.error(`[pc-subagent-monitor] event: ${type}`)
+            }
+            const { id, parentID, agent, title, status } = extractSession(event)
+            if (!id || !parentID) continue
 
-        if (event.type === "session.created" && info.parentID) {
-          pruneStale()
-          // The spawn this session came from no longer needs its pending slot;
-          // the session itself is now what the cap counts.
-          releasePending(info.parentID)
+            if (status === "running" || /created|started/.test(type)) {
+              pruneStale()
+              releasePending(parentID)
+              state.agents[id] = {
+                agent,
+                parentID,
+                title,
+                status: "running",
+                startedAt: new Date().toISOString(),
+                endedAt: null,
+              }
+              await persist()
+              continue
+            }
 
-          state.agents[info.id] = {
-            agent: info.agent ?? null,
-            parentID: info.parentID,
-            model: await modelForAgent(info.agent),
-            tasks: parseTasks(info.title),
-            title: info.title ?? null,
-            status: "running",
-            startedAt: new Date().toISOString(),
-            endedAt: null,
+            const entry = state.agents[id]
+            if (!entry) continue
+            if (status === "idle" || /idle|completed|succeeded|failed/.test(type)) {
+              entry.status = "done"
+              entry.endedAt = new Date().toISOString()
+              await persist()
+            }
+          } catch {
+            // monitoring must never disrupt the run
           }
-          await persist()
-          return
-        }
-
-        const entry = state.agents[info.id]
-        if (!entry) return
-
-        if (event.type === "session.idle" && entry.status === "running") {
-          entry.status = "done"
-          entry.endedAt = new Date().toISOString()
-          await persist()
-          client?.tui?.showToast?.({
-            body: {
-              message: `subagent done: ${entry.title ?? info.id}`,
-              variant: "success",
-            },
-          })
         }
       } catch {
-        // monitoring must never disrupt the run
+        // stream aborted on unload
       }
-    },
-  }
-}
+    })()
+
+    return () => controller.abort()
+  },
+})
