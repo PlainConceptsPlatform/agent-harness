@@ -50,11 +50,27 @@ export async function runJoin() {
   header('Step 2, Installing OpenCode plugins')
   const pkgPath = path.join(opencodeDir, 'package.json')
   if (await fse.pathExists(pkgPath)) {
+    // `reject: false` made the catch below unreachable: a failed install exited
+    // non-zero without throwing, so this reported success while the plugin's
+    // dependency was missing and every plugin silently refused to load. Let the
+    // call reject, and confirm the dependency is actually on disk before saying so.
+    const declared = Object.keys(
+      parseJsonc(await fse.readFile(pkgPath, 'utf8'))?.dependencies ?? {},
+    )
     try {
-      await execa('npm', ['install'], { cwd: opencodeDir, reject: false, stdio: 'pipe' })
-      success('OpenCode plugins installed')
-    } catch {
+      await execa('npm', ['install'], { cwd: opencodeDir, stdio: 'pipe' })
+    } catch (err) {
       warn('npm install failed in .opencode/: plugins may not load correctly')
+      if (err?.stderr) info(String(err.stderr).trim().split('\n').slice(-3).join('\n'))
+    }
+    const missing = declared.filter(
+      name => !fse.pathExistsSync(path.join(opencodeDir, 'node_modules', ...name.split('/'))),
+    )
+    if (missing.length === 0) {
+      success('OpenCode plugins installed')
+    } else {
+      warn(`These dependencies are still missing from .opencode/node_modules: ${missing.join(', ')}`)
+      warn('Plugins that import them will not load. Re-run `npm install` there once the registry is reachable.')
     }
   } else {
     warn('No .opencode/package.json found: skipping plugin install')

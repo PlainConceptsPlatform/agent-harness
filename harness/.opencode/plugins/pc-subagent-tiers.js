@@ -143,10 +143,16 @@ function stripLegacyFields(frontmatter) {
 
 function setScalar(frontmatter, key, value) {
   const line = `${key}: ${value}`
-  if (new RegExp(`^${key}:`, "m").test(frontmatter)) {
-    return frontmatter.replace(new RegExp(`^${key}:.*$`, "m"), () => line)
+  // String operations rather than a built RegExp: `key` is one of this module's
+  // own constants, so the pattern would be safe, but a dynamic regexp here is a
+  // ReDoS-shaped pattern that static analysis rightly refuses to clear.
+  const lines = frontmatter.split(/\r?\n/)
+  const index = lines.findIndex(current => current.startsWith(`${key}:`))
+  if (index === -1) {
+    return frontmatter ? `${line}\n${frontmatter}` : line
   }
-  return frontmatter ? `${line}\n${frontmatter}` : line
+  lines[index] = line
+  return lines.join("\n")
 }
 
 function permissionsYaml(permissions) {
@@ -189,6 +195,9 @@ function buildVariant(templateContent, model) {
   let fm = stripLegacyFields(frontmatter ?? "")
   fm = setScalar(fm, "mode", "subagent")
   fm = setScalar(fm, "model", model)
+  // Hidden by default: a tier is chosen by whoever writes the task, not picked
+  // from the @ menu. Without this the menu lists every specialist once per tier.
+  fm = setScalar(fm, "hidden", "true")
   if (!/^color:/m.test(fm)) {
     const name = ""
     fm = setScalar(fm, "color", name ? yamlColor(agentColor(name)) : yamlColor(agentColor("engineer")))

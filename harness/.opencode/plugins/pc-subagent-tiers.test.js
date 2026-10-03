@@ -148,6 +148,8 @@ describe("PcSubagentTiers engineer templates", () => {
       const fm = frontmatter(`frontend-engineer.${tier}.md`)
       expect(fm).toContain("mode: subagent")
       expect(fm).toContain(`model: p/${tier}`)
+      // Tier variants are chosen by the task author, not picked from the @ menu.
+      expect(fm).toContain("hidden: true")
     }
   })
 
