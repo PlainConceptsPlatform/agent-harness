@@ -19,7 +19,7 @@
 // generation is the mechanism: writing the files in setup, before agents resolve,
 // is what makes them visible.
 
-import { Plugin } from "@opencode/plugin"
+import { Plugin, Model } from "@opencode/plugin"
 import fs from "node:fs/promises"
 import path from "node:path"
 
@@ -333,7 +333,13 @@ export default Plugin.define({
             const existing = editor.get(id)
             if (!existing) continue
             const model = models[spec.tier]
-            if (model) existing.model = model
+            if (model) {
+              try {
+                existing.model = Model.Ref.parse(model)
+              } catch {
+                // invalid model ref; leave undefined so session model applies
+              }
+            }
             existing.mode = "primary"
             existing.description = spec.description
             if (spec.permissions) existing.permissions = spec.permissions
