@@ -1,11 +1,6 @@
 # Branching procedure
 
-Resolve and record the branch names. If the invoking workflow already placed
-you on a feature branch (`feature/*`, `fix/*`, etc.), it owns the branch: do
-not stash, switch, pull, or rename. The sandbox hosting the workflow has no
-git credentials, so those commands would either corrupt the tree or hang, and
-the workflow has already cut the branch from the default branch. Treat its
-result as given.
+Resolve and record the branch names. If the invoking workflow already placed you on a feature branch (`feature/*`, `fix/*`, etc.), it owns the branch: do not stash, switch, pull, or rename. The sandbox hosting the workflow has no git credentials, so those commands would either corrupt the tree or hang, and the workflow has already cut the branch from the default branch. Treat its result as given.
 
 ```bash
 BRANCH="$(git branch --show-current)"
