@@ -70,7 +70,6 @@ describe("OpenCode config template", () => {
   it("pins the OpenCode 2 plugin API and the agent-browser MCP server", () => {
     const config = parseJsonc(fs.readFileSync(path.join(CONTENT_DIR, "opencode.jsonc"), "utf-8"))
     const packageConfig = JSON.parse(fs.readFileSync(path.join(CONTENT_DIR, ".opencode", "package.json"), "utf-8"))
-    const quota = JSON.parse(fs.readFileSync(path.join(__dirname, "presets", "quota.json"), "utf-8"))
 
     expect(config.mcp.servers["agent-browser"]).toEqual({
       type: "local",
@@ -81,7 +80,6 @@ describe("OpenCode config template", () => {
     expect(packageConfig.dependencies["@opencode/plugin"]).toBe("2.0.22")
     expect(packageConfig.dependencies["@opencode-ai/plugin"]).toBeUndefined()
     expect(packageConfig.dependencies["@mohak34/opencode-notifier"]).toBeUndefined()
-    expect(quota.plugin).toBe("@slkiser/opencode-quota@5.0.1")
   })
 
   it("ships the always-on system reminder plugin", () => {

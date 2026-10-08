@@ -24,9 +24,12 @@ const CONFIG_SCHEMA = 'https://opencode.ai/config.json'
 
 // Third-party plugins the harness configures, and how they move to V2. The
 // notifier is dropped: V2 has native attention notifications and sounds.
-const OPENCODE_QUOTA_PACKAGE = '@slkiser/opencode-quota'
-const OPENCODE_QUOTA_VERSION = '5.0.1'
-const DROPPED_PLUGIN_PREFIXES = ['@opencode-ai/', '@mohak34/opencode-notifier', '@different-ai/opencode-browser']
+const DROPPED_PLUGIN_PREFIXES = [
+  '@opencode-ai/',
+  '@mohak34/opencode-notifier',
+  '@different-ai/opencode-browser',
+  '@slkiser/opencode-quota',
+]
 
 // V1 permission keys -> V2 permission actions.
 const ACTION_RENAMES = {
@@ -76,10 +79,6 @@ function migratePluginArray(obj) {
     }
     const base = basePackageName(entry)
     if (DROPPED_PLUGIN_PREFIXES.some(prefix => base.startsWith(prefix))) continue
-    if (base === OPENCODE_QUOTA_PACKAGE) {
-      plugins.push(`${OPENCODE_QUOTA_PACKAGE}@${OPENCODE_QUOTA_VERSION}`)
-      continue
-    }
     plugins.push(entry)
   }
   obj.plugins = plugins

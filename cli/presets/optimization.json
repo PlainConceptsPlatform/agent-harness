@@ -9,11 +9,6 @@
       "checked": true
     },
     {
-      "name": "opencode-quota plugin (recommended)",
-      "value": "quota",
-      "checked": true
-    },
-    {
       "name": "Simple English concise mode (recommended)",
       "value": "simpleEnglish",
       "checked": true

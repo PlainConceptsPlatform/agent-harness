@@ -139,7 +139,7 @@ describe('patchOpencodeJson()', () => {
 
     const config = readConfig()
     expect(config.plugin).toBeUndefined()
-    expect(config.plugins).toEqual(['@slkiser/opencode-quota@5.0.1', 'some-other-plugin'])
+    expect(config.plugins).toEqual(['some-other-plugin'])
   })
 
   it('moves MCP servers under mcp.servers and inverts enabled', async () => {
