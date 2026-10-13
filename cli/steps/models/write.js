@@ -13,7 +13,7 @@ import { success, warn } from '../../utils/exec.js'
  * a strict rewrite deletes user comments. jsonc-parser edits only the `model`
  * key and preserves the rest of the file byte-for-byte.
  */
-export async function writeModelsToConfigs({ buildModel, cwd = process.cwd() }) {
+export async function writeModelsToConfigs({ buildModel, keepExisting = false, cwd = process.cwd() }) {
   const opencodeJsonPath = path.join(cwd, 'opencode.jsonc')
   if (!await fse.pathExists(opencodeJsonPath)) return
 
@@ -24,6 +24,10 @@ export async function writeModelsToConfigs({ buildModel, cwd = process.cwd() }) 
     warn('opencode.jsonc could not be parsed: leaving it untouched. Set "model" manually.')
     return
   }
+
+  // A model the repository already chose is its decision, not the wizard's: `update` used to
+  // reset a deliberately pinned default to the build tier in every consumer it ran in.
+  if (keepExisting && typeof parse(text)?.model === 'string') return
 
   // `undefined` removes the key; a string value sets it.
   const edits = modify(text, ['model'], buildModel || undefined, {

@@ -57,7 +57,7 @@ export async function runUpdate() {
   await copyContentStep({ backlogPlatform, repoPlatform }, ctx)
 
   if (saved.models) {
-    await writeModelsToConfigs({ buildModel: saved.models.build })
+    await writeModelsToConfigs({ buildModel: saved.models.build, keepExisting: true })
   }
 
   // Reconcile against what is actually installed before patching guardrails.

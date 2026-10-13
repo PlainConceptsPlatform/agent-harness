@@ -18,8 +18,10 @@ async function detectOpencodeVersion() {
   try {
     const result = await execa('opencode', ['--version'], { reject: false })
     if (result.exitCode !== 0) return null
+    // `opencode --version` prints "opencode v2.0.22" on some builds and "2.0.22" on others;
+    // record the bare version so the field does not churn between machines.
     const output = (result.stdout || result.stderr || '').trim()
-    return output || null
+    return output.match(/\d+\.\d+\.\d+[\w.-]*/)?.[0] ?? (output || null)
   } catch {
     return null
   }
@@ -67,7 +69,8 @@ export async function writeHarnessConfig(data) {
 
   const payload = {
     ...existing,
-    version: 2,
+    // Never lower a schema version a repository already records.
+    version: Math.max(2, Number(existing?.version) || 0),
     generatedAt: new Date().toISOString(),
     harnessVersion,
     opencodeVersion,

@@ -42,4 +42,22 @@ describe('writeModelsToConfigs()', () => {
     expect(JSON.parse(fs.readFileSync(opencodeJsonPath, 'utf-8'))).toEqual({ theme: 'dark' })
     expect(success).not.toHaveBeenCalled()
   })
+
+  it('keeps a model the repository already pinned when asked to', async () => {
+    const opencodeJsonPath = path.join(tmpDir, 'opencode.jsonc')
+    fs.writeFileSync(opencodeJsonPath, JSON.stringify({ model: 'pinned/fast', theme: 'dark' }, null, 2), 'utf-8')
+
+    await writeModelsToConfigs({ buildModel: 'build-model', keepExisting: true, cwd: tmpDir })
+
+    expect(JSON.parse(fs.readFileSync(opencodeJsonPath, 'utf-8')).model).toBe('pinned/fast')
+  })
+
+  it('still sets a model when asked to keep one and there is none', async () => {
+    const opencodeJsonPath = path.join(tmpDir, 'opencode.jsonc')
+    fs.writeFileSync(opencodeJsonPath, JSON.stringify({ theme: 'dark' }, null, 2), 'utf-8')
+
+    await writeModelsToConfigs({ buildModel: 'build-model', keepExisting: true, cwd: tmpDir })
+
+    expect(JSON.parse(fs.readFileSync(opencodeJsonPath, 'utf-8')).model).toBe('build-model')
+  })
 })

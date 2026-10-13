@@ -100,6 +100,19 @@ describe('writeHarnessConfig()', () => {
     expect(lastPayload().opencodeVersion).toBe('2.0.0')
   })
 
+  it('records the bare version when opencode prefixes it', async () => {
+    execa.mockResolvedValue({ exitCode: 0, stdout: 'opencode v2.0.22', stderr: '' })
+    await writeHarnessConfig({ backlogPlatform: 'github', repoPlatform: 'github', sourceMode: 'current', sourceRoots: [], cwd: tmpDir })
+    expect(lastPayload().opencodeVersion).toBe('2.0.22')
+  })
+
+  it('never lowers a schema version the repository already records', async () => {
+    execa.mockResolvedValue({ exitCode: 0, stdout: '2.0.22', stderr: '' })
+    fse.readJson.mockResolvedValueOnce({ version: 3 })
+    await writeHarnessConfig({ backlogPlatform: 'github', repoPlatform: 'github', sourceMode: 'current', sourceRoots: [], cwd: tmpDir })
+    expect(lastPayload().version).toBe(3)
+  })
+
   it('handles missing opencode gracefully', async () => {
     execa.mockResolvedValue({ exitCode: 1, stdout: '', stderr: '' })
     await writeHarnessConfig({ backlogPlatform: 'github', repoPlatform: 'github', sourceMode: 'current', sourceRoots: [], cwd: tmpDir })
