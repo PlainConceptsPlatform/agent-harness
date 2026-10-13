@@ -51,10 +51,10 @@ First read `AGENTS.md`. Without the `<!-- PC-NOT-INITIALIZED -->` marker the pro
     },
     {
       "header": "Evidence",
-      "question": "Enable visual evidence capture for this project? (playwright-cli + pnpm run dev; no per-project scaffold needed)",
+      "question": "Record how the app starts and how a person signs in locally, so merged changes get screenshots?",
       "options": [
-        { "label": "Yes", "description": "Evidence will be captured automatically by /plan-goal using playwright-cli + pnpm run dev." },
-        { "label": "No", "description": "Skip evidence capture." }
+        { "label": "Yes", "description": "Fill the project environment in pc-repo-verify: start command, URL, local sign-in, seeded data." },
+        { "label": "No", "description": "Skip; the verification plans will look for the sign-in themselves." }
       ]
     }
   ]
@@ -93,7 +93,14 @@ Always. Load `pc-make-guardrails`.
 
 ## Step 7, Visual evidence
 
-If Yes, there is nothing to scaffold: `pc-ops-evidence` drives `playwright-cli` against the project's root `pnpm run dev`, which has to start the full stack with mock auth. CI installs `playwright-cli` itself.
+If Yes. Every change's verification plan (`pc-repo-verify`) is replayed in headless Chromium by the evidence workflow when its pull request merges, from a freshly started app with nothing in the browser. Find in the source, and confirm by reading the root `package.json`, `.env.example` and the local auth setup:
+
+- the command that starts the whole stack with mock authentication (normally `pnpm run dev` at the root),
+- the URL the web app answers on,
+- the local sign-in: the exact steps and visible labels of the mock account picker or dev login,
+- the data a fresh start seeds (accounts, records) that a journey can rely on.
+
+Write them as the bullet list between `<!-- PC-PROJECT-ENVIRONMENT-START -->` and `<!-- PC-PROJECT-ENVIRONMENT-END -->` in `.agents/skills/pc-repo-verify/SKILL.md`, replacing the placeholder bullets. Only that slot: the rest of the file is the harness's, and an update keeps only the slot.
 
 ## Step 8, Show help
 

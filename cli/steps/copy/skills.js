@@ -3,6 +3,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import { info, success } from '../../utils/exec.js'
 import { canUpdateManagedFile, readUpdateManifest, recordManagedFile, writeUpdateManifest } from '../../utils/update-manifest.js'
+import { RETIRED_PATHS } from '../../utils/paths.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const CONTENT_SKILLS_DIR = path.resolve(__dirname, '../../../skills')
@@ -56,7 +57,6 @@ const MARKER_SKILLS = new Set([
   'pc-guardrails-generic',
   'pc-plan-archive',
   'pc-ops-ship',
-  'pc-ops-evidence',
   'pc-repo-initialize',
 ])
 
@@ -78,7 +78,6 @@ const REFRESHABLE_MARKER_SKILLS = new Set([
   'pc-guardrails-generic',
   'pc-plan-archive',
   'pc-ops-ship',
-  'pc-ops-evidence',
 ])
 
 // A project-owned slot inside a shipped skill: the content between the markers
@@ -296,4 +295,13 @@ export async function installSkills(backlogPlatform = 'github', repoPlatform, op
   // npx skills experimental_install is now called once at the end of the
   // optimization step, after the user has selected which tools to enable.
   // This avoids multiple npx skills add calls during onboarding.
+}
+
+export async function removeRetiredFiles(cwd = process.cwd()) {
+  for (const relative of RETIRED_PATHS) {
+    const target = path.join(cwd, relative)
+    if (!await fse.pathExists(target)) continue
+    await fse.remove(target)
+    info(`Removed retired: ${relative}`)
+  }
 }

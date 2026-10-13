@@ -44,8 +44,6 @@ Display the following reference to the user exactly as written. Do not summarize
 
 **`/ops-backlog`**: Create an issue in the backlog platform (GitHub, Azure DevOps, Jira) from a description.
 
-**`/ops-evidence`**: Produce evidence a completed change works and publish it to the originating issue/PR. Uses `playwright-cli` (headless) and `pnpm run dev` to capture screenshots at desktop and mobile viewports, writes `evidence/evidence.json` (passed/skipped/failed/blocked), and upserts an idempotent verified comment. Best-effort. Run it yourself after a change lands; `/plan-goal` does not run it. Works inside CI containers.
-
 **`/plan-archive`**: Mark a completed change as archived in OpenSpec. Run this after the PR is merged.
 
 ---
@@ -60,7 +58,7 @@ Display the following reference to the user exactly as written. Do not summarize
 
 **`/make-guardrails`**: Generate a `pc-guardrails-project` skill from `ARCHITECTURE.md` and project config files. Extracts concrete rules (architecture boundaries, naming, code style, testing, git workflow) that all agents must follow. Updates every `*-engineer.md` to load the skill.
 
-**`/repo-verify`**: Write a reproduction plan for the current branch's change as a journey of agent-browser waypoints stored with the change in `verification-plan.md`. Traces backend-only changes through to the frontend when the changed contract is consumed there; writes a `not-applicable` stub when no UI surface is reachable. Does not run checks, launch a browser, or take screenshots — the checks gate lives in `pc-plan-apply` step 10, and the plan is executed later by a separate agent-browser skill. It runs automatically in `/plan-goal`.
+**`/repo-verify`**: Write the verification plan for the current branch's change: a journey through the new functionality as a fenced YAML block in `verification-plan.md`, stored with the change. The evidence workflow from `@plainconceptsplatform/workflows` replays it in headless Chromium when the pull request merges and archives one screenshot per waypoint on it. Backend-only changes are traced through to the frontend when their contract is consumed there; a `not-applicable` stub is written when no UI surface is reachable. Does not run checks or take screenshots. Runs automatically in `/plan-goal`.
 
 **`/make-user-model <tier> <model>`**: Set the model for a tier (`plan`, `build`, or `fast`). Writes to `.opencode/harness.json` (`models`). Use `user` prefix for a personal override: `/make-user-model user fast opencode/big-pickle`. Use a model id or `current` for the active session model. Restart opencode for the `pc-subagent-tiers` plugin to rebuild tier agents.
 

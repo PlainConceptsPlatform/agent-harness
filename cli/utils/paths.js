@@ -39,6 +39,19 @@ export const IGNORED_ENTRIES = [
   'agents/plan.md',
 ]
 
+/**
+ * Files the harness shipped and has since retired. `update` deletes them, because a skill or
+ * command left behind keeps being offered to agents long after the procedure it describes is
+ * gone. pc-ops-evidence wrote a capturePlan for a CI workflow that no longer exists; the
+ * verification plan from pc-repo-verify is what the evidence workflow replays now.
+ */
+export const RETIRED_PATHS = [
+  '.agents/skills/pc-ops-evidence',
+  '.agents/skills/pc-make-evidence-scaffold',
+  '.opencode/commands/ops-evidence.md',
+  '.opencode/commands/make-evidence-scaffold.md',
+]
+
 export function configPath(cwd = process.cwd()) {
   return path.join(cwd, OPENCODE_DIR, CONFIG_FILE)
 }

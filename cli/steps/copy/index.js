@@ -5,8 +5,8 @@ import { copyContent, recordManagedContent } from "../../utils/copy.js"
 import { error, header, success } from "../../utils/exec.js"
 import { exit } from "../../utils/process.js"
 import { patchAgentGuidance, patchAgentsMd } from "./agents.js"
-import { patchArchiveCommand, patchOpsShip, patchOpsReview, patchOpsBacklog, patchOpsEvidence } from "./commands.js"
-import { installSkills } from "./skills.js"
+import { patchArchiveCommand, patchOpsShip, patchOpsReview, patchOpsBacklog } from "./commands.js"
+import { installSkills, removeRetiredFiles } from "./skills.js"
 import { generateFullstackEngineer, removeLegacyStartupDirectives } from "./fullstack-engineer.js"
 import { patchOpencodeJson, patchOpencodePackage } from "./opencode-json.js"
 
@@ -72,11 +72,11 @@ export async function copyContentStep(platform, ctx = {}) {
         updateMode: ctx.updateMode,
       })
     }
-    // These patch SKILL.md files (pc-plan-archive, pc-ops-ship, pc-ops-evidence),
+    // These patch SKILL.md files (pc-plan-archive, pc-ops-ship),
     // so they must run after installSkills has copied the skills into the project.
     await patchArchiveCommand({ backlogPlatform, repoPlatform })
     await patchOpsShip({ backlogPlatform, repoPlatform })
-    await patchOpsEvidence({ backlogPlatform, repoPlatform })
+    await removeRetiredFiles()
     await generateFullstackEngineer({ updateMode: ctx.updateMode })
     await removeLegacyStartupDirectives()
     await recordManagedContent(CONTENT_DIR, dest, { updateMode: ctx.updateMode })

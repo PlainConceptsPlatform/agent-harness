@@ -139,14 +139,13 @@ Commands that other commands (or agents) need to execute are thin wrappers aroun
 | `/ops-ship` | Create a pull request for the current branch with screenshots if the user interface changed. |
 | `/ops-review` | Read and triage pull request review feedback. Reports what needs fixing. |
 | `/ops-backlog` | Create an issue in the backlog platform (GitHub, Azure DevOps, or Jira) from a description. |
-| `/ops-evidence` | Produce evidence a change works (delegating to a project harness if present, else a screenshot), write `evidence/evidence.json`, and publish an idempotent comment on the issue/PR. Best-effort. |
 | `/plan-archive` | Archive a completed OpenSpec change. |
 | `/plan-goal <feature or URL>` | Autonomous, no-confirmation pipeline: branch off main, then explore, propose, apply, archive (one commit per phase). Default mode: merge to main and delete the feature branch. Add `branch` to keep the feature branch without merging or pushing. `push` pushes the branch; `pr` pushes and opens a PR. For loop-engineering. |
 | `/make-engineer` | Interactive persona-driven form to add a custom specialist engineer. Pick a persona, then confirm an inspected-and-recommended skill set (architecture/patterns like FSD or design patterns, framework, testing, infra) before it installs. |
 | `/make-architecture` | Generate or regenerate `ARCHITECTURE.md` from the codebase. |
 | `/make-design` | Generate or regenerate `DESIGN.md` from the design system. |
 | `/make-guardrails` | Generate a `pc-guardrails-project` skill from `ARCHITECTURE.md` and project config files. Extracts architecture boundaries, naming, code style, testing, and git workflow rules. Updates all `*-engineer.md` to load the skill. |
-| `/repo-verify` | Write a reproduction plan for the current branch's change as a journey of agent-browser waypoints, stored in `verification-plan.md` with the change. Backend-only changes are traced through to the frontend when their contract is consumed there; a `not-applicable` stub is written when no UI surface is reachable. Does not run checks or take screenshots — the checks gate lives in `/plan-apply`, and the plan is executed later by a separate agent-browser skill. Runs automatically in `/plan-goal`. |
+| `/repo-verify` | Write the verification plan for the current branch's change: a journey through the new functionality as a fenced YAML block in `verification-plan.md`, stored with the change. The evidence workflow from `@plainconceptsplatform/workflows` replays it in headless Chromium when the pull request merges and archives one screenshot per waypoint on it. Backend-only changes are traced through to the frontend when their contract is consumed there; a `not-applicable` stub is written when no UI surface is reachable. Does not run checks or take screenshots. Runs automatically in `/plan-goal`. |
 | `/make-user-model [user] <tier> <model>` | Set the model for a tier (`plan`, `build`, `fast`). Writes to `harness.json` (team) or `harness.user.json` (user override, gitignored) when `user` prefix is used. Restart to pick up changes: the `pc-subagent-tiers` plugin rebuilds tier agents at startup. Pass a model id or `current` for the active session model. |
 
 ---
@@ -207,7 +206,6 @@ Built-in skills (`pc-` prefix) shipped with agent-harness:
 | `pc-plan-apply` | Wave-implementation procedure behind `/plan-apply`; autonomous mode used by `/plan-goal` |
 | `pc-plan-archive` | Archive procedure behind `/plan-archive` (platform flow injected at onboarding); autonomous mode used by `/plan-goal` |
 | `pc-ops-ship` | PR-creation procedure behind `/ops-ship` (platform flow injected at onboarding); used by `/plan-goal` pr mode |
-| `pc-ops-evidence` | Evidence of a change → `evidence/evidence.json` (passed/skipped/failed/blocked) + idempotent verified issue/PR comment; delegates to a project harness if present, else screenshots; used by `/ops-evidence` |
 | `pc-make-architecture` | ARCHITECTURE.md generation behind `/make-architecture`; used by `/repo-initialize` |
 | `pc-make-design` | DESIGN.md generation behind `/make-design`; used by `/repo-initialize` |
 | `pc-make-guardrails` | Guardrails generation behind `/make-guardrails`; used by `/repo-initialize` |
@@ -216,12 +214,12 @@ Built-in skills (`pc-` prefix) shipped with agent-harness:
 | `pc-plan-goal` | Autonomous full-lifecycle pipeline behind `/plan-goal` |
 | `pc-plan-quick` | Quick task checklist behind `/plan-quick` |
 | `pc-repo-audit` | Read-only health audit across configured source roots and fullstack abilities |
-| `pc-repo-verify` | Writes the verification plan (`verification-plan.md`): a reproduction journey of agent-browser waypoints, stored with the change archive. Used by `/repo-verify` and `/plan-goal` |
+| `pc-repo-verify` | Writes the verification plan (`verification-plan.md`): a journey as a fenced YAML block, replayed in headless Chromium by the evidence workflow when the pull request merges. Its `PC-PROJECT-ENVIRONMENT` slot records how the project starts and signs in. Used by `/repo-verify` and `/plan-goal` |
 | `pc-repo-initialize` | Project initialization behind `/repo-initialize` |
 | `pc-repo-onboard` | Guided project tour behind `/repo-onboard` |
 | `pc-repo-help` | The command reference displayed by `/repo-help`; used by `/repo-initialize` |
 
-Platform operations are injected during onboarding: pull request creation into the `pc-ops-ship` skill (loaded by `/ops-ship`, and by `/plan-goal` in `pr` mode), archive PR flow into the `pc-plan-archive` skill, issue/work-item evidence comments into the `pc-ops-evidence` skill (backlog platform), and pull request review / issue creation directly into the `/ops-review` and `/ops-backlog` command files.
+Platform operations are injected during onboarding: pull request creation into the `pc-ops-ship` skill (loaded by `/ops-ship`, and by `/plan-goal` in `pr` mode), archive PR flow into the `pc-plan-archive` skill, and pull request review / issue creation directly into the `/ops-review` and `/ops-backlog` command files.
 
 Skills live in `.agents/skills/`. Any `SKILL.md` file in a subdirectory is automatically discoverable. Write your own and agents will pick them up.
 
@@ -271,7 +269,7 @@ lead
 7. Verify with tests, build, and lint according to task scope
 8. Ship or update pull request via lead flow
 
-For unattended Loop Task runs, keep a concrete shell verification task as the final exit-code gate. Inside `/plan-goal`, `/plan-apply` step 10 runs lint, typecheck, test, and build commands and is the checks gate; `/repo-verify` then writes `verification-plan.md` (a reproduction journey for a later agent-browser executor). The final shell task independently proves the critical commands passed before commit or pull request actions.
+For unattended Loop Task runs, keep a concrete shell verification task as the final exit-code gate. Inside `/plan-goal`, `/plan-apply` step 10 runs lint, typecheck, test, and build commands and is the checks gate; `/repo-verify` then writes `verification-plan.md` (the journey the evidence workflow replays in headless Chromium once the pull request merges). The final shell task independently proves the critical commands passed before commit or pull request actions.
 
 Agents run as native OpenCode subagents in parallel waves: no external plugin, no git worktrees. The lead's Todo pane is the live board, and the `pc-subagent-monitor` plugin mirrors state to `.opencode/harness-run.json`. Navigate into any running subagent with `ctrl+x ↓` then `←`/`→`.
 
@@ -394,7 +392,7 @@ Data the CLI reads lives in two places, split by kind:
 - `quota.json` controls opencode-quota defaults
 - `browser.json` controls the agent-browser installer (npm package + Chrome setup)
 
-**`cli/fragments/`** holds Markdown injected into the installed harness, one directory per marker family: `archive/`, `guardrails/`, `ops-backlog/`, `ops-evidence/`, `ops-review/`, `ops-ship/`. Each file is the platform-specific body that replaces a `<!-- PC-PLATFORM-*-START -->` block.
+**`cli/fragments/`** holds Markdown injected into the installed harness, one directory per marker family: `archive/`, `guardrails/`, `ops-backlog/`, `ops-review/`, `ops-ship/`. Each file is the platform-specific body that replaces a `<!-- PC-PLATFORM-*-START -->` block.
 
 Every filename the harness writes into a project is declared once in `cli/utils/paths.js`. Change it there, and remember the OpenCode plugins under `harness/.opencode/plugins/` read those same names at runtime.
 

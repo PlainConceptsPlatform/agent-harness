@@ -73,22 +73,20 @@ is automatically discoverable.
 | `pc-plan-goal` | Autonomous full-lifecycle pipeline behind `/plan-goal` |
 | `pc-plan-quick` | Quick task checklist behind `/plan-quick` |
 | `pc-ops-ship` | PR-creation procedure behind `/ops-ship` |
-| `pc-ops-evidence` | Evidence of a change, plus an idempotent verified issue/PR comment |
 | `pc-make-architecture` | `ARCHITECTURE.md` generation behind `/make-architecture` |
 | `pc-make-design` | `DESIGN.md` generation behind `/make-design` |
 | `pc-make-guardrails` | Guardrails generation behind `/make-guardrails` |
 | `pc-make-engineer` | Custom engineer creation behind `/make-engineer` |
 | `pc-make-user-model` | Tier model configuration behind `/make-user-model` |
 | `pc-repo-audit` | Read-only health audit across configured source roots |
-| `pc-repo-verify` | Writes `verification-plan.md`: a reproduction journey for a later agent-browser executor |
+| `pc-repo-verify` | Writes `verification-plan.md`: a journey the evidence workflow replays in headless Chromium after merge |
 | `pc-repo-initialize` | Project initialization behind `/repo-initialize` |
 | `pc-repo-onboard` | Guided project tour behind `/repo-onboard` |
 | `pc-repo-help` | The command reference displayed by `/repo-help` |
 
 Platform operations are injected during onboarding: pull request creation into
-`pc-ops-ship`, the archive PR flow into `pc-plan-archive`, issue and work-item
-evidence comments into `pc-ops-evidence`, and pull request review plus issue
-creation directly into the `/ops-review` and `/ops-backlog` command files.
+`pc-ops-ship`, the archive PR flow into `pc-plan-archive`, and pull request
+review plus issue creation directly into the `/ops-review` and `/ops-backlog` command files.
 
 Platform skills ship as suffixed variants (`pc-userstory-gh`, `pc-userstory-az`,
 `pc-userstory-jira`, `pc-userstory-browser`) and the installer copies only the

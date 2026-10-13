@@ -13,8 +13,8 @@ vi.mock('execa', () => ({ execa: vi.fn().mockResolvedValue({ exitCode: 0 }) }))
 vi.mock('../../utils/exec.js')
 
 import { patchAgentsMd, patchAgentGuidance } from './agents.js'
-import { installSkills } from './skills.js'
-import { patchOpsShip, patchOpsReview, patchOpsBacklog, patchOpsEvidence } from './commands.js'
+import { installSkills, removeRetiredFiles } from './skills.js'
+import { patchOpsShip, patchOpsReview, patchOpsBacklog } from './commands.js'
 import { resolvePlatform } from '../../commands/single.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -234,7 +234,7 @@ describe('ops command patching (real presets + real templates)', () => {
       const src = path.join(CONTENT_DIR, '.opencode', 'commands', cmd)
       fs.copyFileSync(src, path.join(tmpDir, '.opencode', 'commands', cmd))
     }
-    for (const skill of ['pc-ops-ship', 'pc-ops-evidence']) {
+    for (const skill of ['pc-ops-ship']) {
       fs.mkdirSync(path.join(tmpDir, '.agents', 'skills', skill), { recursive: true })
       fs.copyFileSync(
         path.join(SOURCE_SKILLS_DIR, skill, 'SKILL.md'),
@@ -245,12 +245,10 @@ describe('ops command patching (real presets + real templates)', () => {
     await patchOpsShip({ backlogPlatform: backlog, repoPlatform: repo }, tmpDir)
     await patchOpsReview({ backlogPlatform: backlog, repoPlatform: repo }, tmpDir)
     await patchOpsBacklog({ backlogPlatform: backlog, repoPlatform: repo }, tmpDir)
-    await patchOpsEvidence({ backlogPlatform: backlog, repoPlatform: repo }, tmpDir)
 
     const ship = await patchedSkill('pc-ops-ship')
     const review = await patchedCommand('ops-review.md')
     const backlogCmd = await patchedCommand('ops-backlog.md')
-    const evidence = await patchedSkill('pc-ops-evidence')
 
     // Markers must survive
     expect(ship).toContain('PC-PLATFORM-SHIP-START')
@@ -259,32 +257,6 @@ describe('ops command patching (real presets + real templates)', () => {
     expect(review).toContain('PC-PLATFORM-REVIEW-END')
     expect(backlogCmd).toContain('PC-PLATFORM-BACKLOG-START')
     expect(backlogCmd).toContain('PC-PLATFORM-BACKLOG-END')
-    expect(evidence).toContain('PC-PLATFORM-EVIDENCE-START')
-    expect(evidence).toContain('PC-PLATFORM-EVIDENCE-END')
-    // Evidence targets the backlog platform; browser has no CLI so nothing is
-    // injected (markers stay adjacent), while gh/az/jira inject a comment step.
-    // Normalize line endings for cross-platform test compatibility.
-    const evidenceNormalized = evidence.replace(/\r\n/g, '\n')
-    if (backlog === 'browser') {
-      expect(evidenceNormalized).toContain('PC-PLATFORM-EVIDENCE-START -->\n<!-- PC-PLATFORM-EVIDENCE-END')
-    } else {
-      expect(evidenceNormalized).not.toContain('PC-PLATFORM-EVIDENCE-START -->\n<!-- PC-PLATFORM-EVIDENCE-END')
-    }
-    const evidenceCli = { github: 'issues/{number}/comments', azure: 'az boards work-item update', jira: 'acli jira issue comment' }
-    if (evidenceCli[backlog]) {
-      expect(evidence).toContain(evidenceCli[backlog])
-      expect(evidence).toContain('commit-pinned')
-      // Every publishing platform carries the status probe in the body.
-      expect(evidence).toContain('pc-visual-evidence-status:{status}')
-    }
-    // az and jira cannot edit a comment in place, so they must key the skip on
-    // the status. Keying it on the change id alone left a stale `blocked`
-    // comment standing after a later run passed.
-    if (backlog === 'azure' || backlog === 'jira') {
-      expect(evidence).toContain('grep -q "pc-visual-evidence-status:{status}"')
-      expect(evidence).not.toContain('grep -q "pc-visual-evidence:{change-id}"')
-      expect(evidence).toContain('Supersedes the earlier evidence comment')
-    }
   })
 })
 
@@ -315,16 +287,34 @@ describe('update refreshes marker skills but keeps project-owned content', () =>
   })
 
   it('carries a PC-PROJECT slot over the refresh', async () => {
-    const adapted = shipped('pc-ops-evidence').replace(
-      /<!-- PC-PROJECT-EXAMPLE-START -->[\s\S]*?<!-- PC-PROJECT-EXAMPLE-END -->/,
-      '<!-- PC-PROJECT-EXAMPLE-START -->\nOUR OWN ROUTES\n<!-- PC-PROJECT-EXAMPLE-END -->',
+    const adapted = shipped('pc-repo-verify').replace(
+      /<!-- PC-PROJECT-ENVIRONMENT-START -->[\s\S]*?<!-- PC-PROJECT-ENVIRONMENT-END -->/,
+      '<!-- PC-PROJECT-ENVIRONMENT-START -->\nSIGN IN AS ALICE ADMIN\n<!-- PC-PROJECT-ENVIRONMENT-END -->',
     )
-    seed('pc-ops-evidence', `${adapted}\nstale tail that must go\n`)
+    seed('pc-repo-verify', `${adapted}\nstale tail that must go\n`)
 
     await installSkills('github', 'github', { updateMode: true })
 
-    expect(installed('pc-ops-evidence')).toContain('OUR OWN ROUTES')
-    expect(installed('pc-ops-evidence')).not.toContain('stale tail that must go')
+    expect(installed('pc-repo-verify')).toContain('SIGN IN AS ALICE ADMIN')
+    expect(installed('pc-repo-verify')).not.toContain('stale tail that must go')
+  })
+
+  it('removes the retired evidence skills and commands', async () => {
+    const retired = [
+      '.agents/skills/pc-ops-evidence/SKILL.md',
+      '.agents/skills/pc-make-evidence-scaffold/SKILL.md',
+      '.opencode/commands/ops-evidence.md',
+    ]
+    for (const relative of retired) {
+      fs.mkdirSync(path.dirname(path.join(tmpDir, relative)), { recursive: true })
+      fs.writeFileSync(path.join(tmpDir, relative), 'retired\n')
+    }
+
+    await removeRetiredFiles(tmpDir)
+
+    expect(fs.existsSync(path.join(tmpDir, '.agents', 'skills', 'pc-ops-evidence'))).toBe(false)
+    expect(fs.existsSync(path.join(tmpDir, '.agents', 'skills', 'pc-make-evidence-scaffold'))).toBe(false)
+    expect(fs.existsSync(path.join(tmpDir, '.opencode', 'commands', 'ops-evidence.md'))).toBe(false)
   })
 
   it('never refreshes a generated skill', async () => {
@@ -345,12 +335,6 @@ describe('update refreshes marker skills but keeps project-owned content', () =>
     expect(installed('pc-repo-initialize')).toContain('skipped during onboarding')
   })
 
-  it('ships no project-specific domain in the evidence example', () => {
-    const text = shipped('pc-ops-evidence')
-    for (const leak of ['quote', 'Quote', 'ProjectDetailsCard', 'currency']) {
-      expect(text).not.toContain(leak)
-    }
-  })
 })
 
 describe('resolvePlatform accepts every platforms.json value', () => {

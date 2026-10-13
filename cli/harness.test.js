@@ -142,14 +142,14 @@ describe("planning skill templates", () => {
     expect(audit).toContain("without modifying files")
     expect(audit).toContain("fullstack-engineer.md")
 
-    // Verification now produces a reproduction plan for a later agent-browser
-    // executor, not a check matrix. Pin what the plan is, not its wording.
+    // Verification produces a reproduction plan the evidence workflow replays
+    // in headless Chromium, not a check matrix. Pin what the plan is, not its wording.
     expect(verify).toContain("verification-plan.md")
     expect(verify).toContain("git diff")
     expect(verify).toContain("PLAN_WRITTEN")
     expect(verify).toContain("STUB_WRITTEN")
     expect(verify).toContain("not-applicable")
-    expect(verify).toContain("agent-browser")
+    expect(verify).toContain("journey:")
   })
 
   it("keeps plan-explore delegating to openspec-explore", () => {
@@ -219,21 +219,20 @@ describe("planning skill templates", () => {
 
   it("keeps temporary artifacts inside the repository", () => {
     const guardrails = skill("pc-guardrails-generic")
-    const evidence = skill("pc-ops-evidence")
 
     expect(guardrails).toContain("$REPO_ROOT/.opencode/.tmp/")
-    expect(evidence).toContain("capturePlan")
   })
 
-  it("ships evidence skill with capturePlan and no deprecated scaffold", () => {
-    const evidence = skill("pc-ops-evidence")
+  it("ships a replayable verification plan and no retired evidence skill", () => {
+    const verify = skill("pc-repo-verify")
 
-    expect(evidence).toContain("capturePlan")
-    expect(evidence).toContain("Visual Evidence CI workflow")
-    // pc-make-evidence-scaffold was dropped: it was deprecated and pointed
-    // users at pc-ops-evidence, which ships the same functionality.
-    const scaffold = path.join(SOURCE_SKILLS_DIR, "pc-make-evidence-scaffold", "SKILL.md")
-    expect(fs.existsSync(scaffold)).toBe(false)
+    // The evidence workflow reads the first fenced yaml block holding a journey.
+    expect(verify).toContain("```yaml")
+    expect(verify).toContain("journey:")
+    expect(verify).toContain("<!-- PC-PROJECT-ENVIRONMENT-START -->")
+    for (const retired of ["pc-ops-evidence", "pc-make-evidence-scaffold"]) {
+      expect(fs.existsSync(path.join(SOURCE_SKILLS_DIR, retired, "SKILL.md"))).toBe(false)
+    }
   })
 })
 
@@ -328,7 +327,7 @@ describe("each rule has one home", () => {
   // between them: whether a missing CLI blocks or skips.
   it("opens no ops fragment with a bolded platform rule", () => {
     const opsFragments = walk(FRAGMENTS_DIR).filter(f => /[\\/]ops-/.test(f))
-    expect(opsFragments.length).toBe(12)
+    expect(opsFragments.length).toBe(9)
 
     const offenders = opsFragments.filter(f => /^\*\*/.test(read(f).trimStart()))
     expect(offenders.map(f => path.relative(CONTENT_DIR, f))).toEqual([])

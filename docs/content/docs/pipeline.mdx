@@ -43,8 +43,8 @@ lead
 <Callout title="Keep a shell task as the final gate" type="warn">
   For unattended loop runs, end with a concrete shell verification task as the exit-code gate.
   Inside `/plan-goal`, `/plan-apply` step 10 runs lint, typecheck, test, and build commands and is
-  the checks gate; `/repo-verify` then writes `verification-plan.md` — a reproduction journey for a
-  later agent-browser executor. The shell task independently proves the critical commands passed
+  the checks gate; `/repo-verify` then writes `verification-plan.md`, the journey the evidence
+  workflow replays in headless Chromium once the pull request merges. The shell task independently proves the critical commands passed
   before any commit or pull request action.
 </Callout>
 

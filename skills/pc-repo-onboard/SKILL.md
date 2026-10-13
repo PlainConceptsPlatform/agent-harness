@@ -22,7 +22,7 @@ A guided tour of this repository and the harness installed in it, for somebody w
    | Planning | `/plan-explore`, `/plan-story`, `/plan-propose`, `/plan-quick`, `/plan-goal` |
    | Implementation | `/plan-apply`, `/plan-archive` |
    | Maintenance | `/make-architecture`, `/make-design`, `/make-engineer`, `/make-guardrails` |
-   | Shipping | `/ops-ship`, `/ops-review`, `/ops-backlog`, `/ops-evidence` |
+   | Shipping | `/ops-ship`, `/ops-review`, `/ops-backlog` |
    | Quality | `/repo-audit` (read-only), `/repo-verify` (writes the verification plan) |
    | Setup | `/init`, `/make-user-model`, `/repo-help` |
 
