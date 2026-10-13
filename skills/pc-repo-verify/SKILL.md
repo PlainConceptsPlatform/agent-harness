@@ -8,11 +8,11 @@ license: MIT
 
 Write the verification plan for the current branch's change. The checks gate lives in `pc-plan-apply` step 10 (lint, typecheck, test, build). This skill produces the reproduction plan instead: a journey through the new functionality with one screenshot per waypoint.
 
-The plan is executed by a machine, not read by one. When the pull request merges, the evidence workflow (`evidence.yml` from `@plainconceptsplatform/workflows`) checks out the pull request head, starts the app, replays every step below in headless Chromium with no model in the loop, and archives one screenshot per waypoint on the pull request. A step it cannot follow is a screenshot of the wrong screen. Write every step so it can be followed literally from a freshly started app.
+The plan is executed by a machine, not read by one. When the pull request merges, the evidence workflow (`evidence.yml` from `@plainconceptsplatform/workflows`) checks out the pull request head, starts the app, replays every step below in headless Chromium with no model in the loop, and archives one screenshot per waypoint in an `evidence/` folder beside this plan on the default branch, shown in one comment on the pull request. A step it cannot follow is a screenshot of the wrong screen. Write every step so it can be followed literally from a freshly started app.
 
 This skill never launches a browser, never takes a screenshot, never starts a server. It only reads the change and writes a plan file.
 
-Work only on the current branch: do not switch branches, push, create pull requests, or contact external platforms. Write the plan into the change directory; it is carried into the archive by `pc-plan-archive`.
+Work only on the current branch: do not switch branches, push, create pull requests, or contact external platforms. Write the plan into the change directory; it is carried into the archive by `pc-plan-archive`. Never create or edit an `evidence/` folder: the workflow writes it beside the archived plan after the merge.
 
 ## Project environment
 
