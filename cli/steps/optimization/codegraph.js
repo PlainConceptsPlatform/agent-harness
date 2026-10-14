@@ -39,74 +39,42 @@ export async function fixCodegraphConfig(location = 'local') {
     return false
   }
 
-  const legacyMcp = config.mcpServers && typeof config.mcpServers === 'object' ? config.mcpServers : {}
-  const mcp = config.mcp && typeof config.mcp === 'object' ? config.mcp : {}
-  const servers = mcp.servers && typeof mcp.servers === 'object' ? { ...mcp.servers } : {}
-  const oldMcpEntries = Object.fromEntries(Object.entries(mcp).filter(([name]) => name !== 'servers'))
-  const entriesToMigrate = { ...legacyMcp, ...oldMcpEntries }
+  const entry = config.mcp?.servers?.codegraph
+  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return true
+
+  const normalizedEntry = { ...entry }
   let changed = false
 
-  for (const [name, entry] of Object.entries(entriesToMigrate)) {
-    if (!Object.hasOwn(servers, name)) servers[name] = entry
+  if (normalizedEntry.type == null) {
+    normalizedEntry.type = 'local'
+    changed = true
+  }
+  if (Array.isArray(normalizedEntry.command) && normalizedEntry.command[0] === 'codegraph') {
+    normalizedEntry.command = ['npx', '--yes', '@colbymchenry/codegraph', ...normalizedEntry.command.slice(1)]
+    changed = true
+  }
+  if (normalizedEntry.timeout == null) {
+    normalizedEntry.timeout = {
+      catalog: 120000,
+      execution: 120000,
+    }
+    changed = true
+  } else if (typeof normalizedEntry.timeout !== 'object' || Array.isArray(normalizedEntry.timeout)) {
+    const timeout = Number.isFinite(normalizedEntry.timeout) && normalizedEntry.timeout > 0
+      ? normalizedEntry.timeout
+      : 120000
+    normalizedEntry.timeout = { catalog: timeout, execution: timeout }
+    changed = true
+  }
+  if (normalizedEntry.codemode !== false) {
+    normalizedEntry.codemode = false
     changed = true
   }
 
-  for (const [name, entry] of Object.entries(servers)) {
-    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) continue
-
-    const normalizedEntry = { ...entry }
-    if (name === 'codegraph') {
-      if (normalizedEntry.type == null) {
-        normalizedEntry.type = 'local'
-        changed = true
-      }
-      if (Array.isArray(normalizedEntry.command) && normalizedEntry.command[0] === 'codegraph') {
-        normalizedEntry.command = ['npx', '--yes', '@colbymchenry/codegraph', ...normalizedEntry.command.slice(1)]
-        changed = true
-      }
-      if (normalizedEntry.timeout == null) {
-        normalizedEntry.timeout = {
-          catalog: 120000,
-          execution: 120000,
-        }
-        changed = true
-      } else if (typeof normalizedEntry.timeout !== 'object' || Array.isArray(normalizedEntry.timeout)) {
-        const timeout = Number.isFinite(normalizedEntry.timeout) && normalizedEntry.timeout > 0
-          ? normalizedEntry.timeout
-          : 120000
-        normalizedEntry.timeout = { catalog: timeout, execution: timeout }
-        changed = true
-      }
-      if (normalizedEntry.codemode !== false) {
-        normalizedEntry.codemode = false
-        changed = true
-      }
-      if (normalizedEntry.enabled !== undefined) {
-        normalizedEntry.disabled = !normalizedEntry.enabled
-        delete normalizedEntry.enabled
-        changed = true
-      }
-    }
-    servers[name] = normalizedEntry
-  }
-
   if (changed) {
-    configText = applyEdits(configText, modify(configText, ['mcp', 'servers'], servers, {
+    configText = applyEdits(configText, modify(configText, ['mcp', 'servers', 'codegraph'], normalizedEntry, {
       formattingOptions: { insertSpaces: true, tabSize: 2 },
     }))
-    for (const name of Object.keys(oldMcpEntries)) {
-      configText = applyEdits(configText, modify(configText, ['mcp', name], undefined, {
-        formattingOptions: { insertSpaces: true, tabSize: 2 },
-      }))
-    }
-    if (config.mcpServers) {
-      configText = applyEdits(configText, modify(configText, ['mcpServers'], undefined, {
-        formattingOptions: { insertSpaces: true, tabSize: 2 },
-      }))
-    }
-  }
-
-  if (changed) {
     await fse.writeFile(configFile, configText, 'utf-8')
     warn('Normalized codegraph MCP config in opencode.jsonc')
   }

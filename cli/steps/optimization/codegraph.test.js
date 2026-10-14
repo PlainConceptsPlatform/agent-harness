@@ -30,12 +30,16 @@ describe('fixCodegraphConfig()', () => {
     expect(await fixCodegraphConfig()).toBe(true)
   })
 
-  it('migrates legacy mcpServers into OpenCode 2 mcp.servers config', async () => {
+  it('normalizes only the OpenCode 2 CodeGraph entry', async () => {
     fs.writeFileSync(path.join(tmpDir, 'opencode.jsonc'), JSON.stringify({
       $schema: 'https://opencode.ai/config.json',
       plugin: ['existing-plugin'],
-      mcpServers: {
-        codegraph: { command: ['codegraph', 'serve', '--mcp'] },
+      mcp: {
+        timeout: { startup: 45000 },
+        servers: {
+          codegraph: { command: ['codegraph', 'serve', '--mcp'] },
+          agentmemory: { type: 'local', command: ['custom-memory'] },
+        },
       },
     }))
 
@@ -49,15 +53,19 @@ describe('fixCodegraphConfig()', () => {
       codemode: false,
     })
     expect(result.plugin).toEqual(['existing-plugin'])
-    expect(result.mcpServers).toBeUndefined()
+    expect(result.mcp.timeout).toEqual({ startup: 45000 })
+    expect(result.mcp.servers.agentmemory).toEqual({ type: 'local', command: ['custom-memory'] })
+    expect(result.mcp.servers.timeout).toBeUndefined()
   })
 
   it('handles JSONC comments and preserves them', async () => {
     fs.writeFileSync(path.join(tmpDir, 'opencode.jsonc'), `{
   // Keep this project setting
   "default_agent": "build",
-  "mcpServers": {
-    "codegraph": { "command": ["codegraph", "serve", "--mcp"] }
+  "mcp": {
+    "servers": {
+      "codegraph": { "command": ["codegraph", "serve", "--mcp"] }
+    }
   }
 }
 `)
@@ -70,10 +78,12 @@ describe('fixCodegraphConfig()', () => {
     expect(content).toContain('"codegraph"')
   })
 
-  it('converts the legacy numeric timeout to the OpenCode 2 timeout shape', async () => {
+  it('normalizes the installer numeric timeout to the OpenCode 2 timeout shape', async () => {
     fs.writeFileSync(path.join(tmpDir, 'opencode.jsonc'), JSON.stringify({
-      mcpServers: {
-        codegraph: { command: ['codegraph', 'serve', '--mcp'], timeout: 300000 },
+      mcp: {
+        servers: {
+          codegraph: { command: ['codegraph', 'serve', '--mcp'], timeout: 300000 },
+        },
       },
     }))
 
@@ -106,14 +116,14 @@ describe('fixCodegraphConfig()', () => {
     expect(result.mcp.servers.codegraph.timeout).toEqual({ catalog: 300000 })
   })
 
-  it('moves CodeGraph from the nested installer config to OpenCode MCP server config', async () => {
+  it('preserves the OpenCode 2 server layout and disabled setting', async () => {
     fs.writeFileSync(path.join(tmpDir, 'opencode.jsonc'), JSON.stringify({
       mcp: {
         servers: {
           codegraph: {
             type: 'local',
             command: ['codegraph', 'serve', '--mcp'],
-            disabled: false,
+            disabled: true,
             codemode: false,
           },
         },
@@ -127,7 +137,7 @@ describe('fixCodegraphConfig()', () => {
       type: 'local',
       command: ['npx', '--yes', '@colbymchenry/codegraph', 'serve', '--mcp'],
       timeout: { catalog: 120000, execution: 120000 },
-      disabled: false,
+      disabled: true,
       codemode: false,
     })
   })
@@ -150,15 +160,16 @@ describe('fixCodegraphConfig()', () => {
     expect(result.mcp.servers.codegraph.command[0]).toBe('npx')
   })
 
-  it('does not change non-codegraph commands', async () => {
-    fs.writeFileSync(path.join(tmpDir, 'opencode.jsonc'), JSON.stringify({
-      mcpServers: { myMcp: { command: ['my-own-mcp', 'serve'] } },
-    }))
+  it('leaves legacy config layouts untouched', async () => {
+    const text = JSON.stringify({
+      mcpServers: { codegraph: { command: ['codegraph', 'serve', '--mcp'] } },
+      mcp: { codegraph: { command: ['codegraph', 'serve', '--mcp'], enabled: true } },
+    })
+    fs.writeFileSync(path.join(tmpDir, 'opencode.jsonc'), text)
 
     await fixCodegraphConfig()
 
-    const result = await fse.readJson(path.join(tmpDir, 'opencode.jsonc'))
-    expect(result.mcp.servers.myMcp.command).toEqual(['my-own-mcp', 'serve'])
+    expect(fs.readFileSync(path.join(tmpDir, 'opencode.jsonc'), 'utf-8')).toBe(text)
   })
 
   it('leaves an unparseable config untouched', async () => {
