@@ -63,8 +63,16 @@ describe('readHarnessConfig()', () => {
 })
 
 describe('ensureGitLongpaths()', () => {
+  let originalPlatform
+
   beforeEach(() => {
     vi.clearAllMocks()
+    originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform')
+    Object.defineProperty(process, 'platform', { ...originalPlatform, value: 'win32' })
+  })
+
+  afterEach(() => {
+    Object.defineProperty(process, 'platform', originalPlatform)
   })
 
   it('configures core.longpaths in a git repository', async () => {
