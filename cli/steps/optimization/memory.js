@@ -51,7 +51,7 @@ export async function installMemory(options = {}) {
       opencode = { $schema: 'https://opencode.ai/config.json' }
     }
 
-    if (!opencode.mcp?.['agentmemory']) {
+    if (!opencode.mcp?.servers?.agentmemory) {
       const agentmemory = {
         type: 'local',
         command: ['npx', '-y', '@agentmemory/mcp'],
@@ -64,7 +64,7 @@ export async function installMemory(options = {}) {
           "execution": 120000
         }
       }
-      opencodeText = applyEdits(opencodeText, modify(opencodeText, ['mcp', 'agentmemory'], agentmemory, {
+      opencodeText = applyEdits(opencodeText, modify(opencodeText, ['mcp', 'servers', 'agentmemory'], agentmemory, {
         formattingOptions: { insertSpaces: true, tabSize: 2 },
       }))
     }
