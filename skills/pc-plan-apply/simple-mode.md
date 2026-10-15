@@ -10,7 +10,7 @@ When the plan lives in the Todo pane (from `/plan-quick`) and no OpenSpec change
    - Implement it (edit files, run commands as needed).
    - Mark it `completed` via `todowrite`.
    - Commit the change: `git add <the paths this task wrote> && git commit -m "task {id}: {summary}"`. Unscoped staging is denied (`pc-system-reminders`).
-4. After all tasks are done, run the project's typecheck/build check if one exists. Fix any errors.
+4. After all tasks are done, run the project's typecheck/build check if one exists, then `node .opencode/scripts/check-diff.mjs`. Fix any errors until both exit 0.
 5. Report: tasks N/N completed, commits made, branch name.
 
 Rules:

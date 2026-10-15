@@ -33,13 +33,16 @@ async function documentedElsewhere(destDir, fileName) {
   return false
 }
 
+const MANAGED_DIRS = ['.opencode/plugins/', '.opencode/scripts/']
+
 function isTemplateTest(relativePath) {
-  return relativePath.split(path.sep).join('/').startsWith('.opencode/plugins/') && relativePath.endsWith('.test.js')
+  const normalized = relativePath.split(path.sep).join('/')
+  return MANAGED_DIRS.some(dir => normalized.startsWith(dir)) && normalized.endsWith('.test.js')
 }
 
 export function isManagedContentPath(relativePath) {
   const normalized = relativePath.split(path.sep).join('/')
-  if (normalized.startsWith('.opencode/plugins/')) return true
+  if (MANAGED_DIRS.some(dir => normalized.startsWith(dir))) return true
   if (normalized.startsWith('.opencode/commands/') && !MARKER_COMMANDS.has(normalized)) return true
   return normalized === 'openspec/specs/.gitkeep' || normalized === 'openspec/changes/archive/.gitkeep'
 }

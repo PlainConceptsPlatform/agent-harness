@@ -288,10 +288,13 @@ your-project/
 │   ├── harness-managed.json         ← hashes of every managed file, so "update" spares your edits
 │   ├── agents/                      ← build.md + plan.md (generated primaries), fullstack-engineer,
 │   │                                   and user-created *-engineer files (all subagents)
-│   └── plugins/
-│       ├── pc-subagent-monitor.js   ← server plugin: subagent state → .opencode/harness-run.json, and the wave cap
-│       ├── pc-subagent-tiers.js     ← server plugin: derives tier agents and the two primaries
-│       └── pc-system-reminders.js   ← server plugin: gates work on the agent's abilities, denies the never-rules
+│   ├── plugins/
+│   │   ├── pc-subagent-monitor.js   ← server plugin: subagent state → .opencode/harness-run.json, and the wave cap
+│   │   ├── pc-subagent-tiers.js     ← server plugin: derives tier agents and the two primaries
+│   │   └── pc-system-reminders.js   ← server plugin: gates work on the agent's abilities, denies the never-rules
+│   └── scripts/
+│       ├── check-diff.mjs           ← the comments and tests gate on the current diff (see below)
+│       └── code-rules.mjs           ← its rules, the same ones Project-Health scores a repository with
 └── .agents/
     └── skills/
         ├── pc-guardrails-generic/  ← foundation for user guardrails
@@ -305,6 +308,21 @@ On OpenCode 2 the terminal client is configured globally (`~/.config/opencode/cl
 Platform skills ship as suffixed variants (`pc-userstory-gh`, `pc-userstory-az`, `pc-userstory-jira`, `pc-userstory-browser`) and the installer copies only the matching one, renamed to its generic name. Platform operations (ship, review, backlog) are injected directly into the `/ops-*` command files from `cli/fragments/ops-*/` during onboarding. Source-roots metadata lands in `.opencode/source-roots.json`. The always-shipped reminder plugin holds editing, shell and spawning until every ability under the agent's `## Abilities` is loaded, guardrails first, and re-arms after compaction. Token-optimization guidance is injected into `pc-guardrails-generic` marker blocks during onboarding.
 
 ---
+
+## Comments and tests gate
+
+`node .opencode/scripts/check-diff.mjs [--base <ref>] [--json]` reads the diff against the merge base with `origin/HEAD` (committed, uncommitted and untracked) and exits 1 when it:
+
+- adds more comment lines than 10% of the code lines it adds (2 are always allowed);
+- adds a slop shape (banner, region, untracked TODO, a doc comment that repeats the name, commented-out code, an apology), a comment block of five lines or more, an incident story, or a doc comment on an internal symbol;
+- touches a file and leaves slop in it, or leaves it with more comments per code line than before;
+- grows the tests more than the code: test lines beyond the code lines added (40 always allowed), more than 40 cases per 1,000 code lines (3 always allowed), or any new skipped, focused, snapshot, assertion-less or mock-only test.
+
+`pc-plan-apply` runs it with the other checks, and the workflows run it before a bot pull request can merge. A project changes the limits in `.opencode/harness.json`:
+
+```json
+"codeRules": { "commentRatio": 0.1, "commentAllowance": 2, "testRatio": 1, "testAllowance": 40, "casesPerKloc": 40, "caseAllowance": 3 }
+```
 
 ## The bootstrap sequence
 
