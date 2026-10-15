@@ -15,7 +15,7 @@ The marker sections below name the optimization skills this project selected. Lo
 
 ## Code
 
-- The default is zero comments. Add one only where the code is genuinely non-obvious. Past 10% comment-to-code ratio, refactor for clarity. Never add comments that restate the code, label variables, TODOs without a linked issue, commented-out code, separator banners, or auto-generated docstrings/JSDoc/XML docs unless explicitly asked.
+- Zero comments by default. Write one only for what the code cannot show and we do not control: a vendor bug, an external contract, a legal rule. Leave every file you touch with no comment slop, old or new.
 - Never add a file that collects unrelated things — `constants.js`, `types.ts`, `utils.ts`. One responsibility per file, split by domain. A file importing from many unrelated modules is already the symptom.
 
 ## Temporary files
@@ -28,6 +28,7 @@ The marker sections below name the optimization skills this project selected. Lo
 - Never write more tests than the change requires. A bug fix gets one regression test. A new function gets tests for its public contract, not every internal branch. Never aim for a coverage number.
 - Never test framework or library internals. Test your code's contract, not that EF Core saves a tracked entity.
 - Never generate integration, e2e, or snapshot tests unless explicitly asked. Mock nothing you do not own — use a fake that records state. Never add a test that duplicates a type-check or linter rule.
+- `node .opencode/scripts/check-diff.mjs` enforces the comment and test rules on the diff and must exit 0.
 
 <!-- PC-GUARDRAILS-RTK-START -->
 <!-- PC-GUARDRAILS-RTK-END -->

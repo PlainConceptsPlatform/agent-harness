@@ -68,7 +68,7 @@ export default [
     },
   },
   {
-    files: ['harness/**/*.js'],
+    files: ['harness/**/*.js', 'harness/**/*.mjs'],
     languageOptions: {
       globals: {
         ...globals.node,

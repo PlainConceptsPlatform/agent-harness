@@ -79,7 +79,7 @@ wave     = pick groups whose file-sets are pairwise DISJOINT, capped at maxConcu
 
 **9. Progress guard.** If a full wave moved zero tasks to DONE: STOP (do not re-spawn the identical failing set). Otherwise recompute `eligible` and loop to step 5.
 
-**10. Verify.** In this (lead) session, run the project's lint, typecheck, test, build, and proposal-required validation commands. Every command must exit 0. On failure, reopen the offending tasks (uncheck, mark failed) so they re-enter `eligible` and run another wave. When every task is checked, no eligible task remains, and every command passes, report `VERIFIED` to the caller.
+**10. Verify.** In this (lead) session, run the project's lint, typecheck, test, build, and proposal-required validation commands, then `node .opencode/scripts/check-diff.mjs`. Every command must exit 0. A `check-diff` failure lists file, line and fix: reopen the tasks that own those files. On failure, reopen the offending tasks (uncheck, mark failed) so they re-enter `eligible` and run another wave. When every task is checked, no eligible task remains, and every command passes, report `VERIFIED` to the caller.
 
 **11. Close.** Mark all `tasks.md` checkboxes, run `openspec status --change "<name>" --json`, and report progress (N/M tasks). The wave state in `.opencode/harness-run.json` persists for resume.
 
