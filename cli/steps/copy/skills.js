@@ -144,9 +144,18 @@ async function syncSkillFiles(src, dest, relativeRoot, cwd, manifest) {
       await syncSkillFiles(sourcePath, destinationPath, relativePath, cwd, manifest)
       continue
     }
-    if (!await fse.pathExists(destinationPath) || await canUpdateManagedFile(relativePath, cwd, manifest)) {
+    const exists = await fse.pathExists(destinationPath)
+    if (!exists || await canUpdateManagedFile(relativePath, cwd, manifest)) {
       await fse.ensureDir(path.dirname(destinationPath))
-      await fse.copyFile(sourcePath, destinationPath)
+      // The managed check ignores what sits between markers, so an untouched file can still hold
+      // a filled PC-PROJECT-* slot; copying the source over it erased Numa's sign-in steps.
+      const shipped = await fse.readFile(sourcePath, 'utf-8')
+      if (exists && HAS_PROJECT_SLOT.test(shipped)) {
+        const existing = await fse.readFile(destinationPath, 'utf-8')
+        await fse.writeFile(destinationPath, writeProjectSlots(shipped, readProjectSlots(existing)), 'utf-8')
+      } else {
+        await fse.copyFile(sourcePath, destinationPath)
+      }
       await recordManagedFile(manifest, relativePath, sourcePath)
       success(`Updated skill: ${relativePath}`)
       continue
