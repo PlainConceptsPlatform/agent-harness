@@ -14,6 +14,7 @@ vi.mock('../../utils/exec.js')
 
 import { patchAgentsMd, patchAgentGuidance } from './agents.js'
 import { installSkills, removeRetiredFiles } from './skills.js'
+import { hashComparableFile } from '../../utils/update-manifest.js'
 import { patchOpsShip, patchOpsReview, patchOpsBacklog } from './commands.js'
 import { resolvePlatform } from '../../commands/single.js'
 
@@ -297,6 +298,24 @@ describe('update refreshes marker skills but keeps project-owned content', () =>
 
     expect(installed('pc-repo-verify')).toContain('SIGN IN AS ALICE ADMIN')
     expect(installed('pc-repo-verify')).not.toContain('stale tail that must go')
+  })
+
+  it('carries a PC-PROJECT slot when the manifest records the file as managed', async () => {
+    const adapted = shipped('pc-repo-verify').replace(
+      /<!-- PC-PROJECT-ENVIRONMENT-START -->[\s\S]*?<!-- PC-PROJECT-ENVIRONMENT-END -->/,
+      '<!-- PC-PROJECT-ENVIRONMENT-START -->\nSIGN IN AS ALICE ADMIN\n<!-- PC-PROJECT-ENVIRONMENT-END -->',
+    )
+    seed('pc-repo-verify', adapted)
+    const relative = '.agents/skills/pc-repo-verify/SKILL.md'
+    fs.mkdirSync(path.join(tmpDir, '.opencode'), { recursive: true })
+    fs.writeFileSync(
+      path.join(tmpDir, '.opencode', 'harness-managed.json'),
+      JSON.stringify({ version: 1, files: { [relative]: await hashComparableFile(path.join(tmpDir, relative)) } }),
+    )
+
+    await installSkills('github', 'github', { updateMode: true })
+
+    expect(installed('pc-repo-verify')).toContain('SIGN IN AS ALICE ADMIN')
   })
 
   it('removes the retired evidence skills and commands', async () => {
