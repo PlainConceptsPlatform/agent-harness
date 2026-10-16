@@ -1,17 +1,26 @@
 import { execa } from 'execa'
 import fse from 'fs-extra'
 import path from 'node:path'
+import os from 'node:os'
 import { applyEdits, modify, parse as parseJsonc } from 'jsonc-parser'
 import { header, success, warn, error, loading } from '../../utils/exec.js'
 
 /**
- * Normalizes codegraph's MCP entry in the project-level OpenCode config.
- * Older codegraph versions write `mcpServers`; OpenCode expects `mcp`.
+ * Normalizes CodeGraph's MCP command in the selected OpenCode config.
  * Returns true if the config was successfully normalized (or no config exists).
  */
-export async function fixCodegraphConfig() {
-  const cwd = process.cwd()
-  const configFile = path.join(cwd, 'opencode.jsonc')
+export async function fixCodegraphConfig(location = 'local') {
+  const xdgConfigHome = process.env.XDG_CONFIG_HOME?.trim()
+  const configDir = location === 'global'
+    ? path.join(xdgConfigHome || path.join(os.homedir(), '.config'), 'opencode')
+    : process.cwd()
+  const jsoncFile = path.join(configDir, 'opencode.jsonc')
+  const jsonFile = path.join(configDir, 'opencode.json')
+  const configFile = await fse.pathExists(jsoncFile)
+    ? jsoncFile
+    : await fse.pathExists(jsonFile)
+      ? jsonFile
+      : jsoncFile
 
   if (!await fse.pathExists(configFile)) return true
 
@@ -30,37 +39,42 @@ export async function fixCodegraphConfig() {
     return false
   }
 
-  const legacyMcp = config.mcpServers
-  const mcp = config.mcp || {}
-  const entries = { ...legacyMcp, ...mcp }
+  const entry = config.mcp?.servers?.codegraph
+  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return true
+
+  const normalizedEntry = { ...entry }
   let changed = false
 
-  if (Object.keys(entries).length > 0) {
-    for (const entry of Object.values(entries)) {
-      if (Array.isArray(entry.command) && entry.command[0] === 'codegraph') {
-        entry.command = ['npx', '@colbymchenry/codegraph', ...entry.command.slice(1)]
-        // codegraph defaults to a 30s MCP timeout, which fails under parallel
-        // subagent load. Raise it unless the user has set one explicitly.
-        if (entry.timeout == null) entry.timeout = 120000
-      }
-    }
-    for (const [name, entry] of Object.entries(entries)) {
-      const edits = modify(configText, ['mcp', name], entry, {
-        formattingOptions: { insertSpaces: true, tabSize: 2 },
-      })
-      configText = applyEdits(configText, edits)
-      changed = true
-    }
+  if (normalizedEntry.type == null) {
+    normalizedEntry.type = 'local'
+    changed = true
   }
-
-  if (legacyMcp) {
-    configText = applyEdits(configText, modify(configText, ['mcpServers'], undefined, {
-      formattingOptions: { insertSpaces: true, tabSize: 2 },
-    }))
+  if (Array.isArray(normalizedEntry.command) && normalizedEntry.command[0] === 'codegraph') {
+    normalizedEntry.command = ['npx', '--yes', '@colbymchenry/codegraph', ...normalizedEntry.command.slice(1)]
+    changed = true
+  }
+  if (normalizedEntry.timeout == null) {
+    normalizedEntry.timeout = {
+      catalog: 120000,
+      execution: 120000,
+    }
+    changed = true
+  } else if (typeof normalizedEntry.timeout !== 'object' || Array.isArray(normalizedEntry.timeout)) {
+    const timeout = Number.isFinite(normalizedEntry.timeout) && normalizedEntry.timeout > 0
+      ? normalizedEntry.timeout
+      : 120000
+    normalizedEntry.timeout = { catalog: timeout, execution: timeout }
+    changed = true
+  }
+  if (normalizedEntry.codemode !== false) {
+    normalizedEntry.codemode = false
     changed = true
   }
 
   if (changed) {
+    configText = applyEdits(configText, modify(configText, ['mcp', 'servers', 'codegraph'], normalizedEntry, {
+      formattingOptions: { insertSpaces: true, tabSize: 2 },
+    }))
     await fse.writeFile(configFile, configText, 'utf-8')
     warn('Normalized codegraph MCP config in opencode.jsonc')
   }
@@ -91,7 +105,7 @@ export async function installCodegraph(options = {}) {
       return { optedIn: true, installed: false }
     }
 
-    const configFixed = await fixCodegraphConfig()
+    const configFixed = await fixCodegraphConfig(location)
 
     if (!configFixed) {
       warn('codegraph config could not be merged: skipping init')

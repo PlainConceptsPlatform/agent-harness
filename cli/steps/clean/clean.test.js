@@ -93,6 +93,7 @@ describe('cleanAiFiles()', () => {
     const agentsDir = path.join(tmpDir, '.agents')
     await fse.ensureDir(path.join(agentsDir, 'skills', 'my-skill'))
     await fse.writeFile(path.join(agentsDir, 'skills', 'my-skill', 'SKILL.md'), 'skill')
+    const resolvedAgentsDir = await fse.realpath(agentsDir)
     checkbox.mockResolvedValue([agentsDir])
 
     const { cleanAiFiles } = await import('./index.js')
@@ -102,7 +103,7 @@ describe('cleanAiFiles()', () => {
     // The .agents directory itself should appear as a choice and be removed
     expect(checkbox).toHaveBeenCalled()
     const choices = checkbox.mock.calls[0][0].choices
-    expect(choices.some(c => c.value === agentsDir)).toBe(true)
+    expect(choices.some(c => c.value === resolvedAgentsDir)).toBe(true)
     expect(await fse.pathExists(agentsDir)).toBe(false)
   })
 
