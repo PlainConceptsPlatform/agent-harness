@@ -318,10 +318,12 @@ Platform skills ship as suffixed variants (`pc-userstory-gh`, `pc-userstory-az`,
 - touches a file and leaves slop in it, or leaves it with more comments per code line than before;
 - grows the tests more than the code: test lines beyond the code lines added (40 always allowed), more than 40 cases per 1,000 code lines (3 always allowed), or any new skipped, focused, snapshot, assertion-less or mock-only test.
 
+A tool directive (`nosemgrep`, `biome-ignore`, `eslint-disable`, `@ts-expect-error`, coverage ignores) is not a comment and costs nothing. Code added to a file that has methods in the complexity baseline (`scripts/complexity-baseline.json`, keys `path::method`) counts twice toward the test budget: that gate fails a method whose coverage drops, so its new branches need tests.
+
 `pc-plan-apply` runs it with the other checks, and the workflows run it before a bot pull request can merge. A project changes the limits in `.opencode/harness.json`:
 
 ```json
-"codeRules": { "commentRatio": 0.1, "commentAllowance": 2, "testRatio": 1, "testAllowance": 40, "casesPerKloc": 40, "caseAllowance": 3 }
+"codeRules": { "commentRatio": 0.1, "commentAllowance": 2, "testRatio": 1, "testAllowance": 40, "casesPerKloc": 40, "caseAllowance": 3, "complexityBaseline": "scripts/complexity-baseline.json" }
 ```
 
 ## The bootstrap sequence

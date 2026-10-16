@@ -39,6 +39,29 @@ describe("check-diff", () => {
     expect(rules(result)).toEqual(["test-no-assertion", "case-budget"])
   })
 
+  it("does not count a tool directive as a comment", () => {
+    const code = Array.from({ length: 10 }, (_, k) => `const v${k} = ${k}`)
+    const pragmas = ["// nosemgrep: pliny-hygiene-ts-empty-catch - storage may be blocked", "// biome-ignore lint/suspicious/noExplicitAny: vendor type", "// eslint-disable-next-line no-console"]
+    const after = [...code, ...pragmas].join("\n")
+
+    const result = evaluate([{ path: "src/a.ts", before: null, after, added: all(after) }])
+
+    expect(result.totals.comments).toBe(0)
+    expect(rules(result)).toEqual([])
+  })
+
+  it("gives new lines in a file the complexity gate tracks twice the test budget", () => {
+    const code = Array.from({ length: 30 }, (_, k) => `const v${k} = ${k}`).join("\n")
+    const test = Array.from({ length: 50 }, (_, k) => `expect(v${k}).toBe(${k})`).join("\n")
+    const files = [
+      { path: "src/a.ts", before: null, after: code, added: all(code) },
+      { path: "src/a.test.ts", before: null, after: test, added: all(test) },
+    ]
+
+    expect(rules(evaluate(files))).toEqual(["test-budget"])
+    expect(rules(evaluate(files, undefined, new Set(["src/a.ts"])))).toEqual([])
+  })
+
   it("reads TODO only in comments, not in strings", () => {
     expect(slopFindings("const s = '// TODO later'")).toEqual([])
     expect(slopFindings("run() // TODO later")).toEqual([{ rule: "untracked-todo", line: 1 }])
