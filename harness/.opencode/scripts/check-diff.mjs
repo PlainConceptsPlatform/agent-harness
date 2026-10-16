@@ -11,6 +11,7 @@ export const DEFAULT_LIMITS = {
   testAllowance: 40,
   casesPerKloc: 40,
   caseAllowance: 3,
+  complexityBaseline: 'scripts/complexity-baseline.json',
 }
 
 const FIX = {
@@ -48,10 +49,13 @@ const SUSPICIOUS = {
 
 const EMPTY_STATS = { cases: 0, skipped: 0, focused: 0, snapshot: 0, noAssertion: 0, mockOnly: 0 }
 
-export function evaluate(files, limits = DEFAULT_LIMITS) {
+// `tracked` holds the files a complexity gate has methods on record for. Their new lines buy twice
+// the test budget: that gate fails a method whose coverage drops, so a change there needs its new
+// branches tested, and trimming those tests to fit this budget is what broke Pliny-Bot #633.
+export function evaluate(files, limits = DEFAULT_LIMITS, tracked = new Set()) {
   const violations = []
   const add = (rule, file, line, detail) => violations.push({ rule, file, line, detail, fix: FIX[rule] })
-  const totals = { sourceCode: 0, testCode: 0, comments: 0, testLines: 0, cases: 0 }
+  const totals = { sourceCode: 0, trackedCode: 0, testCode: 0, comments: 0, testLines: 0, cases: 0 }
   const commentsByFile = new Map()
 
   for (const file of files) {
@@ -64,8 +68,11 @@ export function evaluate(files, limits = DEFAULT_LIMITS) {
         totals.comments += 1
         commentsByFile.set(file.path, (commentsByFile.get(file.path) ?? 0) + 1)
       } else if (k === 'code') {
-        if (kind === 'source') totals.sourceCode += 1
-        else totals.testCode += 1
+        if (kind !== 'source') totals.testCode += 1
+        else {
+          totals.sourceCode += 1
+          if (tracked.has(file.path)) totals.trackedCode += 1
+        }
       }
     }
 
@@ -100,8 +107,9 @@ export function evaluate(files, limits = DEFAULT_LIMITS) {
   }
 
   const commentBudget = Math.max(limits.commentAllowance, Math.floor(limits.commentRatio * (totals.sourceCode + totals.testCode)))
-  const testBudget = Math.max(limits.testAllowance, Math.floor(limits.testRatio * totals.sourceCode))
-  const caseBudget = Math.max(limits.caseAllowance, Math.floor((limits.casesPerKloc * totals.sourceCode) / 1000))
+  const testedCode = totals.sourceCode + totals.trackedCode
+  const testBudget = Math.max(limits.testAllowance, Math.floor(limits.testRatio * testedCode))
+  const caseBudget = Math.max(limits.caseAllowance, Math.floor((limits.casesPerKloc * testedCode) / 1000))
   if (totals.comments > commentBudget) {
     const where = [...commentsByFile].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([f, n]) => `${f} (${n})`).join(', ')
     add('comment-budget', undefined, undefined, `${totals.comments} comment lines added, budget ${commentBudget}: ${where}`)
@@ -174,6 +182,16 @@ export function collect(root, base) {
   return files
 }
 
+// Paths of the files a complexity gate tracks, from its baseline keyed `path::method`.
+export function trackedFiles(root, baseline) {
+  try {
+    const entries = Object.keys(JSON.parse(fs.readFileSync(path.join(root, baseline), 'utf8')))
+    return new Set(entries.map(key => key.split('::')[0]))
+  } catch {
+    return new Set()
+  }
+}
+
 function readLimits(root) {
   try {
     const config = JSON.parse(fs.readFileSync(path.join(root, '.opencode', 'harness.json'), 'utf8'))
@@ -217,7 +235,8 @@ function main(argv) {
     console.error('check-diff: no base to compare against. Pass --base <ref> or fetch origin.')
     return 2
   }
-  const result = evaluate(collect(root, base.base), readLimits(root))
+  const limits = readLimits(root)
+  const result = evaluate(collect(root, base.base), limits, trackedFiles(root, limits.complexityBaseline))
   console.log(argv.includes('--json') ? JSON.stringify({ base, ...result }, null, 2) : report(result, base))
   return result.violations.length === 0 ? 0 : 1
 }

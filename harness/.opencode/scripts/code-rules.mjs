@@ -18,13 +18,21 @@ export function isGenerated(text) {
   return GENERATED_HEADER.test(text.split('\n', 4).join('\n'))
 }
 
+// A comment that is an instruction to a tool, not prose for a reader. Semgrep demands a
+// `nosemgrep` justification on an empty catch; counting it against the comment budget made the
+// two gates trade lines with each other.
+const PRAGMA = /^(\/\/|\/\*)\s*(nosemgrep|biome-ignore|eslint-(disable|enable)|@ts-(expect-error|ignore)|prettier-ignore|(istanbul|c8|v8) ignore|stryker (disable|restore)|ReSharper (disable|restore)|NOSONAR)\b/i
+
 export function lineKinds(text) {
   const kinds = []
   let inBlock = false
   for (const raw of text.split('\n')) {
     const t = raw.trim()
     if (!t) kinds.push('blank')
-    else if (inBlock) {
+    else if (!inBlock && PRAGMA.test(t)) {
+      kinds.push('pragma')
+      inBlock = t.startsWith('/*') && !t.includes('*/')
+    } else if (inBlock) {
       kinds.push('comment')
       if (t.includes('*/')) inBlock = false
     } else if (t.startsWith('/*')) {
