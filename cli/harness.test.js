@@ -423,7 +423,7 @@ describe("skills hold together as files", () => {
 describe("always-loaded context budget", () => {
   const AGENTS = path.join(CONTENT_DIR, "AGENTS.md")
   const GUARDRAILS = path.join(SOURCE_SKILLS_DIR, "pc-guardrails-generic", "SKILL.md")
-  const read = file => fs.readFileSync(file, "utf-8")
+  const read = file => fs.readFileSync(file, "utf-8").replace(/\r\n/g, "\n")
   const bullets = text => text.match(/^\s*[-*] /gm) ?? []
   const rulesIn = text => text.split(/\r?\n/).filter(line => /^\s*[-*] /.test(line))
 
