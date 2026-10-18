@@ -1,5 +1,7 @@
 ---
 description: Read and triage PR review feedback. Reports what needs fixing, does not implement fixes.
+agent: planner
+subagent: false
 ---
 
 Repo platform is set in `.opencode/harness.json` → `platform.repo`. The platform-specific content below is injected by the CLI during onboarding.

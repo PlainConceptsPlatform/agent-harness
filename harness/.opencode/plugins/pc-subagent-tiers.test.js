@@ -98,6 +98,17 @@ describe("PcSubagentTiers primaries", () => {
     expect(frontmatter("plan.md")).toContain("color: warning")
   })
 
+  it("generates planner on the plan tier, selectable and spawnable, able to edit but not spawn", async () => {
+    await run()
+
+    const fm = frontmatter("planner.md")
+    expect(agent("planner.md")).toContain("You are the default engineer.")
+    expect(fm).toContain("mode: all")
+    expect(fm).toContain("model: p/plan")
+    expect(fm).toMatch(/- action: subagent\s+resource: \*\s+effect: deny/)
+    expect(fm).not.toContain("action: edit")
+  })
+
   it("skips the primaries when fullstack-engineer.md is absent", async () => {
     fs.rmSync(path.join(agentsDir, "fullstack-engineer.md"))
 

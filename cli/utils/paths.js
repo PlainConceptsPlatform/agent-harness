@@ -37,6 +37,7 @@ export const IGNORED_ENTRIES = [
   // Regenerated from fullstack-engineer.md by pc-subagent-tiers every startup.
   'agents/build.md',
   'agents/plan.md',
+  'agents/planner.md',
 ]
 
 /**

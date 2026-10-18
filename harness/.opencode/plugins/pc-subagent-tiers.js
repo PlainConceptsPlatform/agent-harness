@@ -8,6 +8,12 @@
 //                                           Both are fullstack-engineer with a
 //                                           tier model; plan can neither edit
 //                                           nor spawn.
+//   planner.md              mode: all       fullstack-engineer on the plan tier
+//                                           that may write but not spawn. The
+//                                           thinking commands run on it, and a
+//                                           CI lead spawns it for propose and
+//                                           archive, so those steps take the
+//                                           plan model whatever the session's is.
 //   fullstack-engineer.md   mode: subagent  the shared body of build and plan,
 //                                           and the fallback worker.
 //   *-engineer.md           mode: subagent  specialists, spawned by subagent().
@@ -45,6 +51,13 @@ const PRIMARIES = {
       { action: "edit", resource: "*", effect: "deny" },
       { action: "subagent", resource: "*", effect: "deny" },
     ],
+  },
+  planner: {
+    tier: "plan",
+    mode: "all",
+    color: "info",
+    description: "Write plans, proposals, stories, reviews and archives on the plan model. Edits the tree, never spawns workers.",
+    permissions: [{ action: "subagent", resource: "*", effect: "deny" }],
   },
 }
 
@@ -216,7 +229,7 @@ function buildPrimary(spec, fullstackContent, model) {
   const lines = [
     "---",
     `description: ${spec.description}`,
-    "mode: primary",
+    `mode: ${spec.mode ?? "primary"}`,
   ]
   if (model) lines.push(`model: ${model}`)
   lines.push(`color: ${yamlColor(spec.color)}`)
@@ -293,7 +306,7 @@ export default Plugin.define({
             buildPrimary(spec, fullstack, models[spec.tier]),
           )
         }
-        console.error(`[pc-subagent-tiers] Wrote primaries: build (${models.build ?? "session model"}), plan (${models.plan ?? "session model"})`)
+        console.error(`[pc-subagent-tiers] Wrote primaries: build (${models.build ?? "session model"}), plan and planner (${models.plan ?? "session model"})`)
       } else {
         console.error(`[pc-subagent-tiers] ${FULLSTACK_TEMPLATE} missing: build and plan not generated`)
       }
@@ -340,7 +353,7 @@ export default Plugin.define({
                 // invalid model ref; leave undefined so session model applies
               }
             }
-            existing.mode = "primary"
+            existing.mode = spec.mode ?? "primary"
             existing.description = spec.description
             if (spec.permissions) existing.permissions = spec.permissions
           }
