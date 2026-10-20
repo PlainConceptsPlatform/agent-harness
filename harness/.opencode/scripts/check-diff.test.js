@@ -3,7 +3,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { describe, expect, it } from "vitest"
-import { addedLines, collect, evaluate } from "./check-diff.mjs"
+import { addedLines, collect, evaluate, scope } from "./check-diff.mjs"
 import { slopFindings } from "./code-rules.mjs"
 
 const all = text => new Set(text.split("\n").map((_, k) => k + 1))
@@ -90,5 +90,12 @@ describe("check-diff", () => {
       ["src/a.ts", null, [1, 2]],
       ["src/c.ts", null, [1]],
     ])
+  })
+
+  it("scopes the check to the files and folders a worker owns", () => {
+    const files = ["src/api/a.ts", "src/api-old/b.ts", "web/c.tsx", "tests/d.test.ts"].map(p => ({ path: p }))
+
+    expect(scope(files, ["src/api", "./tests/d.test.ts"]).map(f => f.path)).toEqual(["src/api/a.ts", "tests/d.test.ts"])
+    expect(scope(files, undefined)).toBe(files)
   })
 })

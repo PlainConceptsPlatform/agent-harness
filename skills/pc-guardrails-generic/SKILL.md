@@ -28,7 +28,7 @@ The marker sections below name the optimization skills this project selected. Lo
 - Never write more tests than the change requires. A bug fix gets one regression test. A new function gets tests for its public contract, not every internal branch. Never aim for a coverage number.
 - Never test framework or library internals. Test your code's contract, not that EF Core saves a tracked entity.
 - Never generate integration, e2e, or snapshot tests unless explicitly asked. Mock nothing you do not own — use a fake that records state. Never add a test that duplicates a type-check or linter rule.
-- `node .opencode/scripts/check-diff.mjs` enforces the comment and test rules on the diff and must exit 0.
+- `node .opencode/scripts/check-diff.mjs` enforces the comment and test rules on the diff and must exit 0. A subagent sharing the tree checks its own files with `--paths <file,folder,...>` before it reports.
 
 <!-- PC-GUARDRAILS-RTK-START -->
 <!-- PC-GUARDRAILS-RTK-END -->

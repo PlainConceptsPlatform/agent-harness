@@ -182,6 +182,13 @@ export function collect(root, base) {
   return files
 }
 
+// A subagent checks only the files it owns while others edit the same tree: the budgets then fit its share.
+export function scope(files, paths) {
+  if (!paths?.length) return files
+  const norm = paths.map(p => p.replace(/\\/g, '/').replace(/^\.\//, ''))
+  return files.filter(f => norm.some(p => f.path === p || f.path.startsWith(p.endsWith('/') ? p : `${p}/`)))
+}
+
 // Paths of the files a complexity gate tracks, from its baseline keyed `path::method`.
 export function trackedFiles(root, baseline) {
   try {
@@ -236,7 +243,8 @@ function main(argv) {
     return 2
   }
   const limits = readLimits(root)
-  const result = evaluate(collect(root, base.base), limits, trackedFiles(root, limits.complexityBaseline))
+  const paths = option('paths')?.split(',').map(p => p.trim()).filter(Boolean)
+  const result = evaluate(scope(collect(root, base.base), paths), limits, trackedFiles(root, limits.complexityBaseline))
   console.log(argv.includes('--json') ? JSON.stringify({ base, ...result }, null, 2) : report(result, base))
   return result.violations.length === 0 ? 0 : 1
 }
