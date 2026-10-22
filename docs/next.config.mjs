@@ -3,9 +3,9 @@ import { createMDX } from 'fumadocs-mdx/next'
 
 const withMDX = createMDX()
 
-// Served from https://plainconceptsplatform.github.io/agent-harness/
-// (GitHub Pages project site). Set to '' if the site ever moves to its own domain.
-const basePath = '/agent-harness'
+// Served from the root of its own domain, https://harness.platform.plainconcepts.dev/.
+// Set to '/agent-harness' only if the site goes back to the github.io project subpath.
+const basePath = ''
 
 const PACKAGE_NAME = '@plainconceptsplatform/agent-harness'
 

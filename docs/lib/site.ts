@@ -3,12 +3,12 @@
  * lib/site.ts.
  *
  * Unlike Foundations this has a real default: the site is a static export to a
- * known GitHub Pages project URL, and `metadataBase` has to be absolute at build
+ * known address (harness.platform.plainconcepts.dev), and `metadataBase` has to be absolute at build
  * time. Override with NEXT_PUBLIC_SITE_URL if it ever moves.
  */
 export const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL ??
-  "https://plainconceptsplatform.github.io/agent-harness";
+  "https://harness.platform.plainconcepts.dev";
 
 export const siteName = "agent-harness";
 
@@ -21,7 +21,7 @@ export const siteDescription =
  * back to it; the pillars publish under platform.plainconcepts.dev subdomains.
  */
 export const platformSites = {
-  foundations: { name: "Platform Foundations", url: "https://platform.plainconcepts.com" },
+  foundations: { name: "Platform Foundations", url: "https://platform.plainconcepts.dev" },
   workflows: { name: "Agentic Workflows", url: "https://workflows.platform.plainconcepts.dev" },
   health: { name: "Project Health", url: "https://health.platform.plainconcepts.dev" },
 } as const;

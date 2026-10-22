@@ -8,7 +8,7 @@
 
 GitHub, Azure DevOps, Jira, GitLab, browser-based backlog, or combinations (for example, Jira backlog plus GitHub repository, or browser backlog plus GitLab repository).
 
-**[plainconceptsplatform.github.io/agent-harness](https://plainconceptsplatform.github.io/agent-harness)**
+**[harness.platform.plainconcepts.dev](https://harness.platform.plainconcepts.dev)**
 
 [![npm version](https://img.shields.io/npm/v/@plainconceptsplatform/agent-harness?style=flat-square&color=black)](https://www.npmjs.com/package/@plainconceptsplatform/agent-harness) [![npm downloads](https://img.shields.io/npm/dm/@plainconceptsplatform/agent-harness?style=flat-square&color=black)](https://www.npmjs.com/package/@plainconceptsplatform/agent-harness) [![license](https://img.shields.io/npm/l/@plainconceptsplatform/agent-harness?style=flat-square&color=black)](./LICENSE) [![node](https://img.shields.io/node/v/@plainconceptsplatform/agent-harness?style=flat-square&color=black)](https://nodejs.org)
 
