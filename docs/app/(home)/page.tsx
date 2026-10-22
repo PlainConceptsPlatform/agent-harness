@@ -1,8 +1,18 @@
-import { Bot, FolderTree, ListChecks, Rocket, Terminal, Workflow } from "lucide-react";
+import {
+  Activity,
+  Bot,
+  FolderTree,
+  GitMerge,
+  Layers,
+  ListChecks,
+  Rocket,
+  Terminal,
+  Workflow,
+} from "lucide-react";
 import Link from "next/link";
 import { source } from "@/app/source";
 import { InstallBox, TerminalDemo } from "@/components/landing";
-import { npmUrl, packageName } from "@/lib/site";
+import { npmUrl, packageName, platformSites } from "@/lib/site";
 
 /**
  * The front door is a lobby, not a pitch, following Foundations' homepage: say
@@ -79,6 +89,25 @@ const DESTINATIONS: Destination[] = [
   },
 ];
 
+/* agent-harness is one of four Platform pillars; the lobby ends by pointing at the other three. */
+const PLATFORM = [
+  {
+    ...platformSites.foundations,
+    icon: Layers,
+    description: "The main site: how Platform builds software, the theme, the conventions and the reference architecture.",
+  },
+  {
+    ...platformSites.workflows,
+    icon: GitMerge,
+    description: "The router and worker loops that run on GitHub Actions. They invoke the skills this harness installs.",
+  },
+  {
+    ...platformSites.health,
+    icon: Activity,
+    description: "Measures every Platform project: engineering gates, delivery, agentic adoption and where time went.",
+  },
+];
+
 /* shields.io badges, matching the set in README.md. Built from `packageName` so a
    rename cannot leave them pointing at a dead package. Plain <img> rather than
    next/image: remote SVGs with no intrinsic size, and next/image would need
@@ -123,7 +152,7 @@ export default function HomePage() {
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <Link
               href="/docs/getting-started"
-              className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors duration-150 hover:bg-[var(--oo-coral-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors duration-150 hover:bg-[var(--primary-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               Get started
             </Link>
@@ -191,6 +220,36 @@ export default function HomePage() {
           <div className="mt-6">
             <TerminalDemo />
           </div>
+        </section>
+
+        <section className="mt-20">
+          <h2 className="font-semibold text-xl tracking-tight">Part of Platform Foundations</h2>
+          <p className="mt-2 max-w-2xl text-muted-foreground">
+            agent-harness is one of the pillars{" "}
+            <a href={platformSites.foundations.url} className="text-primary hover:underline">
+              Platform Foundations
+            </a>{" "}
+            sets out. It puts the agents into a repository; the others run them and measure them.
+          </p>
+
+          <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {PLATFORM.map((site) => {
+              const Icon = site.icon;
+
+              return (
+                <li key={site.url}>
+                  <a
+                    href={site.url}
+                    className="flex h-full flex-col rounded-lg border border-border bg-card p-5 transition-colors duration-150 hover:border-primary/40 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <Icon aria-hidden className="size-5 text-primary" />
+                    <span className="mt-3 font-semibold text-card-foreground">{site.name}</span>
+                    <span className="mt-1 text-sm text-muted-foreground">{site.description}</span>
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
         </section>
       </div>
     </main>

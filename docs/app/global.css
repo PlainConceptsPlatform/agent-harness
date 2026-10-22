@@ -106,19 +106,13 @@
   --color-chart-5: var(--chart-5);
 }
 
-/* ── Product accent ───────────────────────────────────────────────────────
-   agent-harness's coral replaces Platform blue as --primary; everything else
-   comes from the Platform ramp. Light mode uses a darkened coral: #f5495e on
-   white is ~3.5:1 and fails WCAG AA for text, #cf1c33 is 5.4:1. */
+/* ── Accent ───────────────────────────────────────────────────────────────
+   agent-harness is part of Platform Foundations, so it keeps Platform blue as
+   --primary, as Foundations, Agentic Workflows and Project Health do; the theme
+   supplies --primary, --ring and --accent. Only the hover step and the terminal
+   are local. */
 :root {
-  --oo-coral: #cf1c33;
-  --oo-coral-hover: #b01829;
-
-  --primary: var(--oo-coral);
-  --primary-foreground: var(--pc-neutral-0);
-  --ring: var(--oo-coral);
-  --accent: #fdeaec;
-  --accent-foreground: #8f1123;
+  --primary-hover: var(--pc-blue-600);
 
   /* Terminal surface. App-specific by design: per DESIGN.md, palettes a single
      product needs stay in the product, not in the shared theme. */
@@ -127,14 +121,7 @@
 }
 
 .dark {
-  --oo-coral: #f5495e;
-  --oo-coral-hover: #f8737f;
-
-  --primary: var(--oo-coral);
-  --primary-foreground: var(--pc-neutral-0);
-  --ring: var(--oo-coral);
-  --accent: #2e1216;
-  --accent-foreground: #f8a0ac;
+  --primary-hover: var(--pc-blue-400);
 
   --terminal: #08090a;
   --terminal-foreground: var(--pc-neutral-100);

@@ -16,6 +16,16 @@ export const siteName = "agent-harness";
 export const siteDescription =
   "Installs the Plain Concepts Platform Harness into any codebase, and keeps it up to date. Wires OpenCode, OpenSpec, codegraph, and agentmemory into a multi-agent workflow that runs on native parallel subagents.";
 
+/**
+ * The Platform family of sites. Foundations is the main site and every page links
+ * back to it; the pillars publish under platform.plainconcepts.dev subdomains.
+ */
+export const platformSites = {
+  foundations: { name: "Platform Foundations", url: "https://platform.plainconcepts.com" },
+  workflows: { name: "Agentic Workflows", url: "https://workflows.platform.plainconcepts.dev" },
+  health: { name: "Project Health", url: "https://health.platform.plainconcepts.dev" },
+} as const;
+
 /** The npm package users install, whose `bin` is `agent-harness`. */
 export const packageName = "@plainconceptsplatform/agent-harness";
 
