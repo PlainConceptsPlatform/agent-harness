@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 // test drives setup() with a hand-made context.
 vi.mock("@opencode/plugin", () => ({ Plugin: { define: definition => definition } }))
 
-import PcSubagentTiers from "./pc-subagent-tiers.js"
+import PcSubagentTiers from "./index.js"
 
 let root
 let agentsDir
@@ -191,5 +191,63 @@ describe("PcSubagentTiers engineer templates", () => {
   it("does not generate tier variants for fullstack itself", async () => {
     await run()
     expect(fs.existsSync(path.join(agentsDir, "fullstack-engineer.build.md"))).toBe(false)
+  })
+})
+
+describe("PcSubagentTiers custom tiers", () => {
+  const ENGINEER = "---\ndescription: Frontend.\nmode: subagent\n---\n\nYou are a frontend engineer.\n"
+
+  function writeModels(extra = {}) {
+    fs.writeFileSync(
+      path.join(root, ".opencode", "harness.json"),
+      JSON.stringify({ models: { plan: "p/plan", build: "p/build", fast: "p/fast", ...extra } }),
+    )
+  }
+
+  it("generates a variant for a custom tier in the models map", async () => {
+    writeModels({ vision: "p/vision" })
+    fs.writeFileSync(path.join(agentsDir, "frontend-engineer.md"), ENGINEER)
+
+    await run()
+
+    const fm = frontmatter("frontend-engineer.vision.md")
+    expect(fm).toContain("mode: subagent")
+    expect(fm).toContain("model: p/vision")
+  })
+
+  it("lets the user config override a custom tier model", async () => {
+    writeModels({ vision: "p/vision" })
+    fs.writeFileSync(
+      path.join(root, ".opencode", "harness.user.json"),
+      JSON.stringify({ models: { vision: "u/vision" } }),
+    )
+    fs.writeFileSync(path.join(agentsDir, "frontend-engineer.md"), ENGINEER)
+
+    await run()
+
+    expect(frontmatter("frontend-engineer.vision.md")).toContain("model: u/vision")
+  })
+
+  it("ignores a custom key that is not a safe file name", async () => {
+    writeModels({ "../escape": "p/vision" })
+    fs.writeFileSync(path.join(agentsDir, "frontend-engineer.md"), ENGINEER)
+
+    await run()
+
+    expect(fs.existsSync(path.join(agentsDir, "frontend-engineer...escape.md"))).toBe(false)
+    expect(fs.readdirSync(agentsDir).some(f => f.includes("..escape"))).toBe(false)
+  })
+
+  it("keeps leftover files of a retired custom tier", async () => {
+    writeModels({ vision: "p/vision" })
+    fs.writeFileSync(path.join(agentsDir, "frontend-engineer.md"), ENGINEER)
+    fs.writeFileSync(path.join(agentsDir, "frontend-engineer.vision.md"), "---\ndescription: Old.\n---\n\nold\n")
+
+    await run()
+    expect(fs.existsSync(path.join(agentsDir, "frontend-engineer.vision.md"))).toBe(true)
+
+    writeModels()
+    await run()
+    expect(fs.existsSync(path.join(agentsDir, "frontend-engineer.vision.md"))).toBe(true)
   })
 })

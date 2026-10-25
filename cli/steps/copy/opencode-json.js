@@ -22,14 +22,12 @@ import { success } from '../../utils/exec.js'
 
 const CONFIG_SCHEMA = 'https://opencode.ai/config.json'
 
-// Third-party plugins the harness configures, and how they move to V2. The
-// notifier is dropped: V2 has native attention notifications and sounds.
-const DROPPED_PLUGIN_PREFIXES = [
-  '@opencode-ai/',
-  '@mohak34/opencode-notifier',
-  '@different-ai/opencode-browser',
-  '@slkiser/opencode-quota',
-]
+// Third-party plugins the harness configures, and how they move to V2.
+export const OPENCODE_QUOTA_PACKAGE = '@slkiser/opencode-quota'
+const OPENCODE_QUOTA_VERSION = '5.0.3'
+const OPENCODE_NOTIFIER_PACKAGE = '@mohak34/opencode-notifier'
+const OPENCODE_NOTIFIER = `${OPENCODE_NOTIFIER_PACKAGE}@1.1.0`
+const DROPPED_PLUGIN_PREFIXES = ['@opencode-ai/', '@different-ai/opencode-browser']
 
 // V1 permission keys -> V2 permission actions.
 const ACTION_RENAMES = {
@@ -69,6 +67,19 @@ function upsertRules(existing, additions) {
   return merged
 }
 
+// V2 keeps every plugin, server and TUI, in `plugins`. The notifier is the one
+// third-party plugin the harness wires for everyone; an older pin is upgraded in
+// place so a project that opted in does not end up with two notifiers.
+function ensureNotifierPlugin(obj) {
+  const plugins = Array.isArray(obj.plugins) ? [...obj.plugins] : []
+  const index = plugins.findIndex(entry => typeof entry === 'string' && basePackageName(entry) === OPENCODE_NOTIFIER_PACKAGE)
+  if (index !== -1 && plugins[index] === OPENCODE_NOTIFIER) return false
+  if (index !== -1) plugins[index] = OPENCODE_NOTIFIER
+  else plugins.push(OPENCODE_NOTIFIER)
+  obj.plugins = plugins
+  return true
+}
+
 function migratePluginArray(obj) {
   if (!Array.isArray(obj.plugin)) return false
   const plugins = []
@@ -79,6 +90,10 @@ function migratePluginArray(obj) {
     }
     const base = basePackageName(entry)
     if (DROPPED_PLUGIN_PREFIXES.some(prefix => base.startsWith(prefix))) continue
+    if (base === OPENCODE_QUOTA_PACKAGE) {
+      plugins.push(`${OPENCODE_QUOTA_PACKAGE}@${OPENCODE_QUOTA_VERSION}`)
+      continue
+    }
     plugins.push(entry)
   }
   obj.plugins = plugins
@@ -247,6 +262,7 @@ function migrateToV2(obj) {
   if (migrateAgents(obj)) changed = true
   if (migrateMcp(obj)) changed = true
   if (migratePluginArray(obj)) changed = true
+  if (ensureNotifierPlugin(obj)) changed = true
 
   // A session starts read-only: fullstack-engineer is a subagent now, so a
   // default_agent left pointing at it has no valid primary to open with.
@@ -283,20 +299,55 @@ export async function patchOpencodeJson(cwd = process.cwd()) {
   return { patched: true }
 }
 
-// OpenCode 2 plugin packages. @opencode/plugin is the V2 plugin API; the V1
-// @opencode-ai/plugin and the retired TUI peers are removed on update.
+// OpenCode 2 plugin packages. @opencode/plugin is the V2 plugin API and carries
+// the TUI runtime, so the @opentui peers and solid-js ship with it.
 const OPENCODE_PACKAGE_DEPENDENCIES = {
   '@opencode/plugin': '2.0.22',
+  '@mohak34/opencode-notifier': '1.1.0',
+  '@opentui/core': '0.5.17',
+  '@opentui/solid': '0.5.17',
+  'solid-js': '1.9.12',
 }
 
 const STALE_PACKAGE_DEPENDENCIES = [
   '@opencode-ai/plugin',
-  '@mohak34/opencode-notifier',
   '@different-ai/opencode-browser',
-  '@opentui/core',
-  '@opentui/solid',
-  'solid-js',
 ]
+
+// Plugin files earlier harness versions shipped. OpenCode 2 loads every loose
+// .js directly under .opencode/plugins/ as a server plugin and discovers a TUI
+// entry only from a plugin *directory*, so the old layout both failed to load
+// and logged one error per file. `update` installs the new layout alongside
+// rather than over it, so the old paths must be removed explicitly.
+const SUPERSEDED_PLUGIN_PATHS = [
+  '.opencode/plugins/pc-subagent-monitor.js',
+  '.opencode/plugins/pc-subagent-monitor.test.js',
+  '.opencode/plugins/pc-subagent-tiers.js',
+  '.opencode/plugins/pc-subagent-tiers.test.js',
+  '.opencode/plugins/pc-subagent-tiers.plugin.js',
+  '.opencode/plugins/pc-system-reminders.js',
+  '.opencode/plugins/pc-system-reminders.test.js',
+  '.opencode/plugins/pc-system-reminders.guard.test.js',
+  '.opencode/plugins/pc-system-reminders.plugin.js',
+  // The old TUI lived in a shared directory. Remove the harness file itself and
+  // leave the directory alone: a project may have put its own TUI plugin there.
+  '.opencode/plugins/tui/pc-subagents.tsx',
+  '.opencode/tui/pc-subagents.tsx',
+]
+
+export async function removeSupersededPlugins(cwd = process.cwd()) {
+  const removed = []
+  for (const relative of SUPERSEDED_PLUGIN_PATHS) {
+    const target = path.join(cwd, relative)
+    if (!await fse.pathExists(target)) continue
+    await fse.remove(target)
+    removed.push(relative)
+  }
+  if (removed.length > 0) {
+    success(`Removed ${removed.length} superseded plugin path(s)`)
+  }
+  return { removed }
+}
 
 export async function patchOpencodePackage(cwd = process.cwd()) {
   const packagePath = path.join(cwd, '.opencode', 'package.json')
@@ -306,6 +357,13 @@ export async function patchOpencodePackage(cwd = process.cwd()) {
   if (!packageJson?.dependencies) return { patched: false }
 
   let patched = false
+
+  // The plugin files are ESM; without this Node treats .js as CommonJS.
+  if (packageJson.type !== 'module') {
+    packageJson.type = 'module'
+    patched = true
+  }
+
   for (const [name, version] of Object.entries(OPENCODE_PACKAGE_DEPENDENCIES)) {
     if (packageJson.dependencies[name] === version) continue
     packageJson.dependencies[name] = version

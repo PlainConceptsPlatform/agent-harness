@@ -26,7 +26,7 @@ Command aliases: OpenSpec skills may reference `/opsx-propose`, `/opsx-apply`, `
 
 Inspect `.opencode/agents/*.md` before spawning. Prefer the most specialized custom engineer. `build` and `plan` are the only primaries and are never spawned; `fullstack-engineer` is the body they share and the fallback worker, so prefer a specialist over it. If no specialist matches, tell the user to create one with `/make-engineer`. Spawn only engineers present in that directory.
 
-The `pc-plan-apply` skill is authoritative for subagent waves, dependency ordering, retries, and concurrency. A spawn past `agents.maxConcurrent` is denied (`pc-subagent-monitor`); a denied spawn is not a failed task, so re-issue it in the next wave.
+The `pc-plan-apply` skill is authoritative for subagent waves, dependency ordering, retries, and concurrency. A spawn past `agents.maxConcurrent` is denied (`pc-subagents`); a denied spawn is not a failed task, so re-issue it in the next wave.
 
 ## Tool and repository safety
 

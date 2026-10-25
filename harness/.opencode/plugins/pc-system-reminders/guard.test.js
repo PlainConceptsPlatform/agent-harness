@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("@opencode/plugin", () => ({ Plugin: { define: definition => definition } }))
 
-import PcSystemReminders from "./pc-system-reminders.js"
+import PcSystemReminders from "./index.js"
 
 // The guard turns the harness "never" rules into denied permission decisions.
 // In OpenCode 2 a denial sets the event effect to "deny" and carries a message;

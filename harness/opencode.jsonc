@@ -1,5 +1,14 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  // Third-party plugins load from npm. The local pc-* plugins under
+  // .opencode/plugins/ are auto-discovered by OpenCode 2.
+  //
+  // @different-ai/opencode-browser is deliberately absent: it is a V1 plugin
+  // and OpenCode 2 rejects it at load. Browser automation runs through the
+  // agent-browser MCP server below.
+  "plugins": [
+    "@mohak34/opencode-notifier@1.1.0"
+  ],
   "mcp": {
     "servers": {
       "agent-browser": {
