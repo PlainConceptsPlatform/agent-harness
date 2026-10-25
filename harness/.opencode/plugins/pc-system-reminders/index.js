@@ -18,7 +18,7 @@ import { execFile } from "node:child_process"
 import fs from "node:fs/promises"
 import path from "node:path"
 import { promisify } from "node:util"
-import { ContractError, describeOwner, isOwned, isTemplateSource, loadContract } from "../scripts/platform-contract.mjs"
+import { ContractError, describeOwner, isOwned, isTemplateSource, loadContract } from "../../scripts/platform-contract.mjs"
 
 const GUARDRAILS_SKILL = "pc-guardrails-generic"
 const TIER_SUFFIX = /\.(?:build|fast|plan)$/

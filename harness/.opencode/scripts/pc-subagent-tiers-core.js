@@ -16,6 +16,15 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 export const TIERS = ["build", "fast", "plan"];
+
+// Any other key in the models map is a custom variant tier: a "vision" key
+// generates <engineer>.vision.md for every engineer the same way the built-ins
+// do. The pattern keeps names filesystem- and regex-safe; keys that do not
+// match are ignored rather than crashing the run. Retiring a custom tier stops
+// generating its files but leaves the last ones on disk, because the startup
+// sweep cannot tell them apart from a hand-authored file.
+const CUSTOM_TIER_PATTERN = /^[a-z][\w-]*$/i;
+
 export const MANIFEST_FILE = "harness-models.json";
 export const FULLSTACK_NAME = "fullstack-engineer";
 export const FULLSTACK_TEMPLATE = `${FULLSTACK_NAME}.md`;
@@ -212,14 +221,37 @@ async function readJson(filePath) {
   }
 }
 
-async function scanEngineers(agentsDir) {
+// Built-in tiers first, then custom keys from either config, so variant
+// generation order stays deterministic (build, fast, plan, ...customs).
+function tierNames(user, team) {
+  const keys = [...Object.keys(user?.models ?? {}), ...Object.keys(team?.models ?? {})];
+  return [...new Set([...TIERS, ...keys])].filter(
+    (tier) => TIERS.includes(tier) || CUSTOM_TIER_PATTERN.test(tier),
+  );
+}
+
+function isVariantFile(file, suffixes) {
+  if (!file.endsWith(".md")) return false;
+  const stem = file.slice(0, -3);
+  const dot = stem.lastIndexOf(".");
+  if (dot === -1) return false;
+  const base = stem.slice(0, dot);
+  const tier = stem.slice(dot + 1);
+  return suffixes.includes(tier) && /^[\w-]+-engineer$/.test(base);
+}
+
+async function scanEngineers(agentsDir, models) {
+  // The sweep only claims suffixes it manages: built-ins plus the custom tiers
+  // currently configured. A file whose suffix matches none of them (retired
+  // tier, hand-authored variant) is never touched or deleted.
+  const suffixes = [...new Set([...TIERS, ...Object.keys(models)])];
   try {
     const entries = await fs.readdir(agentsDir);
     return {
       templates: entries
         .filter((f) => /^[\w-]+-engineer\.md$/.test(f) && f !== FULLSTACK_TEMPLATE)
         .map((f) => f.replace(/\.md$/, "")),
-      variantFiles: entries.filter((f) => /^[\w-]+-engineer\.(build|fast|plan)\.md$/.test(f)),
+      variantFiles: entries.filter((f) => isVariantFile(f, suffixes)),
       hasFullstack: entries.includes(FULLSTACK_TEMPLATE),
     };
   } catch {
@@ -254,7 +286,7 @@ export async function generateAgents({ root, writeManifest = true } = {}) {
   const models = {};
   const sources = {};
   const warnings = [];
-  for (const tier of TIERS) {
+  for (const tier of tierNames(user, team)) {
     const fromUser = user?.models?.[tier];
     const fromTeam = team?.models?.[tier];
     models[tier] = fromUser ?? fromTeam ?? null;
@@ -266,8 +298,8 @@ export async function generateAgents({ root, writeManifest = true } = {}) {
     }
   }
 
-  const available = TIERS.filter((tier) => models[tier]);
-  const { templates, variantFiles, hasFullstack } = await scanEngineers(agentsDir);
+  const available = Object.keys(models).filter((tier) => models[tier]);
+  const { templates, variantFiles, hasFullstack } = await scanEngineers(agentsDir, models);
   const manifest = {
     generatedAt: new Date().toISOString(),
     models,

@@ -1,0 +1,20 @@
+{
+  "plugin": "@slkiser/opencode-quota@5.0.3",
+  "prompt": {
+    "message": "Install opencode-quota with recommended defaults?",
+    "default": true,
+    "timeoutMs": 20000
+  },
+  "defaults": {
+    "enabledProviders": "auto",
+    "formatStyle": "singleWindow",
+    "percentDisplayMode": "used",
+    "showSessionTokens": true,
+    "enableToast": false,
+    "resetNotifications": { "enabled": false },
+    "tuiCommandDisplay": "inline",
+    "tuiCompactStatus": { "enabled": false },
+    "tuiPromptBar": { "enabled": false },
+    "tuiSidebarPanel": { "enabled": true }
+  }
+}

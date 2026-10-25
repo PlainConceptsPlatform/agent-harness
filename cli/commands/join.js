@@ -4,6 +4,7 @@ import fse from 'fs-extra'
 import path from 'node:path'
 import { parse as parseJsonc } from 'jsonc-parser'
 import { installBrowser } from '../steps/browser/index.js'
+import { OPENCODE_QUOTA_PACKAGE } from '../steps/copy/opencode-json.js'
 import { checkRtk } from '../steps/optimization/index.js'
 import { checkPlatform } from '../steps/platform/index.js'
 import { commandExists, header, info, loading, success, warn } from '../utils/exec.js'
@@ -57,8 +58,17 @@ export async function runJoin() {
     const declared = Object.keys(
       parseJsonc(await fse.readFile(pkgPath, 'utf8'))?.dependencies ?? {},
     )
+    // opencode-quota 5.x declares @opencode/plugin 2.0.16 exactly. The harness
+    // pins 2.0.22 because the notifier needs >=2.0.18, so npm sees a peer
+    // conflict and aborts the whole install, leaving every plugin uninstalled.
+    // The quota plugin runs fine on 2.0.22; relax peer resolution when it is
+    // present. Everything the plugins import is declared in package.json, so
+    // npm does not need to install peers on our behalf.
+    const installArgs = declared.includes(OPENCODE_QUOTA_PACKAGE)
+      ? ['install', '--legacy-peer-deps']
+      : ['install']
     try {
-      await execa('npm', ['install'], { cwd: opencodeDir, stdio: 'pipe' })
+      await execa('npm', installArgs, { cwd: opencodeDir, stdio: 'pipe' })
     } catch (err) {
       warn('npm install failed in .opencode/: plugins may not load correctly')
       if (err?.stderr) info(String(err.stderr).trim().split('\n').slice(-3).join('\n'))

@@ -199,7 +199,7 @@ describe('copy utils', () => {
     it.each(['unchanged', 'modified', 'unmanaged', 'customized consumer'])('migrates the tiers helper safely for an %s installation', async state => {
       const oldHelper = '.opencode/plugins/pc-subagent-tiers-core.js'
       const newHelper = '.opencode/scripts/pc-subagent-tiers-core.js'
-      const consumers = ['.opencode/plugins/pc-subagent-tiers.js', '.opencode/scripts/sync-agents.mjs']
+      const consumers = ['.opencode/plugins/pc-subagent-tiers/index.js', '.opencode/scripts/sync-agents.mjs']
       await fse.outputFile(path.join(src, newHelper), 'export const generateAgents = () => {}')
       await fse.outputFile(path.join(dest, oldHelper), 'original helper')
       const files = { [oldHelper]: await hashFile(path.join(dest, oldHelper)) }
