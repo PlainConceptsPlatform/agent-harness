@@ -8,7 +8,7 @@ import { patchAgentGuidance, patchAgentsMd } from "./agents.js"
 import { patchArchiveCommand, patchOpsShip, patchOpsReview, patchOpsBacklog } from "./commands.js"
 import { installSkills, removeRetiredFiles } from "./skills.js"
 import { generateFullstackEngineer, removeLegacyStartupDirectives } from "./fullstack-engineer.js"
-import { patchOpencodeJson, patchOpencodePackage } from "./opencode-json.js"
+import { patchOpencodeJson, patchOpencodePackage, removeSupersededPlugins } from "./opencode-json.js"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const CONTENT_DIR = path.resolve(__dirname, "../../../harness")
@@ -63,6 +63,7 @@ export async function copyContentStep(platform, ctx = {}) {
     await patchOpsReview({ backlogPlatform, repoPlatform })
     await patchOpsBacklog({ backlogPlatform, repoPlatform })
     await patchOpencodeJson()
+    await removeSupersededPlugins()
     await patchOpencodePackage()
     if (!ctx.updateMode) await patchAgentsMd(ctx)
 

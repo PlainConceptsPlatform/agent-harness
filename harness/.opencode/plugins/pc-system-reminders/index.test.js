@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("@opencode/plugin", () => ({ Plugin: { define: definition => definition } }))
 
-import PcSystemReminders from "./pc-system-reminders.js"
+import PcSystemReminders from "./index.js"
 
 let root
 let hooks

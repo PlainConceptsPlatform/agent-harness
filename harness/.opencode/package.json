@@ -1,5 +1,10 @@
 {
+  "type": "module",
   "dependencies": {
-    "@opencode/plugin": "2.0.22"
+    "@mohak34/opencode-notifier": "1.1.0",
+    "@opencode/plugin": "2.0.22",
+    "@opentui/core": "0.5.17",
+    "@opentui/solid": "0.5.17",
+    "solid-js": "1.9.12"
   }
 }

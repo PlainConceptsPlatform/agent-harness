@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("@opencode/plugin", () => ({ Plugin: { define: definition => definition } }))
 
-import PcSubagentMonitor from "./pc-subagent-monitor.js"
+import PcSubagentMonitor from "./index.js"
 
 let root
 let hooks
@@ -72,6 +72,18 @@ async function created(parentID = LEAD, id = `ses_child_${Math.random().toString
 async function idle(id) {
   stream.push({ type: "session.idle", data: { info: { id, parentID: LEAD } } })
   await flush()
+}
+
+async function stateFile() {
+  const file = path.join(root, ".opencode", "harness-run.json")
+  for (let i = 0; i < 50; i++) {
+    try {
+      return JSON.parse(fs.readFileSync(file, "utf-8"))
+    } catch {
+      await new Promise(resolve => setTimeout(resolve, 20))
+    }
+  }
+  throw new Error("harness-run.json was never written")
 }
 
 beforeEach(() => {
@@ -199,5 +211,41 @@ describe("it changes nothing for anything else", () => {
     fs.writeFileSync(path.join(root, ".opencode", "harness.json"), "{ not json")
 
     expect((await spawn()).effect).toBe("allow")
+  })
+})
+
+describe("the sidebar payload", () => {
+  it("records the tier model and the task ids from the session", async () => {
+    fs.mkdirSync(path.join(root, ".opencode"), { recursive: true })
+    fs.writeFileSync(
+      path.join(root, ".opencode", "harness.json"),
+      JSON.stringify({ models: { build: "anthropic/claude-sonnet-4" } }),
+    )
+    await load()
+
+    stream.push({
+      type: "session.created",
+      data: {
+        info: {
+          id: "ses_task",
+          parentID: LEAD,
+          agent: "backend-engineer.build",
+          title: "2.1, 2.2: Wave two",
+        },
+      },
+    })
+    await flush()
+
+    const state = await stateFile()
+    expect(state.agents.ses_task.model).toBe("anthropic/claude-sonnet-4")
+    expect(state.agents.ses_task.tasks).toEqual(["2.1", "2.2"])
+  })
+
+  it("leaves the model empty for an agent with no tier suffix", async () => {
+    await load()
+    await created(LEAD, "ses_plain")
+
+    const state = await stateFile()
+    expect(state.agents.ses_plain.model).toBeNull()
   })
 })

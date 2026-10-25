@@ -31,6 +31,14 @@ import path from "node:path"
 
 const TIERS = ["build", "fast", "plan"]
 
+// Any other key in the models map is a custom variant tier: a "vision" key
+// generates <engineer>.vision.md for every engineer the same way the built-ins
+// do. The pattern keeps names filesystem- and regex-safe; keys that do not
+// match are ignored rather than crashing the run. Retiring a custom tier stops
+// generating its files but leaves the last ones on disk, because the startup
+// sweep cannot tell them apart from a hand-authored file.
+const CUSTOM_TIER_PATTERN = /^[a-z][\w-]*$/i
+
 // The two primaries, and the tier each takes its model from. plan denies edit
 // and subagent: a planning session cannot mutate the tree itself, and it cannot
 // spawn a worker that would do it on its behalf. shell stays allowed because the
@@ -246,14 +254,26 @@ async function readJson(filePath) {
   }
 }
 
-async function scanEngineers(agentsDir) {
+// Built-in tiers first, then custom keys from either config, so variant
+// generation order stays deterministic (build, fast, plan, ...customs).
+function tierNames(user, team) {
+  const keys = [...Object.keys(user?.models ?? {}), ...Object.keys(team?.models ?? {})]
+  return [...new Set([...TIERS, ...keys])].filter(tier => TIERS.includes(tier) || CUSTOM_TIER_PATTERN.test(tier))
+}
+
+async function scanEngineers(agentsDir, models) {
+  // The sweep only claims suffixes it manages: built-ins plus the custom tiers
+  // currently configured. A file whose suffix matches none of them (retired
+  // tier, hand-authored variant) is never touched or deleted.
+  const suffixes = [...new Set([...TIERS, ...Object.keys(models)])]
+  const variantPattern = new RegExp(`^[\\w-]+-engineer\\.(${suffixes.join("|")})\\.md$`)
   try {
     const entries = await fs.readdir(agentsDir)
     return {
       templates: entries
         .filter(f => /^[\w-]+-engineer\.md$/.test(f) && f !== FULLSTACK_TEMPLATE)
         .map(f => f.replace(/\.md$/, "")),
-      variantFiles: entries.filter(f => /^[\w-]+-engineer\.(build|fast|plan)\.md$/.test(f)),
+      variantFiles: entries.filter(f => variantPattern.test(f)),
       hasFullstack: entries.includes(FULLSTACK_TEMPLATE),
     }
   } catch {
@@ -284,12 +304,12 @@ export default Plugin.define({
         readJson(path.join(root, ".opencode", "harness.json")),
       ])
       const models = {}
-      for (const tier of TIERS) {
+      for (const tier of tierNames(user, team)) {
         models[tier] = user?.models?.[tier] ?? team?.models?.[tier] ?? null
       }
-      const available = TIERS.filter(t => models[t])
+      const available = Object.keys(models).filter(t => models[t])
 
-      const { templates, variantFiles, hasFullstack } = await scanEngineers(agentsDir)
+      const { templates, variantFiles, hasFullstack } = await scanEngineers(agentsDir, models)
 
       if (hasFullstack) {
         const fullstackPath = path.join(agentsDir, FULLSTACK_TEMPLATE)

@@ -55,7 +55,7 @@ metadata        Rewrite .opencode/harness.json
   harness.user.json       per-developer model override (gitignored)
   harness-run.json        live subagent wave state (gitignored)
   commands/               slash commands
-  plugins/                pc-subagent-monitor, pc-subagent-tiers, pc-system-reminders
+  plugins/                pc-subagents (server + TUI), pc-subagent-tiers, pc-system-reminders
   agents/                 fullstack-engineer + user-created *-engineer files
 .agents/skills/           pc-* skills
 AGENTS.md ARCHITECTURE.md DESIGN.md

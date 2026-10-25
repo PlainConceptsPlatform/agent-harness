@@ -124,7 +124,7 @@ describe('plugin parity', () => {
     const fs = await import('node:fs')
     const url = await import('node:url')
     const pluginPath = url.fileURLToPath(
-      new URL('../../harness/.opencode/plugins/pc-subagent-tiers.js', import.meta.url),
+      new URL('../../harness/.opencode/plugins/pc-subagent-tiers/index.js', import.meta.url),
     )
     const source = fs.readFileSync(pluginPath, 'utf-8')
 

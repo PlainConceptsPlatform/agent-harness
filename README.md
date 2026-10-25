@@ -271,7 +271,7 @@ lead
 
 For unattended Loop Task runs, keep a concrete shell verification task as the final exit-code gate. Inside `/plan-goal`, `/plan-apply` step 10 runs lint, typecheck, test, and build commands and is the checks gate; `/repo-verify` then writes `verification-plan.md` (the journey the evidence workflow replays in headless Chromium once the pull request merges). The final shell task independently proves the critical commands passed before commit or pull request actions.
 
-Agents run as native OpenCode subagents in parallel waves: no external plugin, no git worktrees. The lead's Todo pane is the live board, and the `pc-subagent-monitor` plugin mirrors state to `.opencode/harness-run.json`. Navigate into any running subagent with `ctrl+x ↓` then `←`/`→`.
+Agents run as native OpenCode subagents in parallel waves: no external plugin, no git worktrees. The lead's Todo pane is the live board, and the `pc-subagents` plugin mirrors state to `.opencode/harness-run.json`. Navigate into any running subagent with `ctrl+x ↓` then `←`/`→`.
 
 ---
 
@@ -289,9 +289,9 @@ your-project/
 │   ├── agents/                      ← build.md + plan.md (generated primaries), fullstack-engineer,
 │   │                                   and user-created *-engineer files (all subagents)
 │   ├── plugins/
-│   │   ├── pc-subagent-monitor.js   ← server plugin: subagent state → .opencode/harness-run.json, and the wave cap
-│   │   ├── pc-subagent-tiers.js     ← server plugin: derives tier agents and the two primaries
-│   │   └── pc-system-reminders.js   ← server plugin: gates work on the agent's abilities, denies the never-rules
+│   │   ├── pc-subagents/            ← server plugin + TUI panel: subagent state → .opencode/harness-run.json, wave cap, Subagents sidebar
+│   │   ├── pc-subagent-tiers/       ← server plugin: derives tier agents and the two primaries
+│   │   └── pc-system-reminders/     ← server plugin: gates work on the agent's abilities, denies the never-rules
 │   └── scripts/
 │       ├── check-diff.mjs           ← the comments and tests gate on the current diff (see below)
 │       └── code-rules.mjs           ← its rules, the same ones Project-Health scores a repository with
@@ -303,7 +303,7 @@ your-project/
         └── browser-automation/
 ```
 
-On OpenCode 2 the terminal client is configured globally (`~/.config/opencode/cli.json`), so the harness ships no project-local `tui.json`; the native session sidebar shows subagents without a sidecar panel.
+On OpenCode 2 the terminal client is configured globally (`~/.config/opencode/cli.json`), so the harness ships no project-local `tui.json`. The Subagents sidebar panel is a `tui.tsx` entry in the `pc-subagents` plugin directory, discovered alongside the server half that feeds it.
 
 Platform skills ship as suffixed variants (`pc-userstory-gh`, `pc-userstory-az`, `pc-userstory-jira`, `pc-userstory-browser`) and the installer copies only the matching one, renamed to its generic name. Platform operations (ship, review, backlog) are injected directly into the `/ops-*` command files from `cli/fragments/ops-*/` during onboarding. Source-roots metadata lands in `.opencode/source-roots.json`. The always-shipped reminder plugin holds editing, shell and spawning until every ability under the agent's `## Abilities` is loaded, guardrails first, and re-arms after compaction. Token-optimization guidance is injected into `pc-guardrails-generic` marker blocks during onboarding.
 
@@ -366,9 +366,11 @@ Long unattended agent sessions can consume significant tokens. Set these control
 
 2. **Route models by task type**: use a fast and cheap model (for example `haiku`, `gpt-4o-mini`) for orchestration and status loops; reserve expensive models (for example `sonnet`, `opus`, `gpt-4o`) for implementation tasks only.
 
-3. **Monitor provider dashboards**: check usage at your provider's dashboard before and during `/plan-apply` sessions.
+3. **Install the quota plugin**: the [`@slkiser/opencode-quota`](https://www.npmjs.com/package/@slkiser/opencode-quota) plugin adds `/quota` and `/quota_status` commands that surface real-time token usage inside OpenCode sessions. The setup wizard offers it, selected by default, and configures it with popups, toasts and reset notifications switched off (`enableToast`, `resetNotifications`), slash reports kept in the chat (`tuiCommandDisplay: "inline"`), and the sidebar panel left on. Settings live in `opencode-quota/quota-toast.jsonc` at the repository root, which is where opencode-quota 5.x reads them.
 
-4. **Confirm before large runs**: the onboarded `/plan-apply` workflow will ask for your confirmation before spawning agents for Medium (4 to 7 tasks) or High (8 or more tasks) scope sessions.
+4. **Use `/quota` checkpoints**: run `/quota` before starting any `/plan-apply` session and after each agent wave. Pause at 75 percent consumed; stop at 90 percent.
+
+5. **Confirm before large runs**: the onboarded `/plan-apply` workflow will ask for your confirmation before spawning agents for Medium (4 to 7 tasks) or High (8 or more tasks) scope sessions.
 
 ---
 

@@ -1,4 +1,4 @@
-// pc-subagent-monitor: holds a spawn wave to agents.maxConcurrent and keeps a
+// pc-subagents: holds a spawn wave to agents.maxConcurrent and keeps a
 // live record of child sessions in .opencode/harness-run.json.
 //
 // OpenCode 2 denies through the permission system, not by throwing from a tool
@@ -19,7 +19,7 @@ import path from "node:path"
 const PENDING_TTL_MS = 15_000
 
 export default Plugin.define({
-  id: "pc.subagent-monitor",
+  id: "pc.subagents",
   async setup(ctx) {
     const root = ctx.location.directory || process.cwd()
     const statePath = path.join(root, ".opencode", "harness-run.json")
@@ -76,6 +76,42 @@ export default Plugin.define({
       }
       capCache = Math.min(5, Math.max(1, Math.trunc(configured)))
       return capCache
+    }
+
+    let modelsCache = {}
+    async function loadModels() {
+      const result = {}
+      for (const file of ["harness.user.json", "harness.json"]) {
+        try {
+          const raw = await fs.readFile(path.join(root, ".opencode", file), "utf-8")
+          const { models = {} } = JSON.parse(raw)
+          for (const [tier, model] of Object.entries(models)) {
+            if (model && !result[tier]) result[tier] = model
+          }
+        } catch {
+          continue
+        }
+      }
+      modelsCache = result
+      return result
+    }
+
+    // The sidebar shows which model a tier-variant agent actually runs on. The
+    // cache is warmed in setup, so the event path stays synchronous: awaiting a
+    // file read here delays the running state past the point the cap reads it.
+    function modelForAgent(agent) {
+      if (!agent) return null
+      const dotIdx = agent.lastIndexOf(".")
+      const tier = dotIdx !== -1 ? agent.slice(dotIdx + 1) : null
+      return tier ? modelsCache[tier] ?? null : null
+    }
+
+    // Task ids arrive in the session title ("2.1, 2.2: ..."), which is the only
+    // place the TUI can show what a worker is actually doing.
+    function parseTasks(title) {
+      if (!title) return []
+      const match = /^\s*([\d]+(?:\.[\d]+)*(?:\s*,\s*[\d]+(?:\.[\d]+)*)*)/.exec(title)
+      return match ? match[1].split(",").map(value => value.trim()) : []
     }
 
     function runningFor(parentID) {
@@ -135,6 +171,8 @@ export default Plugin.define({
       return { id, parentID, agent: info.agent ?? null, title: info.title ?? null, status }
     }
 
+    await loadModels()
+
     const controller = new AbortController()
     void (async () => {
       try {
@@ -143,7 +181,7 @@ export default Plugin.define({
             const type = String(event?.type ?? "")
             if (process.env.PC_HARNESS_DEBUG && type && !seenTypes.has(type)) {
               seenTypes.add(type)
-              console.error(`[pc-subagent-monitor] event: ${type}`)
+              console.error(`[pc-subagents] event: ${type}`)
             }
             const { id, parentID, agent, title, status } = extractSession(event)
             if (!id || !parentID) continue
@@ -153,6 +191,8 @@ export default Plugin.define({
               releasePending(parentID)
               state.agents[id] = {
                 agent,
+                model: modelForAgent(agent),
+                tasks: parseTasks(title),
                 parentID,
                 title,
                 status: "running",

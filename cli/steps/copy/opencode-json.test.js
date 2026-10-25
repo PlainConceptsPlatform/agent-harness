@@ -7,7 +7,7 @@ vi.mock('../../utils/exec.js', () => ({
   success: vi.fn(),
 }))
 
-import { patchOpencodeJson, patchOpencodePackage } from './opencode-json.js'
+import { patchOpencodeJson, patchOpencodePackage, removeSupersededPlugins } from './opencode-json.js'
 
 let tmpDir
 
@@ -124,7 +124,7 @@ describe('patchOpencodeJson()', () => {
     expect(config.compaction.buffer).toBe(12000)
   })
 
-  it('moves V1 plugins to plugins, dropping the plugin API and the native-replaced notifier', async () => {
+  it('moves V1 plugins to plugins, upgrading the quota and notifier pins', async () => {
     writeConfig({
       plugin: [
         '@opencode-ai/plugin@1.17.13',
@@ -139,7 +139,11 @@ describe('patchOpencodeJson()', () => {
 
     const config = readConfig()
     expect(config.plugin).toBeUndefined()
-    expect(config.plugins).toEqual(['some-other-plugin'])
+    expect(config.plugins).toEqual([
+      '@mohak34/opencode-notifier@1.1.0',
+      '@slkiser/opencode-quota@5.0.3',
+      'some-other-plugin',
+    ])
   })
 
   it('moves MCP servers under mcp.servers and inverts enabled', async () => {
@@ -182,6 +186,7 @@ describe('patchOpencodeJson()', () => {
         { action: 'skill', resource: '*', effect: 'allow' },
       ],
       skills: ['.agents/skills'],
+      plugins: ['@mohak34/opencode-notifier@1.1.0'],
       compaction: { auto: true, buffer: 10000 },
       mcp: {
         servers: { 'agent-browser': { type: 'local', command: ['agent-browser', 'mcp', '--tools', 'core'], disabled: false } },
@@ -230,9 +235,47 @@ describe('patchOpencodePackage()', () => {
     await patchOpencodePackage()
 
     const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf-8'))
+    expect(packageJson.type).toBe('module')
     expect(packageJson.dependencies).toEqual({
       '@opencode/plugin': '2.0.22',
+      '@mohak34/opencode-notifier': '1.1.0',
+      '@opentui/core': '0.5.17',
+      '@opentui/solid': '0.5.17',
+      'solid-js': '1.9.12',
       custom: '1.0.0',
     })
+  })
+})
+
+describe('removeSupersededPlugins()', () => {
+  it('removes the loose plugin files and keeps a custom TUI file', async () => {
+    const plugins = path.join(tmpDir, '.opencode', 'plugins')
+    fs.mkdirSync(path.join(plugins, 'tui'), { recursive: true })
+    fs.writeFileSync(path.join(plugins, 'pc-subagent-monitor.js'), '')
+    fs.writeFileSync(path.join(plugins, 'pc-subagent-monitor.test.js'), '')
+    fs.writeFileSync(path.join(plugins, 'pc-subagent-tiers.js'), '')
+    fs.writeFileSync(path.join(plugins, 'pc-system-reminders.js'), '')
+    fs.writeFileSync(path.join(plugins, 'tui', 'pc-subagents.tsx'), '')
+    fs.writeFileSync(path.join(plugins, 'tui', 'mine.tsx'), '')
+
+    const result = await removeSupersededPlugins()
+
+    expect(result.removed).toContain('.opencode/plugins/pc-subagent-monitor.js')
+    expect(fs.existsSync(path.join(plugins, 'pc-subagent-monitor.js'))).toBe(false)
+    expect(fs.existsSync(path.join(plugins, 'pc-subagent-tiers.js'))).toBe(false)
+    expect(fs.existsSync(path.join(plugins, 'pc-system-reminders.js'))).toBe(false)
+    expect(fs.existsSync(path.join(plugins, 'tui', 'pc-subagents.tsx'))).toBe(false)
+    expect(fs.existsSync(path.join(plugins, 'tui', 'mine.tsx'))).toBe(true)
+  })
+
+  it('is a no-op on a project with the new layout', async () => {
+    const pluginDir = path.join(tmpDir, '.opencode', 'plugins', 'pc-subagents')
+    fs.mkdirSync(pluginDir, { recursive: true })
+    fs.writeFileSync(path.join(pluginDir, 'index.js'), '')
+
+    const result = await removeSupersededPlugins()
+
+    expect(result.removed).toEqual([])
+    expect(fs.existsSync(path.join(pluginDir, 'index.js'))).toBe(true)
   })
 })

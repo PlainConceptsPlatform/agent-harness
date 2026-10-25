@@ -4,6 +4,7 @@ import fse from 'fs-extra'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { code, commandExists, header, info, loading, success, warn } from '../../utils/exec.js'
+import { installQuota } from './quota.js'
 import { installSimpleEnglish } from './simple-english.js'
 import { installCodegraph } from './codegraph.js'
 import { installMemory } from './memory.js'
@@ -91,6 +92,10 @@ export async function tokenOptimizationStep(options = {}) {
     ? await checkRtk({ skipHeader: true, skipPrompt: true })
     : { optedIn: false, checked: false, available: false }
 
+  const quota = has('quota')
+    ? await installQuota({ skipHeader: true, skipPrompt: true })
+    : { optedIn: false, installed: false }
+
   const simpleEnglish = has('simpleEnglish')
     ? await installSimpleEnglish({
       skipHeader: true,
@@ -127,7 +132,7 @@ export async function tokenOptimizationStep(options = {}) {
   if (selected.length === 0) warn('No token optimization tools selected')
   else success('Token optimization step completed')
 
-  return { rtk, simpleEnglish, codegraph, memory, humanizer }
+  return { rtk, quota, simpleEnglish, codegraph, memory, humanizer }
 }
 
 async function syncSkillsLock() {

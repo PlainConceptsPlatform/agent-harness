@@ -70,20 +70,23 @@ describe("OpenCode config template", () => {
   it("pins the OpenCode 2 plugin API and the agent-browser MCP server", () => {
     const config = parseJsonc(fs.readFileSync(path.join(CONTENT_DIR, "opencode.jsonc"), "utf-8"))
     const packageConfig = JSON.parse(fs.readFileSync(path.join(CONTENT_DIR, ".opencode", "package.json"), "utf-8"))
+    const quota = JSON.parse(fs.readFileSync(path.join(__dirname, "presets", "quota.json"), "utf-8"))
 
     expect(config.mcp.servers["agent-browser"]).toEqual({
       type: "local",
       command: ["agent-browser", "mcp", "--tools", "core"],
       disabled: false,
     })
-    expect(config.plugins).toBeUndefined()
+    expect(config.plugins).toEqual(["@mohak34/opencode-notifier@1.1.0"])
+    expect(packageConfig.type).toBe("module")
     expect(packageConfig.dependencies["@opencode/plugin"]).toBe("2.0.22")
     expect(packageConfig.dependencies["@opencode-ai/plugin"]).toBeUndefined()
-    expect(packageConfig.dependencies["@mohak34/opencode-notifier"]).toBeUndefined()
+    expect(packageConfig.dependencies["@mohak34/opencode-notifier"]).toBe("1.1.0")
+    expect(quota.plugin).toBe("@slkiser/opencode-quota@5.0.3")
   })
 
   it("ships the always-on system reminder plugin", () => {
-    const plugin = fs.readFileSync(path.join(CONTENT_DIR, ".opencode", "plugins", "pc-system-reminders.js"), "utf-8")
+    const plugin = fs.readFileSync(path.join(CONTENT_DIR, ".opencode", "plugins", "pc-system-reminders", "index.js"), "utf-8")
 
     expect(plugin).toContain("permission.hook")
     expect(plugin).toContain("pc-guardrails-generic")
@@ -94,8 +97,8 @@ describe("OpenCode config template", () => {
   // points at them (below) is only true while the hook is there.
   it("enforces the never-rules in the permission evaluate hook", () => {
     const plugins = path.join(CONTENT_DIR, ".opencode", "plugins")
-    const reminders = fs.readFileSync(path.join(plugins, "pc-system-reminders.js"), "utf-8")
-    const monitor = fs.readFileSync(path.join(plugins, "pc-subagent-monitor.js"), "utf-8")
+    const reminders = fs.readFileSync(path.join(plugins, "pc-system-reminders", "index.js"), "utf-8")
+    const monitor = fs.readFileSync(path.join(plugins, "pc-subagents", "index.js"), "utf-8")
 
     expect(reminders).toContain("permission.hook")
     expect(reminders).toContain('"evaluate"')
@@ -112,7 +115,7 @@ describe("OpenCode config template", () => {
   })
 
   it("denies edit and subagent for the plan primary", () => {
-    const tiers = fs.readFileSync(path.join(CONTENT_DIR, ".opencode", "plugins", "pc-subagent-tiers.js"), "utf-8")
+    const tiers = fs.readFileSync(path.join(CONTENT_DIR, ".opencode", "plugins", "pc-subagent-tiers", "index.js"), "utf-8")
     const config = parseJsonc(fs.readFileSync(path.join(CONTENT_DIR, "opencode.jsonc"), "utf-8"))
 
     // Read-only has to include spawning: a plan session that can launch a build

@@ -23,7 +23,7 @@ export const USER_CONFIG_FILE = 'harness.user.json'
 /** Hashes of every managed file, so `update` can detect local edits. */
 export const MANIFEST_FILE = 'harness-managed.json'
 
-/** Live subagent wave state, owned by the pc-subagent-monitor plugin. */
+/** Live subagent wave state, owned by the pc-subagents plugin. */
 export const RUN_STATE_FILE = 'harness-run.json'
 
 /** Names `.opencode/.gitignore` must cover. Mirrored in content/.opencode/_gitignore. */
