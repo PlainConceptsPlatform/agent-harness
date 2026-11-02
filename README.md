@@ -289,6 +289,7 @@ your-project/
 │   ├── agents/                      ← build.md + plan.md (generated primaries), fullstack-engineer,
 │   │                                   and user-created *-engineer files (all subagents)
 │   ├── plugins/
+│   │   ├── pc-commit-coauthor.js    ← server plugin: adds the opencode Co-Authored-By trailer to every agent commit
 │   │   ├── pc-subagent-monitor.js   ← server plugin: subagent state → .opencode/harness-run.json, and the wave cap
 │   │   ├── pc-subagent-tiers.js     ← server plugin: derives tier agents and the two primaries
 │   │   └── pc-system-reminders.js   ← server plugin: gates work on the agent's abilities, denies the never-rules
