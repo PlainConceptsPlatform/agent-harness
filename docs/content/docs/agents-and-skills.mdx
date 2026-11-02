@@ -112,6 +112,11 @@ stall.
 | Anything but inspection commands in a `plan` session | `pc-system-reminders` |
 | A spawn past `agents.maxConcurrent` | `pc-subagent-monitor` |
 
+One rule is applied rather than denied: every `git commit` an agent runs gets
+`--trailer "Co-Authored-By: opencode <noreply@opencode.ai>"` before it executes
+(`pc-commit-coauthor`), so agent commits stay identifiable however the message
+was written.
+
 Each guard fails open on its own bug: a guard that breaks the session it is
 guarding is worse than the rule it enforces. A skill named under `## Abilities`
 but not installed is skipped for the same reason.

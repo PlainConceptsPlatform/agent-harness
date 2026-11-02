@@ -89,6 +89,13 @@ describe("OpenCode config template", () => {
     expect(plugin).toContain("pc-guardrails-generic")
   })
 
+  it("ships the plugin that names opencode as co-author of agent commits", () => {
+    const plugin = fs.readFileSync(path.join(CONTENT_DIR, ".opencode", "plugins", "pc-commit-coauthor.js"), "utf-8")
+
+    expect(plugin).toContain("tool.hook(\"execute.before\"")
+    expect(plugin).toContain("Co-Authored-By: opencode <noreply@opencode.ai>")
+  })
+
   // The rules the harness states as "never" are denied in a permission hook
   // rather than argued for in prose. Two plugins carry that, and the prose that
   // points at them (below) is only true while the hook is there.
