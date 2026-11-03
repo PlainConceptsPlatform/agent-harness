@@ -18,6 +18,7 @@ import { execFile } from "node:child_process"
 import fs from "node:fs/promises"
 import path from "node:path"
 import { promisify } from "node:util"
+import { isPlatformOwned, loadPlatform } from "../scripts/platform-manifest.mjs"
 
 const GUARDRAILS_SKILL = "pc-guardrails-generic"
 const TIER_SUFFIX = /\.(?:build|fast|plan)$/
@@ -175,6 +176,17 @@ function checkWritePath(event, target, root) {
     event,
     `\`${target}\` is outside the repository, so nothing else in the run can see it and nobody will clean it up.`,
     "Write under `$REPO_ROOT/.opencode/.tmp/` instead.",
+  )
+}
+
+function checkPlatformPath(event, target, root, platform) {
+  if (typeof target !== "string" || !target) return
+  const relative = path.isAbsolute(target) ? path.relative(root, target) : target
+  if (relative.startsWith("..") || !isPlatformOwned(platform, relative)) return
+  return deny(
+    event,
+    `\`${target}\` is platform code delivered by the Kitchen-Sink template.`,
+    "Change it in Kitchen-Sink (open an issue there), or add a dated exception to `.platform/exceptions.yml`.",
   )
 }
 
@@ -351,6 +363,12 @@ export default Plugin.define({
         if (event.action === "edit") {
           for (const resource of event.resources) {
             if (checkWritePath(event, resource, root)) return
+          }
+          const platform = loadPlatform(root)
+          if (platform) {
+            for (const resource of event.resources) {
+              if (checkPlatformPath(event, resource, root, platform)) return
+            }
           }
         }
 

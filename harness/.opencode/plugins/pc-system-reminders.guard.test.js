@@ -174,6 +174,46 @@ describe("scratch files", () => {
   })
 })
 
+describe("platform code delivered by the template", () => {
+  const write = (file, text) => {
+    fs.mkdirSync(path.dirname(path.join(root, file)), { recursive: true })
+    fs.writeFileSync(path.join(root, file), text)
+  }
+  const exception = expires => `exceptions:\n  - path: apps/api/src/Platform/Audit/**\n    reason: "local audit sink"\n    issue: https://example.test/1\n    expires: ${expires}\n`
+  const edit = file => evaluate({ action: "edit", resources: [file] })
+
+  beforeEach(async () => {
+    await install()
+    write(".platform/manifest", "# platform-owned\napps/api/src/Platform/**\napps/web/src/shared/platform/**\n")
+  })
+
+  it("blocks a manifest path once the app has opted in", async () => {
+    write(".copier-answers.yml", "_commit: v1.0.0\n_src_path: https://github.com/PlainConceptsPlatform/Kitchen-Sink.git\n")
+
+    for (const file of ["apps/api/src/Platform/Auth/Session.cs", path.join(root, "apps", "web", "src", "shared", "platform", "theme.tsx")]) {
+      const event = await edit(file)
+      expect(event.effect).toBe("deny")
+      expect(event.message).toContain("Kitchen-Sink template")
+    }
+    expect((await edit("apps/api/src/Orders/Order.cs")).effect).toBe("allow")
+  })
+
+  it("allows a path an unexpired exception covers, and blocks it once expired", async () => {
+    write(".copier-answers.yml", "_commit: v1.0.0\n")
+
+    write(".platform/exceptions.yml", exception("2999-12-31"))
+    expect((await edit("apps/api/src/Platform/Audit/Sink.cs")).effect).toBe("allow")
+    expect((await edit("apps/api/src/Platform/Auth/Session.cs")).effect).toBe("deny")
+
+    write(".platform/exceptions.yml", exception("2000-01-01"))
+    expect((await edit("apps/api/src/Platform/Audit/Sink.cs")).effect).toBe("deny")
+  })
+
+  it("changes nothing in a repository without .copier-answers.yml", async () => {
+    expect((await edit("apps/api/src/Platform/Auth/Session.cs")).effect).toBe("allow")
+  })
+})
+
 describe("platform data comes from the CLI", () => {
   beforeEach(() => install())
 

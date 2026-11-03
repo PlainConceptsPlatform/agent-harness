@@ -12,6 +12,7 @@ Write `ARCHITECTURE.md` in the project root from what the codebase actually cont
 
 - Never regenerate over a file that carries a `<!-- Last updated:` footer. That footer is what makes the next run incremental, and a full rewrite silently drops whatever a human added by hand. Read the file first and pick the mode.
 - Never analyze outside `.opencode/source-roots.json` when it exists, plus this repo's own docs and config.
+- When `docs/platform/` exists, the Kitchen-Sink template owns the platform code it documents (session and auth, permissions, audit, feature flags, errors, security headers, API surfaces, web shell). For those topics link to the page in `docs/platform/` instead of describing them again: a second description drifts on the next template update.
 - The footer is the file's last line, and it is the run's own ISO timestamp: `<!-- Last updated: <ISO date> -->`.
 - Follow the writing rules and self-check defined in the [structure template](structure-template.md). After generating, re-read each section: if a section only describes what exists without stating what breaks when its constraints are violated, rewrite it as constraint-embedded prose or cut it. The file is not written until the self-check passes.
 

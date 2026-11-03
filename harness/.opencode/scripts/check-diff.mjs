@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { commentBlocks, countLines, isGenerated, kindOf, lineKinds, slopFindings, testStats } from './code-rules.mjs'
+import { ANSWERS_FILE, commitOf, isPlatformOwned, loadPlatform } from './platform-manifest.mjs'
 
 export const DEFAULT_LIMITS = {
   commentRatio: 0.1,
@@ -37,6 +38,7 @@ const FIX = {
   'test-snapshot': 'Assert the values that matter instead of a snapshot.',
   'test-no-assertion': 'Assert something, or delete the test.',
   'test-mock-only': 'Assert on state or output, not only that a mock was called.',
+  'platform-file': 'This is platform code delivered by the Kitchen-Sink template. Change it in Kitchen-Sink (open an issue there), or add a dated exception to .platform/exceptions.yml.',
 }
 
 const SUSPICIOUS = {
@@ -156,15 +158,23 @@ function resolveBase(root, requested) {
 
 const normalize = text => text.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n')
 
-export function collect(root, base) {
-  const files = []
+function changes(root, base) {
+  const list = []
   const entries = git(root, ['diff', '--name-status', '-M', '-z', base]).split('\0').filter(Boolean)
   for (let i = 0; i < entries.length; ) {
     const status = entries[i]
     const renamed = status.startsWith('R') || status.startsWith('C')
-    const from = entries[i + 1]
-    const to = renamed ? entries[i + 2] : from
+    list.push({ status, from: entries[i + 1], to: renamed ? entries[i + 2] : entries[i + 1] })
     i += renamed ? 3 : 2
+  }
+  return list
+}
+
+const untrackedFiles = root => git(root, ['ls-files', '--others', '--exclude-standard', '-z']).split('\0').filter(Boolean)
+
+export function collect(root, base) {
+  const files = []
+  for (const { status, from, to } of changes(root, base)) {
     if (status === 'D' || !kindOf(to)) continue
     const full = path.join(root, to)
     if (!fs.existsSync(full)) continue
@@ -173,7 +183,7 @@ export function collect(root, base) {
     const diff = git(root, ['diff', '-U0', '--no-color', '--no-ext-diff', '-M', base, '--', ...new Set([from, to])])
     files.push({ path: to, before, after, added: addedLines(diff) })
   }
-  for (const untracked of git(root, ['ls-files', '--others', '--exclude-standard', '-z']).split('\0').filter(Boolean)) {
+  for (const untracked of untrackedFiles(root)) {
     if (!kindOf(untracked)) continue
     const after = normalize(fs.readFileSync(path.join(root, untracked), 'utf8'))
     const count = after.split('\n').length - (after.endsWith('\n') ? 1 : 0)
@@ -197,6 +207,22 @@ export function trackedFiles(root, baseline) {
   } catch {
     return new Set()
   }
+}
+
+// A template sync moves `_commit` in .copier-answers.yml and is the one change allowed to rewrite platform files.
+export function platformViolations(root, base, paths) {
+  const platform = loadPlatform(root)
+  if (!platform) return []
+  const answers = fs.readFileSync(path.join(root, ANSWERS_FILE), 'utf8')
+  if (commitOf(tryGit(root, ['show', `${base}:${ANSWERS_FILE}`])) !== commitOf(answers)) return []
+  const touched = new Set(untrackedFiles(root))
+  for (const { status, from, to } of changes(root, base)) {
+    touched.add(to)
+    if (status.startsWith('R')) touched.add(from)
+  }
+  return scope([...touched].map(file => ({ path: file })), paths)
+    .filter(file => isPlatformOwned(platform, file.path))
+    .map(file => ({ rule: 'platform-file', file: file.path, fix: FIX['platform-file'] }))
 }
 
 function readLimits(root) {
@@ -245,6 +271,7 @@ function main(argv) {
   const limits = readLimits(root)
   const paths = option('paths')?.split(',').map(p => p.trim()).filter(Boolean)
   const result = evaluate(scope(collect(root, base.base), paths), limits, trackedFiles(root, limits.complexityBaseline))
+  result.violations.push(...platformViolations(root, base.base, paths))
   console.log(argv.includes('--json') ? JSON.stringify({ base, ...result }, null, 2) : report(result, base))
   return result.violations.length === 0 ? 0 : 1
 }
