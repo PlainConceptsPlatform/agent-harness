@@ -110,12 +110,15 @@ stall.
 | Fetching github.com, dev.azure.com, atlassian.net or gitlab.com instead of using their CLI | `pc-system-reminders` |
 | Browser navigation off `localhost` unless the backlog is browser-based | `pc-system-reminders` |
 | Anything but inspection commands in a `plan` session | `pc-system-reminders` |
+| Editing a path in `.platform/manifest` in an app built from the Kitchen-Sink template, unless `.platform/exceptions.yml` holds an unexpired exception for it | `pc-system-reminders` |
 | A spawn past `agents.maxConcurrent` | `pc-subagent-monitor` |
 
 One rule is applied rather than denied: every `git commit` an agent runs gets
 `--trailer "Co-Authored-By: opencode <noreply@opencode.ai>"` before it executes
 (`pc-commit-coauthor`), so agent commits stay identifiable however the message
 was written.
+
+The platform rule applies only to an app that opted into the template with `.copier-answers.yml` at its root. `check-diff` enforces the same rule on the diff, and lets a template sync through when `_commit` in `.copier-answers.yml` moves in the same change.
 
 Each guard fails open on its own bug: a guard that breaks the session it is
 guarding is worse than the rule it enforces. A skill named under `## Abilities`

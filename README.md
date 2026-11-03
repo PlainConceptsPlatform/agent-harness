@@ -295,7 +295,8 @@ your-project/
 │   │   └── pc-system-reminders.js   ← server plugin: gates work on the agent's abilities, denies the never-rules
 │   └── scripts/
 │       ├── check-diff.mjs           ← the comments and tests gate on the current diff (see below)
-│       └── code-rules.mjs           ← its rules, the same ones Project-Health scores a repository with
+│       ├── code-rules.mjs           ← its rules, the same ones Project-Health scores a repository with
+│       └── platform-manifest.mjs    ← reads .platform/manifest and exceptions in a family app (see below)
 └── .agents/
     └── skills/
         ├── pc-guardrails-generic/  ← foundation for user guardrails
@@ -317,7 +318,8 @@ Platform skills ship as suffixed variants (`pc-userstory-gh`, `pc-userstory-az`,
 - adds more comment lines than 10% of the code lines it adds (2 are always allowed);
 - adds a slop shape (banner, region, untracked TODO, a doc comment that repeats the name, commented-out code, an apology), a comment block of five lines or more, an incident story, or a doc comment on an internal symbol;
 - touches a file and leaves slop in it, or leaves it with more comments per code line than before;
-- grows the tests more than the code: test lines beyond the code lines added (40 always allowed), more than 40 cases per 1,000 code lines (3 always allowed), or any new skipped, focused, snapshot, assertion-less or mock-only test.
+- grows the tests more than the code: test lines beyond the code lines added (40 always allowed), more than 40 cases per 1,000 code lines (3 always allowed), or any new skipped, focused, snapshot, assertion-less or mock-only test;
+- changes a platform file in an app built from the Kitchen-Sink template (see [Platform files in a family app](#platform-files-in-a-family-app)).
 
 A tool directive (`nosemgrep`, `biome-ignore`, `eslint-disable`, `@ts-expect-error`, coverage ignores) is not a comment and costs nothing. Code added to a file that has methods in the complexity baseline (`scripts/complexity-baseline.json`, keys `path::method`) counts twice toward the test budget: that gate fails a method whose coverage drops, so its new branches need tests.
 
@@ -326,6 +328,20 @@ A tool directive (`nosemgrep`, `biome-ignore`, `eslint-disable`, `@ts-expect-err
 ```json
 "codeRules": { "commentRatio": 0.1, "commentAllowance": 2, "testRatio": 1, "testAllowance": 40, "casesPerKloc": 40, "caseAllowance": 3, "complexityBaseline": "scripts/complexity-baseline.json" }
 ```
+
+### Platform files in a family app
+
+An app that receives its platform code from the Kitchen-Sink Copier template carries `.copier-answers.yml` at its root and `.platform/manifest`, one gitwildmatch glob per line for the paths the template owns. In such an app `pc-system-reminders` denies an agent edit to a manifest path, and `check-diff` reports `platform-file` for every manifest path the diff changes. Both point at the fix: change the file in Kitchen-Sink (open an issue there), or add a dated exception to the app's `.platform/exceptions.yml`:
+
+```yaml
+exceptions:
+  - path: apps/api/src/Platform/Audit/**
+    reason: Local audit sink until the template supports it
+    issue: https://github.com/PlainConceptsPlatform/Kitchen-Sink/issues/1
+    expires: 2026-12-31
+```
+
+An exception covers its path until the end of its `expires` day. A template sync, where `_commit` in `.copier-answers.yml` changes in the same diff, passes `check-diff`. A repository without both marker files sees no change in either tool.
 
 ## The bootstrap sequence
 
