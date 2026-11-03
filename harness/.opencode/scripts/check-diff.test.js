@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process"
+import { execFileSync, spawnSync } from "node:child_process"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
@@ -97,5 +97,71 @@ describe("check-diff", () => {
 
     expect(scope(files, ["src/api", "./tests/d.test.ts"]).map(f => f.path)).toEqual(["src/api/a.ts", "tests/d.test.ts"])
     expect(scope(files, undefined)).toBe(files)
+  })
+})
+
+describe("check-diff on platform files", { timeout: 30000 }, () => {
+  const script = path.join(import.meta.dirname, "check-diff.mjs")
+
+  function fixture({ answers = "_commit: v1.0.0\n", manifest = "apps/api/src/Platform/**\n" } = {}) {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "check-diff-platform-"))
+    const git = (...args) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...args], { cwd: root, encoding: "utf8" }).trim()
+    const write = (file, text) => {
+      fs.mkdirSync(path.dirname(path.join(root, file)), { recursive: true })
+      fs.writeFileSync(path.join(root, file), text)
+    }
+    git("init", "-q")
+    write("apps/api/src/Platform/session.ts", "export const ttl = 1\n")
+    write("apps/api/src/orders.ts", "export const orders = []\n")
+    if (answers) write(".copier-answers.yml", answers)
+    if (manifest) write(".platform/manifest", manifest)
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    const base = git("rev-parse", "HEAD")
+    const run = () => {
+      const result = spawnSync(process.execPath, [script, "--base", base], { cwd: root, encoding: "utf8" })
+      return { status: result.status, output: result.stdout.replaceAll(base, "<base>").replace(base.slice(0, 7), "<base>") }
+    }
+    return { write, run }
+  }
+
+  it("fails on a changed platform file and passes on app files", () => {
+    const repo = fixture()
+    repo.write("apps/api/src/orders.ts", "export const orders = [1]\n")
+    expect(repo.run().status).toBe(0)
+
+    repo.write("apps/api/src/Platform/session.ts", "export const ttl = 2\n")
+    const { status, output } = repo.run()
+    expect(status).toBe(1)
+    expect(output).toContain("platform-file")
+    expect(output).toContain("apps/api/src/Platform/session.ts")
+  })
+
+  it("passes a change an unexpired exception covers, but not an expired one", () => {
+    const repo = fixture()
+    repo.write("apps/api/src/Platform/session.ts", "export const ttl = 2\n")
+    const exception = expires => `exceptions:\n  - path: apps/api/src/Platform/session.ts\n    reason: longer sessions\n    issue: https://example.test/2\n    expires: "${expires}"\n`
+
+    repo.write(".platform/exceptions.yml", exception("2999-12-31"))
+    expect(repo.run().status).toBe(0)
+    repo.write(".platform/exceptions.yml", exception("2000-01-01"))
+    expect(repo.run().status).toBe(1)
+  })
+
+  it("passes a template sync, which moves _commit in the same diff", () => {
+    const repo = fixture()
+    repo.write("apps/api/src/Platform/session.ts", "export const ttl = 2\n")
+    repo.write(".copier-answers.yml", "_commit: v1.1.0\n")
+
+    expect(repo.run().status).toBe(0)
+  })
+
+  it("prints exactly what it printed before in a repository that has not opted in", () => {
+    const optedOut = fixture({ answers: null })
+    const bare = fixture({ answers: null, manifest: null })
+    for (const repo of [optedOut, bare]) repo.write("apps/api/src/Platform/session.ts", "export const ttl = 2\n")
+
+    expect(optedOut.run()).toEqual(bare.run())
+    expect(bare.run().status).toBe(0)
   })
 })
