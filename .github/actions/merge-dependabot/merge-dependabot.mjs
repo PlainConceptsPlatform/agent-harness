@@ -1,4 +1,4 @@
-// Managed by @plainconceptsplatform/workflows@1.13.0. Source: loops/actions/merge-dependabot/merge-dependabot.mjs. Update with workflows update --force; consumer edits may be overwritten.
+// Managed by @plainconceptsplatform/workflows@1.13.1. Source: loops/actions/merge-dependabot/merge-dependabot.mjs. Update with workflows update --force; consumer edits may be overwritten.
 //
 // Squash-merges Dependabot pull requests whose checks are green. API calls only: the pull
 // request's code is never checked out or run, and no model decides anything.
@@ -18,6 +18,13 @@ const MIN_RATE_REMAINING = 100;
 export const NO_CHECKS_GRACE_MINUTES = 60;
 
 export const isDependabot = (login) => DEPENDABOT_LOGINS.has(login ?? "");
+
+// A read the token may not make. The pull request is skipped and the run goes on.
+export class ReadDenied extends Error {
+  constructor(what, permission) {
+    super(`cannot read ${what}: grant ${permission}: read to the App or the workflow token`);
+  }
+}
 
 export function authorshipProblem(pr, commits, repository) {
   if (!isDependabot(pr.user?.login)) return `opened by ${pr.user?.login ?? "unknown"}`;
@@ -196,7 +203,7 @@ export function createClient({ token, apiUrl = "https://api.github.com", fetchIm
     let next = path;
     while (next && items.length < limit) {
       const page = await request("GET", next);
-      if (page.status >= 400) throw new Error(`GET ${next} answered ${page.status}: ${JSON.stringify(page.data)}`);
+      if (page.status >= 400) throw Object.assign(new Error(`GET ${next} answered ${page.status}: ${JSON.stringify(page.data)}`), { status: page.status });
       items.push(...(Array.isArray(page.data) ? page.data : page.data?.check_runs ?? []));
       next = /<([^>]+)>;\s*rel="next"/.exec(page.link)?.[1];
     }
@@ -207,9 +214,16 @@ export function createClient({ token, apiUrl = "https://api.github.com", fetchIm
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const denied = async (what, permission, read) => {
+  try { return await read(); } catch (error) {
+    throw error.status === 403 ? new ReadDenied(what, permission) : error;
+  }
+};
+
 async function readPullRequest(client, repository, number, wait) {
   for (let attempt = 0; ; attempt++) {
-    const { data } = await client.request("GET", `/repos/${repository}/pulls/${number}`);
+    const { status, data } = await client.request("GET", `/repos/${repository}/pulls/${number}`);
+    if (status === 403) throw new ReadDenied("pull requests", "Pull requests");
     if (data?.mergeable !== null || attempt >= 3) return data;
     await wait(2000);
   }
@@ -228,8 +242,9 @@ async function requiredChecks(client, repository, branch) {
 }
 
 async function readChecks(client, repository, sha, required) {
-  const checkRuns = await client.paginate(`/repos/${repository}/commits/${sha}/check-runs?per_page=100`);
+  const checkRuns = await denied("checks", "Checks", () => client.paginate(`/repos/${repository}/commits/${sha}/check-runs?per_page=100`));
   const combined = await client.request("GET", `/repos/${repository}/commits/${sha}/status?per_page=100`);
+  if (combined.status === 403) throw new ReadDenied("commit statuses", "Commit statuses");
   return summarizeChecks({ checkRuns, statuses: combined.data?.statuses ?? [], required });
 }
 
@@ -267,27 +282,39 @@ async function land(client, repository, pr, config) {
   return { action: "error", reason: `merge answered ${merged.status}: ${message}` };
 }
 
-export async function run({ client, repository, config, now = Date.now(), log = console.log, wait = sleep }) {
+// `client` writes (approve, merge, comment) and `reader` reads. The App token writes, so its merge
+// starts the push workflows; the workflow token reads, as the App may hold no Checks permission.
+export async function run({ client, reader = client, repository, config, now = Date.now(), log = console.log, wait = sleep }) {
   const rows = [];
+  const deniedReads = new Set();
   if (config.scope === "off") return { rows, off: true };
 
-  const { data: repo } = await client.request("GET", `/repos/${repository}`);
+  const { data: repo } = await reader.request("GET", `/repos/${repository}`);
   const defaultBranch = repo.default_branch;
-  const open = await client.paginate(`/repos/${repository}/pulls?state=open&sort=created&direction=asc&per_page=100`);
+  const open = await reader.paginate(`/repos/${repository}/pulls?state=open&sort=created&direction=asc&per_page=100`);
   const candidates = open.filter((pr) => isDependabot(pr.user?.login)).slice(0, MAX_EXAMINED);
-  const required = candidates.length > 0 ? await requiredChecks(client, repository, defaultBranch) : [];
+  const required = candidates.length > 0 ? await requiredChecks(reader, repository, defaultBranch) : [];
   let merges = 0;
 
   for (const listed of candidates) {
-    if (client.rateRemaining() < MIN_RATE_REMAINING) {
+    if (reader.rateRemaining() < MIN_RATE_REMAINING) {
       rows.push({ number: listed.number, title: listed.title, bump: "", action: "wait", reason: "API rate limit nearly spent" });
       continue;
     }
-    const pr = await readPullRequest(client, repository, listed.number, wait);
-    const commits = await client.paginate(`/repos/${repository}/pulls/${pr.number}/commits?per_page=100`, 250);
-    const comments = await client.paginate(`/repos/${repository}/issues/${pr.number}/comments?per_page=100`);
-    const mergeableNow = pr.mergeable === true && !["dirty", "behind"].includes(pr.mergeable_state);
-    const checks = mergeableNow ? await readChecks(client, repository, pr.head.sha, required) : { state: "none", failing: [], pending: [] };
+    let pr, commits, comments, checks;
+    try {
+      pr = await readPullRequest(reader, repository, listed.number, wait);
+      commits = await denied("pull request commits", "Pull requests", () => reader.paginate(`/repos/${repository}/pulls/${pr.number}/commits?per_page=100`, 250));
+      comments = await denied("issue comments", "Issues", () => reader.paginate(`/repos/${repository}/issues/${pr.number}/comments?per_page=100`));
+      const mergeableNow = pr.mergeable === true && !["dirty", "behind"].includes(pr.mergeable_state);
+      checks = mergeableNow ? await readChecks(reader, repository, pr.head.sha, required) : { state: "none", failing: [], pending: [] };
+    } catch (error) {
+      if (!(error instanceof ReadDenied)) throw error;
+      deniedReads.add(error.message);
+      log(`::warning::#${listed.number} skipped: ${error.message}`);
+      rows.push({ number: listed.number, title: listed.title, bump: "", action: "skip", reason: error.message });
+      continue;
+    }
     let outcome = decide({
       pr, commits, defaultBranch, repository, comments, checks, now,
       skipLabels: config.skipLabels, scope: config.scope, mergeWithoutChecks: config.mergeWithoutChecks,
@@ -305,12 +332,13 @@ export async function run({ client, repository, config, now = Date.now(), log = 
     log(`#${pr.number} ${outcome.action}: ${outcome.reason}`);
     rows.push({ number: pr.number, title: pr.title, bump: outcome.bump, action: outcome.action, reason: outcome.reason });
   }
-  return { rows, off: false };
+  return { rows, off: false, denied: [...deniedReads] };
 }
 
-export function renderSummary({ rows, off }, config) {
+export function renderSummary({ rows, off, denied: deniedReads = [] }, config) {
   const lines = [`## Dependabot merge (${config.dryRun ? "dry run, " : ""}scope: ${config.scope})`, ""];
   if (off) return [...lines, "DEPENDABOT_MERGE is off: nothing was examined.", ""].join("\n");
+  for (const message of deniedReads) lines.push("> [!WARNING]", `> ${message}.`, "");
   if (rows.length === 0) return [...lines, "No open Dependabot pull requests.", ""].join("\n");
   lines.push("| PR | Update | Bump | Result | Why |", "|---|---|---|---|---|");
   const cell = (value) => String(value ?? "").replace(/\|/g, "\\|").replace(/\n/g, " ");
@@ -323,8 +351,10 @@ async function main() {
     SCOPE: process.env.SCOPE, MAX_MERGES: process.env.MAX_MERGES, MERGE_WITHOUT_CHECKS: process.env.MERGE_WITHOUT_CHECKS,
     SKIP_LABELS: process.env.SKIP_LABELS, DRY_RUN: process.env.DRY_RUN, POST_MERGE_EVENT: process.env.POST_MERGE_EVENT,
   });
-  const client = createClient({ token: process.env.GH_TOKEN, apiUrl: process.env.GITHUB_API_URL || "https://api.github.com" });
-  const result = await run({ client, repository: process.env.REPO, config });
+  const apiUrl = process.env.GITHUB_API_URL || "https://api.github.com";
+  const client = createClient({ token: process.env.GH_TOKEN, apiUrl });
+  const reader = process.env.READ_TOKEN ? createClient({ token: process.env.READ_TOKEN, apiUrl }) : client;
+  const result = await run({ client, reader, repository: process.env.REPO, config });
   const summary = renderSummary(result, config);
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${summary}\n`);
   else console.log(summary);

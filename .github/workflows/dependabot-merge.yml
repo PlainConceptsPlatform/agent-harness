@@ -1,4 +1,4 @@
-# Managed by @plainconceptsplatform/workflows@1.13.0. Source: loops/templates/dependabot-merge/.github/workflows/dependabot-merge.yml. Update with `workflows update --force`; consumer edits may be overwritten.
+# Managed by @plainconceptsplatform/workflows@1.13.1. Source: loops/templates/dependabot-merge/.github/workflows/dependabot-merge.yml. Update with `workflows update --force`; consumer edits may be overwritten.
 name: "Dependabot: Merge"
 
 # Every six hours, squash-merges the open Dependabot pull requests whose checks are all green, for a
@@ -46,7 +46,8 @@ jobs:
     timeout-minutes: 15
     permissions:
       # Merging, deleting the merged branch, approving where a ruleset asks for it, and commenting
-      # `@dependabot rebase`. All of it through the API.
+      # `@dependabot rebase`. All of it through the API. checks and statuses: the reads run on
+      # this token, since the App installation may hold no Checks permission.
       contents: write
       pull-requests: write
       issues: write
@@ -72,6 +73,7 @@ jobs:
       - uses: ./.github/actions/merge-dependabot
         with:
           token: ${{ steps.app-token.outputs.token || github.token }}
+          read-token: ${{ github.token }}
           scope: ${{ vars.DEPENDABOT_MERGE || env.DEPENDABOT_MERGE }}
           merge-without-checks: ${{ env.DEPENDABOT_MERGE_WITHOUT_CHECKS }}
           post-merge-event: ""

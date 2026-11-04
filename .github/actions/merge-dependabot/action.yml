@@ -1,4 +1,4 @@
-# Managed by @plainconceptsplatform/workflows@1.13.0. Source: loops/actions/merge-dependabot/action.yml. Update with workflows update --force; consumer edits may be overwritten.
+# Managed by @plainconceptsplatform/workflows@1.13.1. Source: loops/actions/merge-dependabot/action.yml. Update with workflows update --force; consumer edits may be overwritten.
 name: Merge Dependabot pull requests
 description: >-
   Squash-merge the open Dependabot pull requests whose checks are all green, ask Dependabot to
@@ -9,9 +9,16 @@ description: >-
 inputs:
   token:
     description: >-
-      Token with contents and pull-requests write. The App token makes the merge start the push
-      workflows on the default branch; a merge made with GITHUB_TOKEN starts none.
+      Token for the writes: approve, merge, comment. Contents and pull-requests write. The App
+      token makes the merge start the push workflows on the default branch; a merge made with
+      GITHUB_TOKEN starts none.
     required: true
+  read-token:
+    description: >-
+      Token for the reads: pull requests, check runs, commit statuses. Needs checks and statuses
+      read, which the App may not hold. A read it is refused skips that pull request with a warning.
+    required: false
+    default: ${{ github.token }}
   scope:
     description: "Which updates merge: all, minor (minor and patch), patch, or off."
     required: false
@@ -44,6 +51,7 @@ runs:
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.token }}
+        READ_TOKEN: ${{ inputs.read-token }}
         REPO: ${{ github.repository }}
         SCOPE: ${{ inputs.scope }}
         MERGE_WITHOUT_CHECKS: ${{ inputs.merge-without-checks }}
