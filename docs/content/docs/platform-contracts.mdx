@@ -31,6 +31,8 @@ sync:
 
 The template delivers the file, so the template owns it and lists it under `owned`.
 
+The template repository itself is exempt from its own contract. When its `origin` remote, read from local git config, is the same repository as `source.url` (https or ssh form, a `.git` suffix and case do not matter), `pc-system-reminders` does not deny edits to owned paths, `check-diff` does not report `platform-file`, and the AGENTS.md block leaves out its line about owned paths. The reuse rules and `reuse-shadow` still apply.
+
 | Field | Required | What the harness does with it |
 | --- | --- | --- |
 | `version` | yes | Reads `1`. Any other value is an error. |
