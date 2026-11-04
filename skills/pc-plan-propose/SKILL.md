@@ -51,6 +51,8 @@ If a work item URL or issue key is provided (GitHub Issue, Azure DevOps work ite
 
 Load `@openspec-propose` skill and follow its instructions to generate proposal.md, specs, and tasks.md. Do not write them to disk yet. Build the complete proposal content in your context.
 
+When `.platform/contract.yml` declares `reuse`, read the paths in `reuse.docs` and the exports of the `reuse.packages` first, and give proposal.md a `## What is reused` section: for each part of the change, the doc page, package export or `reuse.names` entry it builds on, or why none fits. A proposal without it re-implements what the template already ships, and `pc-plan-apply` stops on it.
+
 ## Step 2: Enrich task assignments
 
 1. List every `*-engineer.md` file in `.opencode/agents/`. For each file read:
