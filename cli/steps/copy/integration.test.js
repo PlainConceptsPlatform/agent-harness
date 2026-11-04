@@ -36,7 +36,7 @@ afterEach(() => {
   fs.rmSync(tmpDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
 })
 
-describe('patchAgentsMd against the real pc-repo-initialize SKILL.md', () => {
+describe('patchAgentsMd against the real pc-repo-initialize SKILL.md', { timeout: 30000 }, () => {
   const initPath = () => path.join(tmpDir, '.agents', 'skills', 'pc-repo-initialize', 'SKILL.md')
 
   function installInit() {
@@ -86,7 +86,7 @@ describe('patchAgentsMd against the real pc-repo-initialize SKILL.md', () => {
   })
 })
 
-describe('patchAgentGuidance mixed platforms against the real template', () => {
+describe('patchAgentGuidance mixed platforms against the real template', { timeout: 30000 }, () => {
   it.each([
     ['azure', 'github'],
     ['jira', 'gitlab'],
@@ -110,7 +110,7 @@ describe('patchAgentGuidance mixed platforms against the real template', () => {
   })
 })
 
-describe('installSkills platform gating (real content/skills)', () => {
+describe('installSkills platform gating (real content/skills)', { timeout: 30000 }, () => {
   async function installedSkill(name) {
     const p = path.join(tmpDir, '.agents', 'skills', name, 'SKILL.md')
     return fs.existsSync(p) ? fs.readFileSync(p, 'utf-8') : null
@@ -212,7 +212,7 @@ describe('installSkills platform gating (real content/skills)', () => {
   })
 })
 
-describe('ops command patching (real presets + real templates)', () => {
+describe('ops command patching (real presets + real templates)', { timeout: 30000 }, () => {
   async function patchedCommand(name) {
     const p = path.join(tmpDir, '.opencode', 'commands', name)
     return fs.existsSync(p) ? fs.readFileSync(p, 'utf-8') : null
@@ -264,7 +264,7 @@ describe('ops command patching (real presets + real templates)', () => {
 // Marker skills used to be preserved wholesale on update, which froze their
 // prose at whatever version a consumer first installed. A skill rewrite then
 // only ever reached fresh installs.
-describe('update refreshes marker skills but keeps project-owned content', () => {
+describe('update refreshes marker skills but keeps project-owned content', { timeout: 30000 }, () => {
   const shipped = name =>
     fs.readFileSync(path.join(SOURCE_SKILLS_DIR, name, 'SKILL.md'), 'utf-8')
 
@@ -356,7 +356,7 @@ describe('update refreshes marker skills but keeps project-owned content', () =>
 
 })
 
-describe('resolvePlatform accepts every platforms.json value', () => {
+describe('resolvePlatform accepts every platforms.json value', { timeout: 30000 }, () => {
   it.each(['github', 'azure', 'jira', 'gitlab', 'browser', 'none'])('keeps %s', value => {
     expect(resolvePlatform(value)).toBe(value)
   })

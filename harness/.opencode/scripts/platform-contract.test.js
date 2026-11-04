@@ -1,8 +1,9 @@
+import { execFileSync } from "node:child_process"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { describe, expect, it } from "vitest"
-import { isOwned, loadContract, matchGlob } from "./platform-contract.mjs"
+import { isOwned, isTemplateSource, loadContract, matchGlob, normalizeRepoUrl } from "./platform-contract.mjs"
 
 // The 3.8.0 matcher, kept as the oracle the hand-written one must agree with.
 const escapeRegExp = text => text.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")
@@ -78,5 +79,30 @@ describe("platform-contract globs", () => {
 
     const owned = ["apps/api/a.cs", "apps/web/a.ts", "apps/web/Platform/a.ts", ".\\apps\\web\\Platform\\b.ts", "web/a.ts"].map(f => isOwned(contract, f))
     expect(owned).toEqual([true, false, true, true, false])
+  })
+})
+
+describe("the template's own repository", () => {
+  it("normalises the ways git spells one GitHub repository", () => {
+    const spellings = [
+      "https://github.com/PlainConceptsPlatform/Kitchen-Sink", "https://github.com/plainconceptsplatform/kitchen-sink.git",
+      "git@github.com:PlainConceptsPlatform/Kitchen-Sink.git", "ssh://git@github.com/PlainConceptsPlatform/Kitchen-Sink.git",
+      "https://token@github.com/PlainConceptsPlatform/Kitchen-Sink/", "git+https://github.com/PlainConceptsPlatform/Kitchen-Sink.git",
+      "gh:PlainConceptsPlatform/Kitchen-Sink", " http://github.com/PlainConceptsPlatform/Kitchen-Sink.git\n",
+    ]
+    expect(new Set(spellings.map(normalizeRepoUrl))).toEqual(new Set(["https://github.com/plainconceptsplatform/kitchen-sink"]))
+    expect(normalizeRepoUrl("https://github.com/PlainConceptsPlatform/Kitchen-Sink-App")).not.toBe(normalizeRepoUrl(spellings[0]))
+  })
+
+  it("is recognised by its origin remote, and never without one", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "contract-origin-"))
+    const contract = { source: { url: "https://github.com/acme/app-template" } }
+    expect(isTemplateSource(root, contract)).toBe(false)
+    execFileSync("git", ["init", "-q"], { cwd: root })
+    expect(isTemplateSource(root, contract)).toBe(false)
+    execFileSync("git", ["remote", "add", "origin", "git@github.com:acme/app-template.git"], { cwd: root })
+    expect(isTemplateSource(root, contract)).toBe(true)
+    execFileSync("git", ["remote", "set-url", "origin", "https://github.com/acme/app"], { cwd: root })
+    expect(isTemplateSource(root, contract)).toBe(false)
   })
 })

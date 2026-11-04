@@ -126,7 +126,7 @@ describe("check-diff on platform files", { timeout: 30000 }, () => {
       const result = spawnSync(process.execPath, [script, "--base", base], { cwd: root, encoding: "utf8" })
       return { status: result.status, output: result.stdout.replaceAll(base, "<base>").replace(base.slice(0, 7), "<base>") }
     }
-    return { write, run }
+    return { git, write, run }
   }
 
   it("fails on a changed owned file, names its source, and passes on app files", () => {
@@ -139,6 +139,16 @@ describe("check-diff on platform files", { timeout: 30000 }, () => {
     expect(status).toBe(1)
     expect(output).toContain("platform-file: Ask for the change at https://github.com/acme/app-template")
     expect(output).toContain("apps/api/src/Platform/session.ts  owned by Acme app template")
+  })
+
+  it("lets the template's own repository change its owned files", () => {
+    const repo = fixture()
+    repo.git("remote", "add", "origin", "git@github.com:Acme/App-Template.git")
+    repo.write("apps/api/src/Platform/session.ts", "export const ttl = 2\n")
+
+    const { status, output } = repo.run()
+    expect(status).toBe(0)
+    expect(output).not.toContain("platform-file")
   })
 
   it("reads the legacy marker files as an implicit contract with neutral messages", () => {

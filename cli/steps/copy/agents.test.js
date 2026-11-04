@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import fse from 'fs-extra'
-import { patchAgentGuidance } from './agents.js'
+import { patchAgentGuidance, reuseBlock } from './agents.js'
 
 describe('platform patching', () => {
   let tmpDir
@@ -85,6 +85,12 @@ This repository receives shared code from Acme app template (https://github.com/
 
     await fse.remove(path.join(tmpDir, '.platform'))
     expect(await patched()).toContain('<!-- PC-PLATFORM-CONTRACT-START -->\n<!-- PC-PLATFORM-CONTRACT-END -->')
+  })
+
+  it('keeps the reuse rules but not the owned-path rule in the template itself', () => {
+    const contract = { source: { name: 'Acme', url: 'u', changes: 'u' }, reuse: { names: ['DataTable'] }, exceptions: 'e.yml' }
+    expect(reuseBlock(contract, true)).toContain('reuse the existing one')
+    expect(reuseBlock(contract, true)).not.toContain('Never edit a path')
   })
 
   it('adds nothing without a contract, with the legacy one, or with an invalid one', async () => {

@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { commentBlocks, countLines, isGenerated, kindOf, lineKinds, slopFindings, testStats } from './code-rules.mjs'
-import { ContractError, describeOwner, isOwned, loadContract, nameKey, reusableNames } from './platform-contract.mjs'
+import { ContractError, describeOwner, isOwned, isTemplateSource, loadContract, nameKey, reusableNames } from './platform-contract.mjs'
 
 export const DEFAULT_LIMITS = {
   commentRatio: 0.1,
@@ -213,6 +213,7 @@ export function trackedFiles(root, baseline) {
 
 // A diff that changes the sync marker is a template sync, the one change allowed to rewrite owned files.
 export function platformViolations(root, base, paths, contract) {
+  if (isTemplateSource(root, contract)) return []
   const touched = new Set(untrackedFiles(root))
   for (const { status, from, to } of changes(root, base)) {
     touched.add(to)

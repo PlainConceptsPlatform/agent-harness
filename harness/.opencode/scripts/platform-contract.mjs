@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -266,6 +267,32 @@ export function loadContract(root) {
   const exceptions = readText(path.join(root, contract.exceptions))
   const entries = exceptions == null ? null : parseYaml(exceptions, contract.exceptions)?.exceptions
   return { ...contract, rules: toRules(contract.owned), exceptionList: Array.isArray(entries) ? entries.filter(isMapping) : [] }
+}
+
+export function normalizeRepoUrl(url) {
+  return String(url ?? '')
+    .trim()
+    .replace(/^git\+/, '')
+    .replace(/^gh:/, 'https://github.com/')
+    .replace(/^ssh:\/\/(?:[^@/]+@)?([^/:]+)(?::\d+)?\//, 'https://$1/')
+    .replace(/^git@([^:]+):/, 'https://$1/')
+    .replace(/^(https?:\/\/)[^@/]+@/, '$1')
+    .replace(/^http:\/\//, 'https://')
+    .replace(/\/+$/, '')
+    .replace(/\.git$/, '')
+    .toLowerCase()
+}
+
+// The template repository carries its own contract, and its owned paths are its own to change.
+export function isTemplateSource(root, contract) {
+  if (!contract?.source.url) return false
+  let origin
+  try {
+    origin = execFileSync('git', ['config', '--get', 'remote.origin.url'], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+  } catch {
+    return false
+  }
+  return normalizeRepoUrl(origin) !== '' && normalizeRepoUrl(origin) === normalizeRepoUrl(contract.source.url)
 }
 
 const localDate = (now = new Date()) =>

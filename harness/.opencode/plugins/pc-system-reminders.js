@@ -18,7 +18,7 @@ import { execFile } from "node:child_process"
 import fs from "node:fs/promises"
 import path from "node:path"
 import { promisify } from "node:util"
-import { ContractError, describeOwner, isOwned, loadContract } from "../scripts/platform-contract.mjs"
+import { ContractError, describeOwner, isOwned, isTemplateSource, loadContract } from "../scripts/platform-contract.mjs"
 
 const GUARDRAILS_SKILL = "pc-guardrails-generic"
 const TIER_SUFFIX = /\.(?:build|fast|plan)$/
@@ -210,7 +210,7 @@ async function checkPlatform(event, root) {
     return deny(event, error.message, "Fix that file before editing anything else: until it reads, nothing can tell which files the template owns.")
   }
   const owned = contract ? event.resources.filter(target => isOwnedTarget(target, root, contract)) : []
-  if (!owned.length || await syncInProgress(root, contract.sync.marker)) return
+  if (!owned.length || isTemplateSource(root, contract) || await syncInProgress(root, contract.sync.marker)) return
   const { owner, fix } = describeOwner(contract)
   return deny(event, `\`${owned[0]}\` is ${owner}.`, fix)
 }
