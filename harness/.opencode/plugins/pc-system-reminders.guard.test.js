@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
@@ -179,28 +180,36 @@ describe("platform code delivered by the template", () => {
     fs.mkdirSync(path.dirname(path.join(root, file)), { recursive: true })
     fs.writeFileSync(path.join(root, file), text)
   }
+  const contract = owned => `version: 1\nsource:\n  name: Acme app template\n  url: https://github.com/acme/app-template\n  changes: https://github.com/acme/app-template/issues/new\nowned: [${owned}]\nsync:\n  marker: .template-answers.yml\n`
   const exception = expires => `exceptions:\n  - path: apps/api/src/Platform/Audit/**\n    reason: "local audit sink"\n    issue: https://example.test/1\n    expires: ${expires}\n`
   const edit = file => evaluate({ action: "edit", resources: [file] })
 
   beforeEach(async () => {
     await install()
-    write(".platform/manifest", "# platform-owned\napps/api/src/Platform/**\napps/web/src/shared/platform/**\n")
+    write(".platform/contract.yml", contract("apps/api/src/Platform/**, apps/web/src/shared/platform/**"))
   })
 
-  it("blocks a manifest path once the app has opted in", async () => {
-    write(".copier-answers.yml", "_commit: v1.0.0\n_src_path: https://github.com/PlainConceptsPlatform/Kitchen-Sink.git\n")
-
+  it("blocks an owned path and points at the template's change channel", async () => {
     for (const file of ["apps/api/src/Platform/Auth/Session.cs", path.join(root, "apps", "web", "src", "shared", "platform", "theme.tsx")]) {
       const event = await edit(file)
       expect(event.effect).toBe("deny")
-      expect(event.message).toContain("Kitchen-Sink template")
+      expect(event.message).toContain("owned by Acme app template")
+      expect(event.message).toContain("https://github.com/acme/app-template/issues/new")
     }
     expect((await edit("apps/api/src/Orders/Order.cs")).effect).toBe("allow")
   })
 
-  it("allows a path an unexpired exception covers, and blocks it once expired", async () => {
-    write(".copier-answers.yml", "_commit: v1.0.0\n")
+  it("reads the legacy marker files as the same contract, with neutral messages", async () => {
+    fs.rmSync(path.join(root, ".platform", "contract.yml"))
+    write(".platform/manifest", "# platform-owned\napps/api/src/Platform/**\n")
+    write(".copier-answers.yml", "_commit: v1.0.0\n_src_path: https://github.com/acme/app-template.git\n")
 
+    const event = await edit("apps/api/src/Platform/Auth/Session.cs")
+    expect(event.effect).toBe("deny")
+    expect(event.message).toContain("owned by app-template (listed in .platform/manifest)")
+  })
+
+  it("allows a path an unexpired exception covers, and blocks it once expired", async () => {
     write(".platform/exceptions.yml", exception("2999-12-31"))
     expect((await edit("apps/api/src/Platform/Audit/Sink.cs")).effect).toBe("allow")
     expect((await edit("apps/api/src/Platform/Auth/Session.cs")).effect).toBe("deny")
@@ -209,7 +218,30 @@ describe("platform code delivered by the template", () => {
     expect((await edit("apps/api/src/Platform/Audit/Sink.cs")).effect).toBe("deny")
   })
 
-  it("changes nothing in a repository without .copier-answers.yml", async () => {
+  it("lets owned files change while a template sync has the marker modified", async () => {
+    const git = (...args) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...args], { cwd: root })
+    write(".template-answers.yml", "version: v1.0.0\n")
+    git("init", "-q")
+    git("add", ".template-answers.yml")
+    git("commit", "-q", "-m", "base")
+    expect((await edit("apps/api/src/Platform/Auth/Session.cs")).effect).toBe("deny")
+
+    write(".template-answers.yml", "version: v1.1.0\n")
+    expect((await edit("apps/api/src/Platform/Auth/Session.cs")).effect).toBe("allow")
+  })
+
+  it("blocks every edit but the contract's own files while the contract is invalid", async () => {
+    write(".platform/contract.yml", "version: 1\nsource:\n  url: https://github.com/acme/app-template\nowned: [apps/api/src/Platform/**]\n")
+
+    const event = await edit("apps/api/src/Orders/Order.cs")
+    expect(event.effect).toBe("deny")
+    expect(event.message).toContain(".platform/contract.yml: `source.name` is required")
+    expect((await edit(".platform/contract.yml")).effect).toBe("allow")
+  })
+
+  it("changes nothing in a repository without a contract", async () => {
+    fs.rmSync(path.join(root, ".platform", "contract.yml"))
+    write(".platform/manifest", "apps/api/src/Platform/**\n")
     expect((await edit("apps/api/src/Platform/Auth/Session.cs")).effect).toBe("allow")
   })
 })

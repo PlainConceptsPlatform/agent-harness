@@ -49,3 +49,51 @@ describe('platform patching', () => {
     expect(content).toContain('<!-- PC-PLATFORM-SKILLS-GUIDE-END -->')
   })
 })
+
+describe('reuse before you build', () => {
+  let tmpDir
+  const write = (file, text) => fse.outputFile(path.join(tmpDir, file), text)
+  const patched = async () => {
+    await patchAgentGuidance('github', 'github', tmpDir)
+    return fse.readFile(path.join(tmpDir, 'AGENTS.md'), 'utf-8')
+  }
+
+  beforeEach(async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agents-contract-test-'))
+    await fse.copyFile(path.join(process.cwd(), 'harness', 'AGENTS.md'), path.join(tmpDir, 'AGENTS.md'))
+  })
+
+  afterEach(() => fs.rmSync(tmpDir, { recursive: true, force: true }))
+
+  it('writes the block from reuse once, and empties it when the contract goes', async () => {
+    await write('.platform/contract.yml', 'version: 1\nsource:\n  name: Acme app template\n  url: https://github.com/acme/app-template\n  changes: https://github.com/acme/app-template/issues/new\nowned: [src/platform/**]\nreuse:\n  docs: [docs/platform/]\n  packages: ["@acme/ui"]\n  names: [DataTable]\n')
+    await patched()
+    const content = await patched()
+
+    expect(content.split('<!-- PC-PLATFORM-CONTRACT-START -->')).toHaveLength(2)
+    expect(content.slice(content.indexOf('<!-- PC-PLATFORM-CONTRACT-START -->'))).toBe(`<!-- PC-PLATFORM-CONTRACT-START -->
+## Reuse before you build
+
+This repository receives shared code from Acme app template (https://github.com/acme/app-template), declared in \`.platform/contract.yml\`.
+
+- Never design something new before reading \`docs/platform/\`.
+- Never re-implement an export of \`@acme/ui\`; import it.
+- Never write your own \`DataTable\`; reuse the existing one.
+- Never edit a path listed under \`owned\`. Ask for the change at https://github.com/acme/app-template/issues/new, or add a dated exception to \`.platform/exceptions.yml\`.
+<!-- PC-PLATFORM-CONTRACT-END -->
+`)
+
+    await fse.remove(path.join(tmpDir, '.platform'))
+    expect(await patched()).toContain('<!-- PC-PLATFORM-CONTRACT-START -->\n<!-- PC-PLATFORM-CONTRACT-END -->')
+  })
+
+  it('adds nothing without a contract, with the legacy one, or with an invalid one', async () => {
+    const without = await patched()
+    expect(without).not.toContain('PC-PLATFORM-CONTRACT')
+    await write('.copier-answers.yml', '_src_path: https://github.com/acme/app-template.git\n')
+    await write('.platform/manifest', 'src/platform/**\n')
+    expect(await patched()).toBe(without)
+    await write('.platform/contract.yml', 'version: 1\n')
+    expect(await patched()).toBe(without)
+  })
+})

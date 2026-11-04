@@ -102,8 +102,9 @@ describe("check-diff", () => {
 
 describe("check-diff on platform files", { timeout: 30000 }, () => {
   const script = path.join(import.meta.dirname, "check-diff.mjs")
+  const acme = extra => `version: 1\nsource:\n  name: Acme app template\n  url: https://github.com/acme/app-template\nowned:\n  - apps/api/src/Platform/**\nsync:\n  marker: .template-answers.yml\n${extra ?? ""}`
 
-  function fixture({ answers = "_commit: v1.0.0\n", manifest = "apps/api/src/Platform/**\n" } = {}) {
+  function fixture({ contract = acme(), answers = null, manifest = null } = {}) {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "check-diff-platform-"))
     const git = (...args) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...args], { cwd: root, encoding: "utf8" }).trim()
     const write = (file, text) => {
@@ -111,8 +112,11 @@ describe("check-diff on platform files", { timeout: 30000 }, () => {
       fs.writeFileSync(path.join(root, file), text)
     }
     git("init", "-q")
+    write(".gitignore", "node_modules/\n")
     write("apps/api/src/Platform/session.ts", "export const ttl = 1\n")
     write("apps/api/src/orders.ts", "export const orders = []\n")
+    write(".template-answers.yml", "version: v1.0.0\n")
+    if (contract) write(".platform/contract.yml", contract)
     if (answers) write(".copier-answers.yml", answers)
     if (manifest) write(".platform/manifest", manifest)
     git("add", "-A")
@@ -125,7 +129,7 @@ describe("check-diff on platform files", { timeout: 30000 }, () => {
     return { write, run }
   }
 
-  it("fails on a changed platform file and passes on app files", () => {
+  it("fails on a changed owned file, names its source, and passes on app files", () => {
     const repo = fixture()
     repo.write("apps/api/src/orders.ts", "export const orders = [1]\n")
     expect(repo.run().status).toBe(0)
@@ -133,8 +137,17 @@ describe("check-diff on platform files", { timeout: 30000 }, () => {
     repo.write("apps/api/src/Platform/session.ts", "export const ttl = 2\n")
     const { status, output } = repo.run()
     expect(status).toBe(1)
-    expect(output).toContain("platform-file")
-    expect(output).toContain("apps/api/src/Platform/session.ts")
+    expect(output).toContain("platform-file: Ask for the change at https://github.com/acme/app-template")
+    expect(output).toContain("apps/api/src/Platform/session.ts  owned by Acme app template")
+  })
+
+  it("reads the legacy marker files as an implicit contract with neutral messages", () => {
+    const repo = fixture({ contract: null, answers: "_commit: v1.0.0\n_src_path: https://github.com/acme/app-template.git\n", manifest: "apps/api/src/Platform/**\n" })
+    repo.write("apps/api/src/Platform/session.ts", "export const ttl = 2\n")
+    expect(repo.run().output).toContain("owned by app-template (listed in .platform/manifest)")
+
+    repo.write(".copier-answers.yml", "_commit: v1.1.0\n_src_path: https://github.com/acme/app-template.git\n")
+    expect(repo.run().status).toBe(0)
   })
 
   it("passes a change an unexpired exception covers, but not an expired one", () => {
@@ -148,17 +161,43 @@ describe("check-diff on platform files", { timeout: 30000 }, () => {
     expect(repo.run().status).toBe(1)
   })
 
-  it("passes a template sync, which moves _commit in the same diff", () => {
+  it("passes a template sync, which changes the sync marker in the same diff", () => {
     const repo = fixture()
     repo.write("apps/api/src/Platform/session.ts", "export const ttl = 2\n")
-    repo.write(".copier-answers.yml", "_commit: v1.1.0\n")
+    repo.write(".template-answers.yml", "version: v1.1.0\n")
 
     expect(repo.run().status).toBe(0)
   })
 
+  it("fails with one clear error on an invalid contract", () => {
+    const { status, output } = fixture({ contract: "version: 2\n" }).run()
+
+    expect(status).toBe(1)
+    expect(output).toContain("platform-contract")
+    expect(output).toContain(".platform/contract.yml: `version` is 2; this harness reads version 1.")
+  })
+
+  it("warns, without failing, on a new file named like something the contract reuses", () => {
+    const repo = fixture({ contract: acme("reuse:\n  packages: [\"@acme/ui\"]\n  names: [OrderGrid]\n") })
+    repo.write("node_modules/@acme/ui/package.json", JSON.stringify({ types: "index.d.ts", exports: { ".": "./index.js", "./data-table": "./data-table.js", "./theme.css": "./theme.css" } }))
+    repo.write("node_modules/@acme/ui/index.d.ts", "export declare function StatusBadge(): void\nexport { Button as PrimaryButton } from './button'\n")
+    for (const file of ["DataTable.tsx", "status-badge.tsx", "primary_button.ts", "order-grid.tsx", "theme.ts", "Orders.tsx"]) repo.write(`apps/web/src/${file}`, "export const x = 1\n")
+
+    const { status, output } = repo.run()
+    expect(status).toBe(0)
+    const shadowed = [...output.matchAll(/^ {2}(\S+) {2}(.+)$/gm)].map(m => `${m[1]} ${m[2]}`)
+    expect(shadowed).toEqual([
+      "apps/web/src/DataTable.tsx data-table from @acme/ui",
+      "apps/web/src/order-grid.tsx OrderGrid from .platform/contract.yml",
+      "apps/web/src/primary_button.ts PrimaryButton from @acme/ui",
+      "apps/web/src/status-badge.tsx StatusBadge from @acme/ui",
+    ])
+    expect(output).toContain("reuse-shadow (warning):")
+  })
+
   it("prints exactly what it printed before in a repository that has not opted in", () => {
-    const optedOut = fixture({ answers: null })
-    const bare = fixture({ answers: null, manifest: null })
+    const optedOut = fixture({ contract: null, manifest: "apps/api/src/Platform/**\n" })
+    const bare = fixture({ contract: null })
     for (const repo of [optedOut, bare]) repo.write("apps/api/src/Platform/session.ts", "export const ttl = 2\n")
 
     expect(optedOut.run()).toEqual(bare.run())
