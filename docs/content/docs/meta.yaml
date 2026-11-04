@@ -15,5 +15,6 @@ pages:
   - commands
   - agents-and-skills
   - whats-installed
+  - platform-contracts
   - "---Concepts---"
   - pipeline
