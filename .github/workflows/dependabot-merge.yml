@@ -1,0 +1,78 @@
+# Managed by @plainconceptsplatform/workflows@1.13.0. Source: loops/templates/dependabot-merge/.github/workflows/dependabot-merge.yml. Update with `workflows update --force`; consumer edits may be overwritten.
+name: "Dependabot: Merge"
+
+# Every six hours, squash-merges the open Dependabot pull requests whose checks are all green, for a
+# repository that does not run the work router (the router does the same in its maintenance run).
+# Plain YAML, no model, and the pull request's code is never checked out: the checkout below is the
+# default branch, for the action. Only pull requests Dependabot opened, with every commit
+# Dependabot's, are touched. See docs/dependabot-merge.md in agentic-workflows.
+#
+# With the Platform App secrets (BOT_APP_ID / BOT_PRIVATE_KEY) the merge runs as the App, and the
+# merge commit starts the default branch's push workflows. Without them it runs as GITHUB_TOKEN,
+# and GitHub starts no workflow from a merge made with that token: nothing deploys on push until
+# the next commit that is not a Dependabot merge.
+#
+# To turn it off: set DEPENDABOT_MERGE to "off" below, or the repository variable DEPENDABOT_MERGE
+# to "off", or AGENTIC_WORKFLOWS_DISABLED to anything, or delete this file.
+on:
+  schedule:
+    - cron: "41 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: "Decide and report, merge nothing"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependabot-merge
+  cancel-in-progress: false
+
+env:
+  # "all", "minor" (minor and patch), "patch", or "off". CI is the gate.
+  DEPENDABOT_MERGE: "all"
+  # "true" also merges in a repository with no checks at all, once the head is an hour old.
+  DEPENDABOT_MERGE_WITHOUT_CHECKS: "true"
+
+jobs:
+  merge:
+    name: Merge Dependabot pull requests
+    if: "!github.event.repository.fork && vars.AGENTIC_WORKFLOWS_DISABLED == ''"
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 15
+    permissions:
+      # Merging, deleting the merged branch, approving where a ruleset asks for it, and commenting
+      # `@dependabot rebase`. All of it through the API.
+      contents: write
+      pull-requests: write
+      issues: write
+      checks: read
+      statuses: read
+    env:
+      HAS_APP: ${{ secrets.BOT_APP_ID != '' && secrets.BOT_PRIVATE_KEY != '' }}
+    steps:
+      - name: Checkout the action
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/actions/merge-dependabot
+
+      - name: Generate App token
+        id: app-token
+        if: env.HAS_APP == 'true'
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.BOT_APP_ID }}
+          private-key: ${{ secrets.BOT_PRIVATE_KEY }}
+
+      - uses: ./.github/actions/merge-dependabot
+        with:
+          token: ${{ steps.app-token.outputs.token || github.token }}
+          scope: ${{ vars.DEPENDABOT_MERGE || env.DEPENDABOT_MERGE }}
+          merge-without-checks: ${{ env.DEPENDABOT_MERGE_WITHOUT_CHECKS }}
+          post-merge-event: ""
+          dry-run: ${{ github.event.inputs.dry-run || 'false' }}

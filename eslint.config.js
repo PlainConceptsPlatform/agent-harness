@@ -12,6 +12,7 @@ export default [
       'harness/**/node_modules/**',
       'harness/.opencode/package-lock.json',
       'harness/**/*.tsx',
+      '.github/actions/**',
     ],
   },
   js.configs.recommended,

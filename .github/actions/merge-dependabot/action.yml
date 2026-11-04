@@ -1,0 +1,54 @@
+# Managed by @plainconceptsplatform/workflows@1.13.0. Source: loops/actions/merge-dependabot/action.yml. Update with workflows update --force; consumer edits may be overwritten.
+name: Merge Dependabot pull requests
+description: >-
+  Squash-merge the open Dependabot pull requests whose checks are all green, ask Dependabot to
+  rebase the ones that are behind or conflicting, and leave the failing ones with a line in the job
+  summary. Only pull requests Dependabot opened and every commit of which Dependabot made are
+  touched. API calls only: no pull request code is checked out or run, and no model decides.
+
+inputs:
+  token:
+    description: >-
+      Token with contents and pull-requests write. The App token makes the merge start the push
+      workflows on the default branch; a merge made with GITHUB_TOKEN starts none.
+    required: true
+  scope:
+    description: "Which updates merge: all, minor (minor and patch), patch, or off."
+    required: false
+    default: all
+  merge-without-checks:
+    description: "true merges a pull request with no checks at all, once its head is an hour old. false leaves it."
+    required: false
+    default: 'true'
+  max-merges:
+    description: How many pull requests one run merges at most.
+    required: false
+    default: '5'
+  skip-labels:
+    description: Space-separated labels that keep a pull request out.
+    required: false
+    default: do-not-merge blocked human-review hold
+  post-merge-event:
+    description: repository_dispatch event sent after each merge, the one land-pull-request sends. Empty sends none.
+    required: false
+    default: agentic-post-merge
+  dry-run:
+    description: Decide and report, and write nothing.
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - name: Merge Dependabot pull requests
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        REPO: ${{ github.repository }}
+        SCOPE: ${{ inputs.scope }}
+        MERGE_WITHOUT_CHECKS: ${{ inputs.merge-without-checks }}
+        MAX_MERGES: ${{ inputs.max-merges }}
+        SKIP_LABELS: ${{ inputs.skip-labels }}
+        POST_MERGE_EVENT: ${{ inputs.post-merge-event }}
+        DRY_RUN: ${{ inputs.dry-run }}
+      run: node "${GITHUB_ACTION_PATH}/merge-dependabot.mjs"
