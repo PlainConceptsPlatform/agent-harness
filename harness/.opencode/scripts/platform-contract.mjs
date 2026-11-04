@@ -233,3 +233,55 @@ export function describeOwner(contract) {
     fix: `Ask for the change ${changes ? `at ${changes}` : `in ${name}`}, or add a dated exception to ${contract.exceptions}.`,
   }
 }
+
+export const nameKey = name => name.toLowerCase().replace(/[-_.\s]/g, '')
+
+export function declaredExports(declarations) {
+  const names = [...declarations.matchAll(/^export\s+(?:declare\s+)?(?:default\s+)?(?:abstract\s+)?(?:function\*?|const|let|var|class|interface|type|enum|namespace)\s+([A-Za-z_$][\w$]*)/gm)].map(m => m[1])
+  for (const list of declarations.matchAll(/^export\s+(?:type\s+)?\{([^}]*)\}/gm)) {
+    for (const item of list[1].split(',')) {
+      const name = item.trim().replace(/^type\s+/, '').split(/\s+as\s+/).pop()
+      if (name && name !== 'default') names.push(name)
+    }
+  }
+  return names
+}
+
+function packageNames(directory) {
+  let manifest
+  try {
+    manifest = JSON.parse(fs.readFileSync(path.join(directory, 'package.json'), 'utf8'))
+  } catch {
+    return []
+  }
+  const exportsMap = isMapping(manifest.exports) ? manifest.exports : {}
+  const subpaths = Object.keys(exportsMap)
+    .filter(key => key.startsWith('./') && !key.includes('*') && !/\.[a-z]+$/i.test(key))
+    .map(key => path.posix.basename(key))
+  const root = exportsMap['.'] ?? exportsMap
+  const types = manifest.types ?? manifest.typings ?? (isText(root.types) ? root.types : null)
+  const declarations = isText(types) ? readText(path.join(directory, types)) : null
+  return [...subpaths, ...(declarations ? declaredExports(declarations) : [])]
+}
+
+// Packages resolve from the nearest node_modules, so a workspace app finds what its own package.json installs.
+export function reusableNames(root, contract, files = []) {
+  const names = new Map()
+  const add = (name, origin) => {
+    const key = nameKey(name)
+    if (key && !names.has(key)) names.set(key, { name, origin })
+  }
+  for (const name of contract.reuse.names) add(name, contract.file)
+  const base = path.resolve(root)
+  const directories = new Set([base])
+  for (const file of files) {
+    for (let dir = path.dirname(path.resolve(base, file)); dir.length > base.length && dir.startsWith(base); dir = path.dirname(dir)) directories.add(dir)
+  }
+  for (const pkg of contract.reuse.packages) {
+    for (const dir of directories) {
+      const installed = path.join(dir, 'node_modules', pkg)
+      if (fs.existsSync(path.join(installed, 'package.json'))) for (const name of packageNames(installed)) add(name, pkg)
+    }
+  }
+  return names
+}

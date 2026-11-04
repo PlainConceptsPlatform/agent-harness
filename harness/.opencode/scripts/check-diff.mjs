@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { commentBlocks, countLines, isGenerated, kindOf, lineKinds, slopFindings, testStats } from './code-rules.mjs'
-import { ContractError, describeOwner, isOwned, loadContract } from './platform-contract.mjs'
+import { ContractError, describeOwner, isOwned, loadContract, nameKey, reusableNames } from './platform-contract.mjs'
 
 export const DEFAULT_LIMITS = {
   commentRatio: 0.1,
@@ -40,6 +40,7 @@ const FIX = {
   'test-mock-only': 'Assert on state or output, not only that a mock was called.',
   'platform-file': 'This file is owned by the template named in the platform contract. Ask for the change there, or add a dated exception.',
   'platform-contract': 'Fix the contract: until it reads, no platform file can be checked.',
+  'reuse-shadow': 'The platform contract marks this name for reuse. Use the existing one, or rename the file if it is something else.',
 }
 
 const SUSPICIOUS = {
@@ -224,11 +225,23 @@ export function platformViolations(root, base, paths, contract) {
     .map(file => ({ rule: 'platform-file', file: file.path, detail: owner, fix }))
 }
 
+export function reuseWarnings(root, base, paths, contract) {
+  if (!contract.reuse.packages.length && !contract.reuse.names.length) return []
+  const added = [...untrackedFiles(root), ...changes(root, base).filter(c => c.status === 'A').map(c => c.to)]
+  const files = scope(added.map(file => ({ path: file })), paths).filter(f => kindOf(f.path) === 'source' && !isOwned(contract, f.path))
+  if (!files.length) return []
+  const names = reusableNames(root, contract, files.map(f => f.path))
+  return files.flatMap(file => {
+    const match = names.get(nameKey(path.basename(file.path).replace(/\.[^.]+$/, '')))
+    return match ? [{ rule: 'reuse-shadow', file: file.path, detail: `${match.name} from ${match.origin}`, fix: FIX['reuse-shadow'] }] : []
+  })
+}
+
 function platformFindings(root, base, paths) {
   try {
     const contract = loadContract(root)
     if (!contract) return { violations: [], warnings: [] }
-    return { violations: platformViolations(root, base, paths, contract), warnings: [] }
+    return { violations: platformViolations(root, base, paths, contract), warnings: reuseWarnings(root, base, paths, contract) }
   } catch (error) {
     if (!(error instanceof ContractError)) throw error
     return { violations: [{ rule: 'platform-contract', detail: error.message, fix: FIX['platform-contract'] }], warnings: [] }
