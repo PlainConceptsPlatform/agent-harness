@@ -1,0 +1,57 @@
+name: CI
+
+# Tests and lint, plus the Semgrep scan the consumer apps run, over the files this package installs
+# into them. The apps block CI and deploys on any finding, so a finding here must block the release.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Kept in step with SEMGREP_IMAGE and the `--config` list in the apps' app-ci.yml (Kitchen-Sink).
+  SEMGREP_IMAGE: "semgrep/semgrep:1.168.0"
+
+jobs:
+  test:
+    name: Tests and lint
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm lint:md
+      - run: pnpm test
+
+  semgrep:
+    name: Semgrep (consumer SAST, blocking)
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # harness/ and skills/ are what install and update copy into a repository; tests are not
+      # published (package.json `files`), so they are not scanned.
+      - name: Semgrep scan (blocking)
+        env:
+          WORKSPACE: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          docker run --rm -v "$WORKSPACE:/src" -w /src "$SEMGREP_IMAGE" \
+            semgrep scan --error --metrics=off --oss-only --disable-version-check \
+              --config p/default --config p/security-audit --config p/secrets \
+              --config p/csharp --config p/typescript --config p/react \
+              --exclude-rule yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag \
+              --exclude '*.test.js' \
+              harness skills
