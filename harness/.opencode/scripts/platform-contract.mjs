@@ -8,50 +8,102 @@ const LEGACY_MANIFEST = '.platform/manifest'
 
 export class ContractError extends Error {}
 
-const escapeRegExp = text => text.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')
-
-export function globToRegExp(glob) {
-  const directory = glob.endsWith('/')
-  const body = glob.replace(/\/$/, '')
-  const anchored = body.includes('/')
-  const pattern = body.replace(/^\//, '')
-  let source = ''
-  for (let i = 0; i < pattern.length; i++) {
-    const c = pattern[i]
-    if (c === '*' && pattern[i + 1] === '*' && (i === 0 || pattern[i - 1] === '/')) {
-      if (i + 2 === pattern.length) {
-        source += '.*'
-        i += 1
-        continue
-      }
-      if (pattern[i + 2] === '/') {
-        source += '(?:.*/)?'
-        i += 2
-        continue
-      }
+function bracket(segment, start) {
+  const end = segment.indexOf(']', start + 2)
+  if (end === -1) return null
+  let body = segment.slice(start + 1, end)
+  const negated = body[0] === '!' || body[0] === '^'
+  if (negated) body = body.slice(1)
+  const ranges = []
+  for (let i = 0; i < body.length; i++) {
+    const from = body[i] === '\\' && i + 1 < body.length ? body[++i] : body[i]
+    let to = from
+    if (body[i + 1] === '-' && i + 2 < body.length) {
+      i += 2
+      to = body[i] === '\\' && i + 1 < body.length ? body[++i] : body[i]
     }
-    if (c === '*') {
-      source += '[^/]*'
-      while (pattern[i + 1] === '*') i++
-    } else if (c === '?') source += '[^/]'
-    else if (c === '[' && pattern.indexOf(']', i + 2) !== -1) {
-      const end = pattern.indexOf(']', i + 2)
-      source += `[${pattern.slice(i + 1, end).replace(/^!/, '^')}]`
-      i = end
-    } else if (c === '\\' && i + 1 < pattern.length) source += escapeRegExp(pattern[++i])
-    else source += escapeRegExp(c)
+    ranges.push([from, to])
   }
-  return new RegExp(`^${anchored ? '' : '(?:.*/)?'}${source}${directory ? '/.*' : '(?:/.*)?'}$`)
+  return { token: { negated, ranges }, end }
+}
+
+const STAR = Symbol('*')
+
+function segmentTokens(segment) {
+  const tokens = []
+  for (let i = 0; i < segment.length; i++) {
+    const c = segment[i]
+    const set = c === '[' ? bracket(segment, i) : null
+    if (c === '*') {
+      if (tokens.at(-1) !== STAR) tokens.push(STAR)
+    } else if (c === '?') tokens.push({ negated: true, ranges: [] })
+    else if (set) {
+      tokens.push(set.token)
+      i = set.end
+    } else tokens.push(c === '\\' && i + 1 < segment.length ? segment[++i] : c)
+  }
+  return tokens
+}
+
+const tokenMatches = (token, c) => typeof token === 'string'
+  ? token === c
+  : token.ranges.some(([from, to]) => from <= c && c <= to) !== token.negated
+
+function matchSegment(tokens, text) {
+  let t = 0
+  let i = 0
+  let star = -1
+  let resume = 0
+  while (i < text.length) {
+    if (tokens[t] === STAR) {
+      star = t++
+      resume = i
+    } else if (t < tokens.length && tokenMatches(tokens[t], text[i])) {
+      t++
+      i++
+    } else if (star !== -1) {
+      t = star + 1
+      i = ++resume
+    } else return false
+  }
+  while (tokens[t] === STAR) t++
+  return t === tokens.length
+}
+
+// gitwildmatch over `/` segments; a RegExp built from contract text is a blocking finding in the apps' Semgrep scan.
+export function compileGlob(glob) {
+  const directory = glob.endsWith('/')
+  const body = directory ? glob.slice(0, -1) : glob
+  const segments = (body.startsWith('/') ? body.slice(1) : body).split('/')
+  return { anchored: body.includes('/'), directory, segments: segments.map(s => (s === '**' ? s : segmentTokens(s))) }
+}
+
+function matchFrom(segments, s, parts, p, directory) {
+  if (s === segments.length) return parts.length - p >= (directory ? 1 : 0)
+  if (segments[s] !== '**') return p < parts.length && matchSegment(segments[s], parts[p]) && matchFrom(segments, s + 1, parts, p + 1, directory)
+  for (let next = s + 1 === segments.length ? p + 1 : p; next <= parts.length; next++) {
+    if (matchFrom(segments, s + 1, parts, next, directory)) return true
+  }
+  return false
+}
+
+export function matchGlob(compiled, file) {
+  const { anchored, directory, segments } = typeof compiled === 'string' ? compileGlob(compiled) : compiled
+  const parts = file.split('/')
+  for (let start = 0; start < (anchored ? 1 : parts.length); start++) {
+    if (matchFrom(segments, 0, parts, start, directory)) return true
+  }
+  return false
 }
 
 const toRules = globs => globs.map(glob => {
   const negated = glob.startsWith('!')
-  return { negated, regex: globToRegExp(negated ? glob.slice(1) : glob) }
+  return { negated, glob: compileGlob(negated ? glob.slice(1) : glob) }
 })
 
 function matchesRules(rules, file) {
   let matched = false
-  for (const rule of rules) if (rule.regex.test(file)) matched = !rule.negated
+  for (const rule of rules) if (matchGlob(rule.glob, file)) matched = !rule.negated
   return matched
 }
 
@@ -223,7 +275,7 @@ export function isOwned(contract, file, today = localDate()) {
   const relative = file.replace(/\\/g, '/').replace(/^\.\//, '')
   if (!matchesRules(contract.rules, relative)) return false
   return !contract.exceptionList.some(e =>
-    isText(e.path) && /^\d{4}-\d{2}-\d{2}$/.test(String(e.expires ?? '')) && e.expires >= today && globToRegExp(e.path).test(relative))
+    isText(e.path) && /^\d{4}-\d{2}-\d{2}$/.test(String(e.expires ?? '')) && e.expires >= today && matchGlob(e.path, relative))
 }
 
 export function describeOwner(contract) {
