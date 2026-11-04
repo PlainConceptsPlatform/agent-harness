@@ -230,6 +230,12 @@ describe("platform code delivered by the template", () => {
     expect((await edit("apps/api/src/Platform/Auth/Session.cs")).effect).toBe("allow")
   })
 
+  it("lets the template's own repository edit its owned paths", async () => {
+    execFileSync("git", ["init", "-q"], { cwd: root })
+    execFileSync("git", ["remote", "add", "origin", "https://github.com/acme/app-template.git"], { cwd: root })
+    expect((await edit("apps/api/src/Platform/Auth/Session.cs")).effect).toBe("allow")
+  })
+
   it("blocks every edit but the contract's own files while the contract is invalid", async () => {
     write(".platform/contract.yml", "version: 1\nsource:\n  url: https://github.com/acme/app-template\nowned: [apps/api/src/Platform/**]\n")
 

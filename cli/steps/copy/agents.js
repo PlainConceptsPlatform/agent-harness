@@ -2,7 +2,7 @@ import fse from 'fs-extra'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { info, success, warn } from '../../utils/exec.js'
-import { ContractError, loadContract } from '../../../harness/.opencode/scripts/platform-contract.mjs'
+import { ContractError, isTemplateSource, loadContract } from '../../../harness/.opencode/scripts/platform-contract.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const agentsContent = await fse.readJson(path.resolve(__dirname, '../../presets/agents-content.json'))
@@ -74,7 +74,7 @@ function replaceBetween(content, start, end, replacement) {
   return content.replace(pattern, () => (body ? `${start}\n${body}\n${end}` : `${start}\n${end}`))
 }
 
-export function reuseBlock(contract) {
+export function reuseBlock(contract, templateSource = false) {
   const { docs = [], packages = [], names = [] } = contract?.reuse ?? {}
   if (!docs.length && !packages.length && !names.length) return ''
   const code = list => list.map(item => `\`${item}\``).join(', ')
@@ -86,13 +86,14 @@ export function reuseBlock(contract) {
     ...(docs.length ? [`- Never design something new before reading ${code(docs)}.`] : []),
     ...(packages.length ? [`- Never re-implement an export of ${code(packages)}; import it.`] : []),
     ...(names.length ? [`- Never write your own ${code(names)}; reuse the existing one.`] : []),
-    `- Never edit a path listed under \`owned\`. Ask for the change at ${contract.source.changes}, or add a dated exception to \`${contract.exceptions}\`.`,
+    ...(templateSource ? [] : [`- Never edit a path listed under \`owned\`. Ask for the change at ${contract.source.changes}, or add a dated exception to \`${contract.exceptions}\`.`]),
   ].join('\n')
 }
 
 function contractBlock(cwd) {
   try {
-    return reuseBlock(loadContract(cwd))
+    const contract = loadContract(cwd)
+    return reuseBlock(contract, isTemplateSource(cwd, contract))
   } catch (err) {
     if (!(err instanceof ContractError)) throw err
     warn(`${err.message} The "Reuse before you build" block in AGENTS.md was left as it was.`)
