@@ -51,6 +51,7 @@ export const RETIRED_PATHS = [
   '.agents/skills/pc-make-evidence-scaffold',
   '.opencode/commands/ops-evidence.md',
   '.opencode/commands/make-evidence-scaffold.md',
+  '.opencode/scripts/platform-manifest.mjs',
 ]
 
 export function configPath(cwd = process.cwd()) {
