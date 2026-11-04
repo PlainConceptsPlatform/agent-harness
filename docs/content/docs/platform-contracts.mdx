@@ -1,0 +1,92 @@
+---
+title: Platform contracts
+description: How agent-harness reads .platform/contract.yml, the open file that ties a repository to the template it receives shared code from.
+---
+
+A repository that receives shared code from an upstream template can describe that relationship in `.platform/contract.yml`. The template can be delivered by Copier, cookiecutter, a git subtree or by hand; the harness reads only the file. It uses the contract to keep agents off the shared code and to point them at what the template already provides.
+
+The format is open. Other tools may read the same file, such as a workflow that syncs the template or a dashboard of template versions. None of them is required, and the harness never calls them.
+
+```yaml
+version: 1
+source:
+  name: Acme app template
+  url: https://github.com/acme/app-template
+  changes: https://github.com/acme/app-template/issues/new
+owned:
+  - .platform/contract.yml
+  - src/platform/**
+reuse:
+  docs: [docs/platform/]
+  packages: ["@acme/ui"]
+  names: [DataTable]
+exceptions: .platform/exceptions.yml
+sync:
+  marker: .copier-answers.yml
+  version:
+    file: .copier-answers.yml
+    key: _commit
+  update: copier update --trust --defaults --conflict inline
+```
+
+The template delivers the file, so the template owns it and lists it under `owned`.
+
+| Field | Required | What the harness does with it |
+| --- | --- | --- |
+| `version` | yes | Reads `1`. Any other value is an error. |
+| `source.name` | yes | Names the owner in every message. |
+| `source.url` | yes | Shown in the AGENTS.md block, and the default for `source.changes`. |
+| `source.changes` | no | Where every message tells the agent to ask for a change. |
+| `owned` | yes | gitwildmatch globs, repository-relative; a leading `/` anchors to the root and `!` excludes. `pc-system-reminders` denies agent edits to these paths, and `check-diff` reports `platform-file` for each one the diff changes. |
+| `reuse.docs` | no | Listed in the AGENTS.md block as reading before building something new. `pc-make-architecture` links to these pages instead of describing their topics again. |
+| `reuse.packages` | no | Listed in the AGENTS.md block. `check-diff` reads each package from `node_modules` and takes its reusable names from the `exports` subpaths and from the identifiers its type declarations export. |
+| `reuse.names` | no | More reusable names, for what cannot be derived from a package. |
+| `exceptions` | no | The exceptions file. Default `.platform/exceptions.yml`. |
+| `sync.marker` | no | A diff that changes this file is a template sync. `check-diff` lets it rewrite owned paths, and `pc-system-reminders` allows edits to them while the file has uncommitted changes, so a sync's conflicts can be resolved. |
+| `sync.version`, `sync.update` | no | Validated but not used: they are for the tool that updates the repository from the template. |
+
+## Reuse before you build
+
+When the contract has `reuse`, `agent-harness` install and `update` write this block into AGENTS.md between `<!-- PC-PLATFORM-CONTRACT-START -->` and `<!-- PC-PLATFORM-CONTRACT-END -->`, appending the pair when AGENTS.md has none. For the example above:
+
+```markdown
+## Reuse before you build
+
+This repository receives shared code from Acme app template (https://github.com/acme/app-template), declared in `.platform/contract.yml`.
+
+- Never design something new before reading `docs/platform/`.
+- Never re-implement an export of `@acme/ui`; import it.
+- Never write your own `DataTable`; reuse the existing one.
+- Never edit a path listed under `owned`. Ask for the change at https://github.com/acme/app-template/issues/new, or add a dated exception to `.platform/exceptions.yml`.
+```
+
+Without a contract, or without `reuse`, the block is empty. With `reuse`, `pc-plan-propose` gives every proposal a `## What is reused` section, and `pc-plan-apply` stops on a proposal that lacks it. `check-diff` warns with `reuse-shadow`, without failing, when a new source file's name matches a reusable name: `data-table.tsx`, `DataTable.tsx` and `data_table.ts` all match `DataTable`.
+
+## Exceptions
+
+An app that needs to diverge from an owned path for a while records it in the exceptions file:
+
+```yaml
+exceptions:
+  - path: src/platform/audit/**
+    reason: Local audit sink until the template supports it
+    issue: https://github.com/acme/app-template/issues/12
+    expires: 2026-12-31
+```
+
+An exception covers the owned paths its glob matches until the end of its `expires` day, in both `pc-system-reminders` and `check-diff`. An expired entry no longer applies.
+
+## Errors
+
+A contract that does not read gives one error that names the file and the field, such as ``.platform/contract.yml: `source.name` is required and must be a non-empty string.`` The guards never pass silently on it: `check-diff` fails with `platform-contract`, and `pc-system-reminders` denies every edit outside `.platform/` until the file is fixed. Install and update warn and leave the AGENTS.md block as it was.
+
+## The legacy implicit contract
+
+Harness 3.7.0 read `.copier-answers.yml` and `.platform/manifest`, one glob per line. A repository with both files and no `contract.yml` is still read, as this contract:
+
+- `source.name` is the repository name at the end of `_src_path`, and `source.url` and `source.changes` are `_src_path`;
+- `owned` is the manifest's lines;
+- `sync.marker` and `sync.version.file` are `.copier-answers.yml`, with `sync.version.key` `_commit`;
+- there is no `reuse`.
+
+When both exist, `contract.yml` wins. A repository with neither sees no change in any tool.

@@ -18,7 +18,7 @@ import { execFile } from "node:child_process"
 import fs from "node:fs/promises"
 import path from "node:path"
 import { promisify } from "node:util"
-import { isPlatformOwned, loadPlatform } from "../scripts/platform-manifest.mjs"
+import { ContractError, describeOwner, isOwned, loadContract } from "../scripts/platform-contract.mjs"
 
 const GUARDRAILS_SKILL = "pc-guardrails-generic"
 const TIER_SUFFIX = /\.(?:build|fast|plan)$/
@@ -179,15 +179,40 @@ function checkWritePath(event, target, root) {
   )
 }
 
-function checkPlatformPath(event, target, root, platform) {
-  if (typeof target !== "string" || !target) return
-  const relative = path.isAbsolute(target) ? path.relative(root, target) : target
-  if (relative.startsWith("..") || !isPlatformOwned(platform, relative)) return
-  return deny(
-    event,
-    `\`${target}\` is platform code delivered by the Kitchen-Sink template.`,
-    "Change it in Kitchen-Sink (open an issue there), or add a dated exception to `.platform/exceptions.yml`.",
-  )
+const repoRelative = (target, root) =>
+  (path.isAbsolute(target) ? path.relative(root, target) : target).replace(/\\/g, "/").replace(/^\.\//, "")
+
+function isOwnedTarget(target, root, contract) {
+  if (typeof target !== "string" || !target) return false
+  const relative = repoRelative(target, root)
+  return !relative.startsWith("..") && isOwned(contract, relative)
+}
+
+// A template sync in progress has changed its marker file, and resolving its conflicts edits owned files.
+async function syncInProgress(root, marker) {
+  if (!marker) return false
+  try {
+    const { stdout } = await run("git", ["status", "--porcelain", "--", marker], { cwd: root })
+    return stdout.trim() !== ""
+  } catch {
+    return false
+  }
+}
+
+async function checkPlatform(event, root) {
+  let contract
+  try {
+    contract = loadContract(root)
+  } catch (error) {
+    if (!(error instanceof ContractError)) throw error
+    // An unreadable contract must not pass every edit: only the files that fix it stay editable.
+    if (event.resources.every(target => repoRelative(String(target), root).startsWith(".platform/"))) return
+    return deny(event, error.message, "Fix that file before editing anything else: until it reads, nothing can tell which files the template owns.")
+  }
+  const owned = contract ? event.resources.filter(target => isOwnedTarget(target, root, contract)) : []
+  if (!owned.length || await syncInProgress(root, contract.sync.marker)) return
+  const { owner, fix } = describeOwner(contract)
+  return deny(event, `\`${owned[0]}\` is ${owner}.`, fix)
 }
 
 function checkHost(event, url) {
@@ -364,12 +389,7 @@ export default Plugin.define({
           for (const resource of event.resources) {
             if (checkWritePath(event, resource, root)) return
           }
-          const platform = loadPlatform(root)
-          if (platform) {
-            for (const resource of event.resources) {
-              if (checkPlatformPath(event, resource, root, platform)) return
-            }
-          }
+          if (event.effect !== "deny") await checkPlatform(event, root)
         }
 
         if (event.action === "webfetch") {

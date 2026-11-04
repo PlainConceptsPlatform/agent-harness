@@ -2,6 +2,7 @@ import fse from 'fs-extra'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { info, success, warn } from '../../utils/exec.js'
+import { ContractError, loadContract } from '../../../harness/.opencode/scripts/platform-contract.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const agentsContent = await fse.readJson(path.resolve(__dirname, '../../presets/agents-content.json'))
@@ -46,6 +47,8 @@ const PLATFORM_WORKFLOW_START = '<!-- PC-PLATFORM-WORKFLOW-START -->'
 const PLATFORM_WORKFLOW_END = '<!-- PC-PLATFORM-WORKFLOW-END -->'
 const PLATFORM_SKILLS_GUIDE_START = '<!-- PC-PLATFORM-SKILLS-GUIDE-START -->'
 const PLATFORM_SKILLS_GUIDE_END = '<!-- PC-PLATFORM-SKILLS-GUIDE-END -->'
+const PLATFORM_CONTRACT_START = '<!-- PC-PLATFORM-CONTRACT-START -->'
+const PLATFORM_CONTRACT_END = '<!-- PC-PLATFORM-CONTRACT-END -->'
 
 function platformContent(platform, key) {
   const p = agentsContent.platform[platform] ?? agentsContent.platform.github
@@ -67,7 +70,42 @@ function replaceBetween(content, start, end, replacement) {
   if (!content.includes(start) || !content.includes(end)) return content
   const pattern = new RegExp(`${start}[\\s\\S]*?${end}`)
   // Replacer function so $&, $' and $` in injected content stay literal.
-  return content.replace(pattern, () => `${start}\n${replacement.trim()}\n${end}`)
+  const body = replacement.trim()
+  return content.replace(pattern, () => (body ? `${start}\n${body}\n${end}` : `${start}\n${end}`))
+}
+
+export function reuseBlock(contract) {
+  const { docs = [], packages = [], names = [] } = contract?.reuse ?? {}
+  if (!docs.length && !packages.length && !names.length) return ''
+  const code = list => list.map(item => `\`${item}\``).join(', ')
+  return [
+    '## Reuse before you build',
+    '',
+    `This repository receives shared code from ${contract.source.name} (${contract.source.url}), declared in \`.platform/contract.yml\`.`,
+    '',
+    ...(docs.length ? [`- Never design something new before reading ${code(docs)}.`] : []),
+    ...(packages.length ? [`- Never re-implement an export of ${code(packages)}; import it.`] : []),
+    ...(names.length ? [`- Never write your own ${code(names)}; reuse the existing one.`] : []),
+    `- Never edit a path listed under \`owned\`. Ask for the change at ${contract.source.changes}, or add a dated exception to \`${contract.exceptions}\`.`,
+  ].join('\n')
+}
+
+function contractBlock(cwd) {
+  try {
+    return reuseBlock(loadContract(cwd))
+  } catch (err) {
+    if (!(err instanceof ContractError)) throw err
+    warn(`${err.message} The "Reuse before you build" block in AGENTS.md was left as it was.`)
+    return null
+  }
+}
+
+// Installs from before the contract have no marker pair, and update never rewrites AGENTS.md: append it then.
+function patchContractBlock(content, cwd) {
+  const block = contractBlock(cwd)
+  if (block == null) return content
+  if (content.includes(PLATFORM_CONTRACT_START)) return replaceBetween(content, PLATFORM_CONTRACT_START, PLATFORM_CONTRACT_END, block)
+  return block ? `${content.replace(/\s*$/, '')}\n\n${PLATFORM_CONTRACT_START}\n${block}\n${PLATFORM_CONTRACT_END}\n` : content
 }
 
 export async function patchAgentsMd(ctx) {
@@ -111,6 +149,7 @@ export async function patchAgentGuidance(backlogPlatform, repoPlatform, cwd = pr
     let content = await fse.readFile(agentsMdPath, 'utf-8')
     content = replaceBetween(content, PLATFORM_WORKFLOW_START, PLATFORM_WORKFLOW_END, mixedPlatformContent(backlogPlatform, repo, 'workflow'))
     content = replaceBetween(content, PLATFORM_SKILLS_GUIDE_START, PLATFORM_SKILLS_GUIDE_END, mixedPlatformContent(backlogPlatform, repo, 'skillsGuide'))
+    content = patchContractBlock(content, cwd)
     await fse.writeFile(agentsMdPath, `${content.replace(/\s*$/, '')}\n`, 'utf-8')
     const label = backlogPlatform === repo ? repo : `${backlogPlatform}→${repo}`
     success(`AGENTS.md patched for platform workflow: ${label}`)

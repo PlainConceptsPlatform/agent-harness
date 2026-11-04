@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { commentBlocks, countLines, isGenerated, kindOf, lineKinds, slopFindings, testStats } from './code-rules.mjs'
-import { ANSWERS_FILE, commitOf, isPlatformOwned, loadPlatform } from './platform-manifest.mjs'
+import { ContractError, describeOwner, isOwned, loadContract, nameKey, reusableNames } from './platform-contract.mjs'
 
 export const DEFAULT_LIMITS = {
   commentRatio: 0.1,
@@ -38,7 +38,9 @@ const FIX = {
   'test-snapshot': 'Assert the values that matter instead of a snapshot.',
   'test-no-assertion': 'Assert something, or delete the test.',
   'test-mock-only': 'Assert on state or output, not only that a mock was called.',
-  'platform-file': 'This is platform code delivered by the Kitchen-Sink template. Change it in Kitchen-Sink (open an issue there), or add a dated exception to .platform/exceptions.yml.',
+  'platform-file': 'This file is owned by the template named in the platform contract. Ask for the change there, or add a dated exception.',
+  'platform-contract': 'Fix the contract: until it reads, no platform file can be checked.',
+  'reuse-shadow': 'The platform contract marks this name for reuse. Use the existing one, or rename the file if it is something else.',
 }
 
 const SUSPICIOUS = {
@@ -209,20 +211,41 @@ export function trackedFiles(root, baseline) {
   }
 }
 
-// A template sync moves `_commit` in .copier-answers.yml and is the one change allowed to rewrite platform files.
-export function platformViolations(root, base, paths) {
-  const platform = loadPlatform(root)
-  if (!platform) return []
-  const answers = fs.readFileSync(path.join(root, ANSWERS_FILE), 'utf8')
-  if (commitOf(tryGit(root, ['show', `${base}:${ANSWERS_FILE}`])) !== commitOf(answers)) return []
+// A diff that changes the sync marker is a template sync, the one change allowed to rewrite owned files.
+export function platformViolations(root, base, paths, contract) {
   const touched = new Set(untrackedFiles(root))
   for (const { status, from, to } of changes(root, base)) {
     touched.add(to)
     if (status.startsWith('R')) touched.add(from)
   }
+  if (contract.sync.marker && touched.has(contract.sync.marker)) return []
+  const { owner, fix } = describeOwner(contract)
   return scope([...touched].map(file => ({ path: file })), paths)
-    .filter(file => isPlatformOwned(platform, file.path))
-    .map(file => ({ rule: 'platform-file', file: file.path, fix: FIX['platform-file'] }))
+    .filter(file => isOwned(contract, file.path))
+    .map(file => ({ rule: 'platform-file', file: file.path, detail: owner, fix }))
+}
+
+export function reuseWarnings(root, base, paths, contract) {
+  if (!contract.reuse.packages.length && !contract.reuse.names.length) return []
+  const added = [...untrackedFiles(root), ...changes(root, base).filter(c => c.status === 'A').map(c => c.to)]
+  const files = scope(added.map(file => ({ path: file })), paths).filter(f => kindOf(f.path) === 'source' && !isOwned(contract, f.path))
+  if (!files.length) return []
+  const names = reusableNames(root, contract, files.map(f => f.path))
+  return files.flatMap(file => {
+    const match = names.get(nameKey(path.basename(file.path).replace(/\.[^.]+$/, '')))
+    return match ? [{ rule: 'reuse-shadow', file: file.path, detail: `${match.name} from ${match.origin}`, fix: FIX['reuse-shadow'] }] : []
+  })
+}
+
+function platformFindings(root, base, paths) {
+  try {
+    const contract = loadContract(root)
+    if (!contract) return { violations: [], warnings: [] }
+    return { violations: platformViolations(root, base, paths, contract), warnings: reuseWarnings(root, base, paths, contract) }
+  } catch (error) {
+    if (!(error instanceof ContractError)) throw error
+    return { violations: [{ rule: 'platform-contract', detail: error.message, fix: FIX['platform-contract'] }], warnings: [] }
+  }
 }
 
 function readLimits(root) {
@@ -241,9 +264,9 @@ function report(result, base) {
     `  code lines added ${totals.sourceCode}, comment lines ${totals.comments}/${budgets.comments}, test lines ${totals.testLines}/${budgets.testLines}, test cases ${totals.cases}/${budgets.cases}`,
   ]
   const byRule = new Map()
-  for (const v of violations) byRule.set(v.rule, [...(byRule.get(v.rule) ?? []), v])
+  for (const v of [...violations, ...(result.warnings ?? [])]) byRule.set(v.rule, [...(byRule.get(v.rule) ?? []), v])
   for (const [rule, list] of byRule) {
-    lines.push('', `${rule}: ${FIX[rule]}`)
+    lines.push('', `${rule}${violations.includes(list[0]) ? '' : ' (warning)'}: ${list[0].fix ?? FIX[rule]}`)
     for (const v of list.slice(0, 50)) {
       const where = v.file ? `${v.file}${v.line ? `:${v.line}` : ''}` : ''
       lines.push(`  ${[where, v.detail].filter(Boolean).join('  ')}`)
@@ -271,7 +294,9 @@ function main(argv) {
   const limits = readLimits(root)
   const paths = option('paths')?.split(',').map(p => p.trim()).filter(Boolean)
   const result = evaluate(scope(collect(root, base.base), paths), limits, trackedFiles(root, limits.complexityBaseline))
-  result.violations.push(...platformViolations(root, base.base, paths))
+  const platform = platformFindings(root, base.base, paths)
+  result.violations.push(...platform.violations)
+  if (platform.warnings.length) result.warnings = platform.warnings
   console.log(argv.includes('--json') ? JSON.stringify({ base, ...result }, null, 2) : report(result, base))
   return result.violations.length === 0 ? 0 : 1
 }

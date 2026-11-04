@@ -39,6 +39,8 @@ Core rule: push, don't pull. A worker is born with its work: every `task()` spaw
 
 **2. Load the plan and workers.** Parse `tasks.md`. Each task carries `<!-- agent, depends_on, touches -->` (from `pc-plan-propose`). Inspect `.opencode/agents/` for each base engineer and its generated `.<tier>.md` variants. The tier-suffixed name in an annotation (for example, `backend-engineer.build`) is the worker to spawn: `pc-subagent-tiers` resolves its model at startup and registers it as `mode: subagent`. Read `.opencode/harness.json` -> `agents.maxConcurrent` (the wave cap, 1 to 5, enforced by `pc-subagent-monitor`).
 
+When `.platform/contract.yml` declares `reuse` and the change's `proposal.md` has no `## What is reused` section, stop the APPLY stage and report it: the plan never checked what the template already ships. Otherwise every spawn prompt in step 7 carries that section.
+
 Before hydrating the Todo board, resolve every task's annotated worker. If any task has a blank agent annotation, its base template is missing, or its tier variant is unavailable, stop the APPLY stage and report the task ID, expected worker, and missing file. Do not replace the worker with `fullstack-engineer`, `general`, or the lead session.
 
 **3. Hydrate the Todo board.** `todowrite` one item per task: `pending`. The Todo pane is the visible subagent board (opencode plugins cannot draw a custom pane, so the native Todo widget is the live UI). While a task is in flight, its label must carry the worker: `<agent> · <model>`: so the pane shows which agent on which model is doing what. The Todo list is a projection only: never read it for recovery; rebuild it from `tasks.md` and git and `.opencode/harness-run.json`.

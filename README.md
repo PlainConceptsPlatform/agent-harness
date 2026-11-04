@@ -296,7 +296,7 @@ your-project/
 │   └── scripts/
 │       ├── check-diff.mjs           ← the comments and tests gate on the current diff (see below)
 │       ├── code-rules.mjs           ← its rules, the same ones Project-Health scores a repository with
-│       └── platform-manifest.mjs    ← reads .platform/manifest and exceptions in a family app (see below)
+│       └── platform-contract.mjs    ← reads .platform/contract.yml, the platform contract (see below)
 └── .agents/
     └── skills/
         ├── pc-guardrails-generic/  ← foundation for user guardrails
@@ -319,7 +319,9 @@ Platform skills ship as suffixed variants (`pc-userstory-gh`, `pc-userstory-az`,
 - adds a slop shape (banner, region, untracked TODO, a doc comment that repeats the name, commented-out code, an apology), a comment block of five lines or more, an incident story, or a doc comment on an internal symbol;
 - touches a file and leaves slop in it, or leaves it with more comments per code line than before;
 - grows the tests more than the code: test lines beyond the code lines added (40 always allowed), more than 40 cases per 1,000 code lines (3 always allowed), or any new skipped, focused, snapshot, assertion-less or mock-only test;
-- changes a platform file in an app built from the Kitchen-Sink template (see [Platform files in a family app](#platform-files-in-a-family-app)).
+- changes a path the platform contract says a template owns, or finds a contract it cannot read (see [Platform contracts](#platform-contracts)).
+
+It also warns, without failing, on a new file named like something the contract marks for reuse (`reuse-shadow`).
 
 A tool directive (`nosemgrep`, `biome-ignore`, `eslint-disable`, `@ts-expect-error`, coverage ignores) is not a comment and costs nothing. Code added to a file that has methods in the complexity baseline (`scripts/complexity-baseline.json`, keys `path::method`) counts twice toward the test budget: that gate fails a method whose coverage drops, so its new branches need tests.
 
@@ -329,19 +331,95 @@ A tool directive (`nosemgrep`, `biome-ignore`, `eslint-disable`, `@ts-expect-err
 "codeRules": { "commentRatio": 0.1, "commentAllowance": 2, "testRatio": 1, "testAllowance": 40, "casesPerKloc": 40, "caseAllowance": 3, "complexityBaseline": "scripts/complexity-baseline.json" }
 ```
 
-### Platform files in a family app
+## Platform contracts
 
-An app that receives its platform code from the Kitchen-Sink Copier template carries `.copier-answers.yml` at its root and `.platform/manifest`, one gitwildmatch glob per line for the paths the template owns. In such an app `pc-system-reminders` denies an agent edit to a manifest path, and `check-diff` reports `platform-file` for every manifest path the diff changes. Both point at the fix: change the file in Kitchen-Sink (open an issue there), or add a dated exception to the app's `.platform/exceptions.yml`:
+A repository that receives shared code from an upstream template can describe that relationship in `.platform/contract.yml`. The template can be delivered by Copier, cookiecutter, a git subtree or by hand; the harness reads only the file. It uses the contract to keep agents off the shared code and to point them at what the template already provides.
+
+The format is open. Other tools may read the same file, such as a workflow that syncs the template or a dashboard of template versions. None of them is required, and the harness never calls them.
+
+```yaml
+version: 1
+source:
+  name: Acme app template
+  url: https://github.com/acme/app-template
+  changes: https://github.com/acme/app-template/issues/new
+owned:
+  - .platform/contract.yml
+  - src/platform/**
+reuse:
+  docs: [docs/platform/]
+  packages: ["@acme/ui"]
+  names: [DataTable]
+exceptions: .platform/exceptions.yml
+sync:
+  marker: .copier-answers.yml
+  version:
+    file: .copier-answers.yml
+    key: _commit
+  update: copier update --trust --defaults --conflict inline
+```
+
+The template delivers the file, so the template owns it and lists it under `owned`.
+
+| Field | Required | What the harness does with it |
+| --- | --- | --- |
+| `version` | yes | Reads `1`. Any other value is an error. |
+| `source.name` | yes | Names the owner in every message. |
+| `source.url` | yes | Shown in the AGENTS.md block, and the default for `source.changes`. |
+| `source.changes` | no | Where every message tells the agent to ask for a change. |
+| `owned` | yes | gitwildmatch globs, repository-relative; a leading `/` anchors to the root and `!` excludes. `pc-system-reminders` denies agent edits to these paths, and `check-diff` reports `platform-file` for each one the diff changes. |
+| `reuse.docs` | no | Listed in the AGENTS.md block as reading before building something new. `pc-make-architecture` links to these pages instead of describing their topics again. |
+| `reuse.packages` | no | Listed in the AGENTS.md block. `check-diff` reads each package from `node_modules` and takes its reusable names from the `exports` subpaths and from the identifiers its type declarations export. |
+| `reuse.names` | no | More reusable names, for what cannot be derived from a package. |
+| `exceptions` | no | The exceptions file. Default `.platform/exceptions.yml`. |
+| `sync.marker` | no | A diff that changes this file is a template sync. `check-diff` lets it rewrite owned paths, and `pc-system-reminders` allows edits to them while the file has uncommitted changes, so a sync's conflicts can be resolved. |
+| `sync.version`, `sync.update` | no | Validated but not used: they are for the tool that updates the repository from the template. |
+
+### Reuse before you build
+
+When the contract has `reuse`, `agent-harness` install and `update` write this block into AGENTS.md between `<!-- PC-PLATFORM-CONTRACT-START -->` and `<!-- PC-PLATFORM-CONTRACT-END -->`, appending the pair when AGENTS.md has none. For the example above:
+
+```markdown
+## Reuse before you build
+
+This repository receives shared code from Acme app template (https://github.com/acme/app-template), declared in `.platform/contract.yml`.
+
+- Never design something new before reading `docs/platform/`.
+- Never re-implement an export of `@acme/ui`; import it.
+- Never write your own `DataTable`; reuse the existing one.
+- Never edit a path listed under `owned`. Ask for the change at https://github.com/acme/app-template/issues/new, or add a dated exception to `.platform/exceptions.yml`.
+```
+
+Without a contract, or without `reuse`, the block is empty. With `reuse`, `pc-plan-propose` gives every proposal a `## What is reused` section, and `pc-plan-apply` stops on a proposal that lacks it. `check-diff` warns with `reuse-shadow`, without failing, when a new source file's name matches a reusable name: `data-table.tsx`, `DataTable.tsx` and `data_table.ts` all match `DataTable`.
+
+### Exceptions
+
+An app that needs to diverge from an owned path for a while records it in the exceptions file:
 
 ```yaml
 exceptions:
-  - path: apps/api/src/Platform/Audit/**
+  - path: src/platform/audit/**
     reason: Local audit sink until the template supports it
-    issue: https://github.com/PlainConceptsPlatform/Kitchen-Sink/issues/1
+    issue: https://github.com/acme/app-template/issues/12
     expires: 2026-12-31
 ```
 
-An exception covers its path until the end of its `expires` day. A template sync, where `_commit` in `.copier-answers.yml` changes in the same diff, passes `check-diff`. A repository without both marker files sees no change in either tool.
+An exception covers the owned paths its glob matches until the end of its `expires` day, in both `pc-system-reminders` and `check-diff`. An expired entry no longer applies.
+
+### Errors
+
+A contract that does not read gives one error that names the file and the field, such as ``.platform/contract.yml: `source.name` is required and must be a non-empty string.`` The guards never pass silently on it: `check-diff` fails with `platform-contract`, and `pc-system-reminders` denies every edit outside `.platform/` until the file is fixed. Install and update warn and leave the AGENTS.md block as it was.
+
+### The legacy implicit contract
+
+Harness 3.7.0 read `.copier-answers.yml` and `.platform/manifest`, one glob per line. A repository with both files and no `contract.yml` is still read, as this contract:
+
+- `source.name` is the repository name at the end of `_src_path`, and `source.url` and `source.changes` are `_src_path`;
+- `owned` is the manifest's lines;
+- `sync.marker` and `sync.version.file` are `.copier-answers.yml`, with `sync.version.key` `_commit`;
+- there is no `reuse`.
+
+When both exist, `contract.yml` wins. A repository with neither sees no change in any tool.
 
 ## The bootstrap sequence
 
