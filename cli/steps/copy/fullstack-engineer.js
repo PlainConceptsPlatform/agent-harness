@@ -64,14 +64,6 @@ export async function generateFullstackEngineer({ cwd = process.cwd(), updateMod
     // like every other subagent.
     // Quoted: a bare #hex is a YAML comment, which opencode rejects.
     `color: ${yamlColor(agentColor('fullstack-engineer'))}`,
-    'permission:',
-    '  edit: allow',
-    '  bash: allow',
-    '  read: allow',
-    '  glob: allow',
-    '  grep: allow',
-    '  question: allow',
-    '  todowrite: allow',
     '---',
   ]
 

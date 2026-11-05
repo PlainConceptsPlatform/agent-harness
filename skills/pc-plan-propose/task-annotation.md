@@ -7,7 +7,7 @@ Pick a tier for each task based on complexity:
 - `fast`: light work: i18n keys, config changes, env variables, navigation links, simple markup, verification runs
 - `plan`: reserved for orchestration, do not use for implementation tasks
 
-The tier suffix is appended to the agent name with a dot (e.g. `backend-engineer.build`). This is the agent name you write in the annotation. The `pc-subagent-tiers` plugin resolves the model at startup from `models[<tier>]`.
+The tier suffix is appended to the agent name with a dot (e.g. `backend-engineer.build`). This is the agent name you write in the annotation. The `pc-subagent-tiers` plugin resolves the model at startup from `models[<tier>]`, with `.opencode/harness.user.json` overriding `.opencode/harness.json`, and writes the effective value to `.opencode/harness-models.json`. `tasks.md` names the tier, never a model id.
 
 ## depends_on
 
