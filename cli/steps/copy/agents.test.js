@@ -47,6 +47,37 @@ describe('platform patching', () => {
     expect(content).toContain('<!-- PC-PLATFORM-WORKFLOW-END -->')
     expect(content).toContain('<!-- PC-PLATFORM-SKILLS-GUIDE-START -->')
     expect(content).toContain('<!-- PC-PLATFORM-SKILLS-GUIDE-END -->')
+    expect(content).toContain('<!-- PC-PLATFORM-SKILLS-START -->')
+    expect(content).toContain('<!-- PC-PLATFORM-SKILLS-END -->')
+  })
+
+  it('appends the mandatory-skills block to an install that predates the markers', async () => {
+    const dest = path.join(tmpDir, 'AGENTS.md')
+    await fse.writeFile(dest, '# AGENTS.md\n\n## Skills\n\nSkills live in `.agents/skills/`.\n')
+
+    await patchAgentGuidance('github', 'github', tmpDir)
+
+    const content = await fse.readFile(dest, 'utf-8')
+    expect(content).toContain('## Mandatory skills')
+    expect(content).toContain('<!-- PC-PLATFORM-SKILLS-START -->')
+    expect(content).toContain('<!-- PC-PLATFORM-SKILLS-END -->')
+    expect(content).toContain('.agents/skills/pc-guardrails-generic/SKILL.md')
+    expect(content).toContain('.agents/skills/pc-guardrails-project/SKILL.md')
+    expect(content.match(/PC-PLATFORM-SKILLS-START/g)).toHaveLength(1)
+  })
+
+  it('replaces the block in place on repeated updates', async () => {
+    const source = path.join(process.cwd(), 'harness', 'AGENTS.md')
+    const dest = path.join(tmpDir, 'AGENTS.md')
+    await fse.copyFile(source, dest)
+
+    await patchAgentGuidance('github', 'github', tmpDir)
+    await patchAgentGuidance('github', 'github', tmpDir)
+
+    const content = await fse.readFile(dest, 'utf-8')
+    expect(content.match(/PC-PLATFORM-SKILLS-START/g)).toHaveLength(1)
+    expect(content).not.toContain('## Mandatory skills')
+    expect(content).toContain('.agents/skills/pc-guardrails-generic/SKILL.md')
   })
 })
 

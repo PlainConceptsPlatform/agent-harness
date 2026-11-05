@@ -43,7 +43,13 @@ The `pc-plan-apply` skill is authoritative for subagent waves, dependency orderi
 
 ## Skills
 
-Skills live in `.agents/skills/`. Always installed: `@pc-guardrails-generic`, `@pc-guardrails-project`, and `@browser-automation`. An entry under `## Abilities` is not a passive reference: call the `skill` tool once per `@skill-name`, guardrails first. Editing, shell and spawning stay blocked until you have (`pc-system-reminders`), and a loaded skill can require further loads.
+Skills live in `.agents/skills/`. Always installed: `@pc-guardrails-generic`, `@pc-guardrails-project`, and `@browser-automation`.
+
+<!-- PC-PLATFORM-SKILLS-START -->
+Mandatory, before any edit, shell command or subagent spawn: read `.agents/skills/pc-guardrails-generic/SKILL.md`, then `.agents/skills/pc-guardrails-project/SKILL.md` if present. They are instructions, not references: a loaded skill may name further skills, and those load too before the work they cover.
+<!-- PC-PLATFORM-SKILLS-END -->
+
+An entry under `## Abilities` is not a passive reference: call the `skill` tool once per `@skill-name`, guardrails first. Editing, shell and spawning stay blocked until you have (`pc-system-reminders`), and a loaded skill can require further loads.
 
 <!-- PC-PLATFORM-SKILLS-GUIDE-START -->
 <!-- PC-PLATFORM-SKILLS-GUIDE-END -->

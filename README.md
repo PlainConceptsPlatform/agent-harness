@@ -179,7 +179,9 @@ If you choose backlog platform `None`, no userstory skills are injected into the
 Current loading model:
 
 - `pc-guardrails-generic` is mandatory baseline for every agent (git, secrets, quality rules, plus the engineer workflow)
+- `AGENTS.md` states the file paths to read before any edit, shell command or subagent spawn, so agents that do not discover `.agents/skills` natively (Claude Code reads `.claude/skills`) still load the guardrails
 - Baseline context rules and token-optimization guidance live in `AGENTS.md` (always in context), not in a skill
+- Humanizer and Simple English are read on demand before writing prose; they are not transitive requirements of the guardrails
 
 Default `fullstack-engineer` abilities:
 
@@ -307,7 +309,7 @@ your-project/
 
 On OpenCode 2 the terminal client is configured globally (`~/.config/opencode/cli.json`), so the harness ships no project-local `tui.json`; the native session sidebar shows subagents without a sidecar panel.
 
-Platform skills ship as suffixed variants (`pc-userstory-gh`, `pc-userstory-az`, `pc-userstory-jira`, `pc-userstory-browser`) and the installer copies only the matching one, renamed to its generic name. Platform operations (ship, review, backlog) are injected directly into the `/ops-*` command files from `cli/fragments/ops-*/` during onboarding. Source-roots metadata lands in `.opencode/source-roots.json`. The always-shipped reminder plugin holds editing, shell and spawning until every ability under the agent's `## Abilities` is loaded, guardrails first, and re-arms after compaction. Token-optimization guidance is injected into `pc-guardrails-generic` marker blocks during onboarding.
+Platform skills ship as suffixed variants (`pc-userstory-gh`, `pc-userstory-az`, `pc-userstory-jira`, `pc-userstory-browser`) and the installer copies only the matching one, renamed to its generic name. Platform operations (ship, review, backlog) are injected directly into the `/ops-*` command files from `cli/fragments/ops-*/` during onboarding. Source-roots metadata lands in `.opencode/source-roots.json`. The always-shipped reminder plugin holds editing, shell and spawning until every ability under the agent's `## Abilities` is loaded, guardrails first, and re-arms after compaction. `AGENTS.md` names the guardrails files by path so the same contract survives in agents that only have a read tool. Token-optimization guidance is injected into `pc-guardrails-generic` marker blocks during onboarding; Humanizer and Simple English are named by path and loaded when prose is written, not held as transitive requirements.
 
 ---
 

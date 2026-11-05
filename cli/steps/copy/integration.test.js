@@ -104,6 +104,7 @@ describe('patchAgentGuidance mixed platforms against the real template', { timeo
     for (const marker of [
       'PC-PLATFORM-WORKFLOW-START', 'PC-PLATFORM-WORKFLOW-END',
       'PC-PLATFORM-SKILLS-GUIDE-START', 'PC-PLATFORM-SKILLS-GUIDE-END',
+      'PC-PLATFORM-SKILLS-START', 'PC-PLATFORM-SKILLS-END',
     ]) {
       expect(patched).toContain(marker)
     }

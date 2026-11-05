@@ -62,4 +62,30 @@ describe("PcSystemReminders", () => {
     // The trust boundary is always stated.
     expect(text).toContain("trusted")
   })
+
+  it("blocks editing until the guardrails load", async () => {
+    await loadPlugin()
+
+    const event = { sessionID: "s2", agent: "build", action: "edit", resources: [path.join(root, "a.ts")], effect: "allow" }
+    await hooks.evaluate(event)
+
+    expect(event.effect).toBe("deny")
+    expect(event.message).toContain("pc-guardrails-generic")
+  })
+
+  it("does not require a skill that guardrails only name by path", async () => {
+    await loadPlugin()
+    fs.mkdirSync(path.join(root, ".agents", "skills", "humanizer"), { recursive: true })
+    fs.writeFileSync(path.join(root, ".agents", "skills", "humanizer", "SKILL.md"), "# Humanizer\n")
+    fs.writeFileSync(
+      path.join(root, ".agents", "skills", "pc-guardrails-generic", "SKILL.md"),
+      "## Humanizer\n\n- Before writing prose, read `.agents/skills/humanizer/SKILL.md`.\n",
+    )
+
+    await hooks.evaluate({ sessionID: "s3", agent: "build", action: "skill", resources: ["pc-guardrails-generic"], effect: "allow" })
+    const event = { sessionID: "s3", agent: "build", action: "edit", resources: [path.join(root, "a.ts")], effect: "allow" }
+    await hooks.evaluate(event)
+
+    expect(event.effect).toBe("allow")
+  })
 })

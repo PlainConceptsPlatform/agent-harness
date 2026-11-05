@@ -446,9 +446,12 @@ describe("always-loaded context budget", () => {
   }
 
   it("stays within its measured character baseline", () => {
-    // 6,226 for the two files as shipped; 8,823 rendered with every injection.
-    expect(read(AGENTS).length + read(GUARDRAILS).length).toBeLessThanOrEqual(6_500)
-    expect(renderAlwaysLoaded().length).toBeLessThanOrEqual(9_200)
+    // 6,825 for the two files as shipped; 9,321 rendered with every injection.
+    // The increase over the previous baseline is the cross-agent read
+    // instruction in AGENTS.md: Claude Code does not discover `.agents/skills`,
+    // and naming the files by path is what makes the guardrails load there.
+    expect(read(AGENTS).length + read(GUARDRAILS).length).toBeLessThanOrEqual(7_000)
+    expect(renderAlwaysLoaded().length).toBeLessThanOrEqual(9_500)
   })
 
   it("stays within its rule budget", () => {
