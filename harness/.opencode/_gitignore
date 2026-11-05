@@ -2,9 +2,11 @@ node_modules
 harness-run.json
 harness.user.json
 harness-managed.json
+harness-models.json
 source-roots.json
 tmp/
 *-engineer.*.md
 agents/build.md
 agents/plan.md
 agents/planner.md
+agents/planner-sub.md

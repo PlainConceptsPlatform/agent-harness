@@ -109,6 +109,18 @@ describe("PcSubagentTiers primaries", () => {
     expect(fm).not.toContain("action: edit")
   })
 
+  it("generates planner-sub as a hidden spawnable subagent on the plan tier", async () => {
+    await run()
+
+    const fm = frontmatter("planner-sub.md")
+    expect(agent("planner-sub.md")).toContain("You are the default engineer.")
+    expect(fm).toContain("mode: subagent")
+    expect(fm).toContain("model: p/plan")
+    expect(fm).toContain("hidden: true")
+    expect(fm).toMatch(/- action: subagent\s+resource: \*\s+effect: deny/)
+    expect(fm).not.toContain("action: edit")
+  })
+
   it("skips the primaries when fullstack-engineer.md is absent", async () => {
     fs.rmSync(path.join(agentsDir, "fullstack-engineer.md"))
 
@@ -116,6 +128,48 @@ describe("PcSubagentTiers primaries", () => {
 
     expect(fs.existsSync(path.join(agentsDir, "build.md"))).toBe(false)
     expect(fs.existsSync(path.join(agentsDir, "plan.md"))).toBe(false)
+  })
+})
+
+describe("PcSubagentTiers manifest", () => {
+  it("writes effective models, sources and agents", async () => {
+    await run()
+
+    const manifest = JSON.parse(fs.readFileSync(path.join(root, ".opencode", "harness-models.json"), "utf8"))
+    expect(manifest.models).toEqual({ build: "p/build", fast: "p/fast", plan: "p/plan" })
+    expect(manifest.source).toEqual({ build: "team", fast: "team", plan: "team" })
+    expect(manifest.agents["planner"]).toMatchObject({ mode: "all", model: "p/plan" })
+    expect(manifest.agents["planner-sub"]).toMatchObject({ mode: "subagent", model: "p/plan" })
+  })
+
+  it("lets harness.user.json override the team model", async () => {
+    fs.writeFileSync(
+      path.join(agentsDir, "frontend-engineer.md"),
+      "---\ndescription: Frontend.\nmode: subagent\n---\n\nYou are a frontend engineer.\n",
+    )
+    fs.writeFileSync(
+      path.join(root, ".opencode", "harness.user.json"),
+      JSON.stringify({ models: { build: "u/build" } }),
+    )
+
+    await run()
+
+    const manifest = JSON.parse(fs.readFileSync(path.join(root, ".opencode", "harness-models.json"), "utf8"))
+    expect(manifest.models.build).toBe("u/build")
+    expect(manifest.source.build).toBe("user")
+    expect(frontmatter("frontend-engineer.build.md")).toContain("model: u/build")
+  })
+
+  it("warns when a tier model is not provider/model", async () => {
+    fs.writeFileSync(
+      path.join(root, ".opencode", "harness.json"),
+      JSON.stringify({ models: { plan: "p/plan", build: "quasar-438b", fast: "p/fast" } }),
+    )
+
+    await run()
+
+    const manifest = JSON.parse(fs.readFileSync(path.join(root, ".opencode", "harness-models.json"), "utf8"))
+    expect(manifest.warnings.join("\n")).toContain("not provider/model")
   })
 })
 

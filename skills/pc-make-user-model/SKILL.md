@@ -51,6 +51,6 @@ An id with no `/` in it is malformed; confirm before writing it:
   file: <path written>
 ```
 
-The change lands on the next opencode start, when `pc-subagent-tiers` reads the configs and rebuilds the tier variants.
+The change lands on the next opencode start, when `pc-subagent-tiers` reads the configs and rebuilds the tier variants. For CI or a non-interactive run, `node .opencode/scripts/sync-agents.mjs` rebuilds the agents and `.opencode/harness-models.json`; `node .opencode/scripts/harness-doctor.mjs --strict` prints and validates the effective routing.
 
 Arguments: `$ARGUMENTS`
