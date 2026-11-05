@@ -1,5 +1,6 @@
 {
   "dependencies": {
     "@opencode/plugin": "2.0.22"
-  }
+  },
+  "type": "module"
 }
