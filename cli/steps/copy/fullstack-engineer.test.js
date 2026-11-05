@@ -30,8 +30,9 @@ describe('generateFullstackEngineer()', () => {
     expect(content).toContain('mode: subagent')
     // warning belongs to plan; fullstack takes its name-derived hex.
     expect(content).toMatch(/color: "#[0-9A-F]{6}"/)
-    expect(content).toContain('  question: allow')
-    expect(content).toContain('  todowrite: allow')
+    expect(content).not.toContain('permission:')
+    expect(content).not.toContain('question: allow')
+    expect(content).not.toContain('todowrite: allow')
     expect(content).not.toContain('**Startup — before doing anything else:**')
     expect(content).toContain('- Guardrails: @pc-guardrails-generic, @pc-guardrails-project')
     expect(content).toContain('You are the default engineer')

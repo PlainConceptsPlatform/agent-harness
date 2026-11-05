@@ -28,10 +28,6 @@ Inspect `.opencode/agents/*.md` before spawning. Prefer the most specialized cus
 
 The `pc-plan-apply` skill is authoritative for subagent waves, dependency ordering, retries, and concurrency. A spawn past `agents.maxConcurrent` is denied (`pc-subagent-monitor`); a denied spawn is not a failed task, so re-issue it in the next wave.
 
-## Model routing
-
-`.opencode/harness.user.json` overrides `.opencode/harness.json`; the effective tier model is whichever wins. `pc-subagent-tiers` writes `.opencode/harness-models.json` with the models, their source, and the generated agents. Tier variants are `*-engineer.<tier>.md`; `planner-sub` is the spawnable plan-tier alias for the task tool, while `planner` remains the `mode: all` command agent. Run `node .opencode/scripts/sync-agents.mjs` before OpenCode starts when the agents must be visible from the first turn, and `node .opencode/scripts/harness-doctor.mjs --strict` to print and validate the routing. Never report a model from `harness.json` alone.
-
 ## Tool and repository safety
 
 - Never expose or commit secrets, credentials, tokens, or production data.
