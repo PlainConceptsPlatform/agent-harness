@@ -1,4 +1,4 @@
-## Humanizer (optimization skill)
+## Humanizer (before writing prose)
 
-- Load `skill("humanizer")` before writing prose (commit messages, PR descriptions, docs, proposals); unhumanized prose reads as machine-written. Editing, shell and spawning stay blocked until it is loaded (pc-system-reminders).
+- Before writing prose (commit messages, PR descriptions, docs, proposals), read `.agents/skills/humanizer/SKILL.md` and apply it; unhumanized prose reads as machine-written.
 - Never apply it to code, config files, or terminal output: prose only.

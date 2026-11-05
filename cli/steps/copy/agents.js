@@ -47,8 +47,12 @@ const PLATFORM_WORKFLOW_START = '<!-- PC-PLATFORM-WORKFLOW-START -->'
 const PLATFORM_WORKFLOW_END = '<!-- PC-PLATFORM-WORKFLOW-END -->'
 const PLATFORM_SKILLS_GUIDE_START = '<!-- PC-PLATFORM-SKILLS-GUIDE-START -->'
 const PLATFORM_SKILLS_GUIDE_END = '<!-- PC-PLATFORM-SKILLS-GUIDE-END -->'
+const PLATFORM_SKILLS_START = '<!-- PC-PLATFORM-SKILLS-START -->'
+const PLATFORM_SKILLS_END = '<!-- PC-PLATFORM-SKILLS-END -->'
 const PLATFORM_CONTRACT_START = '<!-- PC-PLATFORM-CONTRACT-START -->'
 const PLATFORM_CONTRACT_END = '<!-- PC-PLATFORM-CONTRACT-END -->'
+
+const MANDATORY_SKILLS_BODY = 'Mandatory, before any edit, shell command or subagent spawn: read `.agents/skills/pc-guardrails-generic/SKILL.md`, then `.agents/skills/pc-guardrails-project/SKILL.md` if present. They are instructions, not references: a loaded skill may name further skills, and those load too before the work they cover.'
 
 function platformContent(platform, key) {
   const p = agentsContent.platform[platform] ?? agentsContent.platform.github
@@ -72,6 +76,17 @@ function replaceBetween(content, start, end, replacement) {
   // Replacer function so $&, $' and $` in injected content stay literal.
   const body = replacement.trim()
   return content.replace(pattern, () => (body ? `${start}\n${body}\n${end}` : `${start}\n${end}`))
+}
+
+// Reading the file works in every agent, not only the ones that discover
+// `.agents/skills` natively (Claude Code reads `.claude/skills`). Installs from
+// before this block have no marker pair and update never rewrites AGENTS.md, so
+// append a section then; the marker pair keeps later updates idempotent.
+function patchMandatorySkillsBlock(content) {
+  if (content.includes(PLATFORM_SKILLS_START)) {
+    return replaceBetween(content, PLATFORM_SKILLS_START, PLATFORM_SKILLS_END, MANDATORY_SKILLS_BODY)
+  }
+  return `${content.replace(/\s*$/, '')}\n\n## Mandatory skills\n\n${PLATFORM_SKILLS_START}\n${MANDATORY_SKILLS_BODY}\n${PLATFORM_SKILLS_END}\n`
 }
 
 export function reuseBlock(contract, templateSource = false) {
@@ -150,6 +165,7 @@ export async function patchAgentGuidance(backlogPlatform, repoPlatform, cwd = pr
     let content = await fse.readFile(agentsMdPath, 'utf-8')
     content = replaceBetween(content, PLATFORM_WORKFLOW_START, PLATFORM_WORKFLOW_END, mixedPlatformContent(backlogPlatform, repo, 'workflow'))
     content = replaceBetween(content, PLATFORM_SKILLS_GUIDE_START, PLATFORM_SKILLS_GUIDE_END, mixedPlatformContent(backlogPlatform, repo, 'skillsGuide'))
+    content = patchMandatorySkillsBlock(content)
     content = patchContractBlock(content, cwd)
     await fse.writeFile(agentsMdPath, `${content.replace(/\s*$/, '')}\n`, 'utf-8')
     const label = backlogPlatform === repo ? repo : `${backlogPlatform}→${repo}`

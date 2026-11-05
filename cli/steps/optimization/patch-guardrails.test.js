@@ -44,7 +44,25 @@ describe('patchGuardrails optional tool sections', () => {
 
     const content = fs.readFileSync(path.join(guardrailsDir, 'SKILL.md'), 'utf-8')
     expect(content).toContain('PC-GUARDRAILS-SIMPLE-ENGLISH-START')
-    expect(content).toContain('skill("simple-english")')
+    expect(content).toContain('.agents/skills/simple-english/SKILL.md')
+    // The `skill("name")` call is what pc-system-reminders treats as a
+    // transitive requirement. Prose must be read on demand, not gated.
+    expect(content).not.toContain('skill("simple-english")')
     expect(content).not.toContain('legacy guidance')
+  })
+
+  it('names the humanizer file by path instead of gating on it', async () => {
+    const guardrailsDir = path.join(tmpDir, '.agents', 'skills', 'pc-guardrails-generic')
+    fs.mkdirSync(guardrailsDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(guardrailsDir, 'SKILL.md'),
+      '<!-- PC-GUARDRAILS-HUMANIZER-START -->\n<!-- PC-GUARDRAILS-HUMANIZER-END -->\n',
+    )
+
+    await patchGuardrails({ humanizer: true }, { cwd: tmpDir })
+
+    const content = fs.readFileSync(path.join(guardrailsDir, 'SKILL.md'), 'utf-8')
+    expect(content).toContain('.agents/skills/humanizer/SKILL.md')
+    expect(content).not.toContain('skill("humanizer")')
   })
 })

@@ -1,4 +1,4 @@
-## Simple English (optimization skill)
+## Simple English (before writing prose)
 
-- Apply Simplified Technical English to all prose: `skill("simple-english")`. Editing, shell and spawning stay blocked until it is loaded (pc-system-reminders).
+- Before writing prose, read `.agents/skills/simple-english/SKILL.md` and apply Simplified Technical English.
 - Keep code blocks, identifiers, CLI commands, file paths, quoted errors, and product names exact.
