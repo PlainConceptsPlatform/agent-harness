@@ -74,6 +74,7 @@ describe("OpenCode config template", () => {
     expect(config.mcp.servers["browse"]).toEqual({
       type: "local",
       command: ["browse", "mcp"],
+      environment: { OPENCODE_BROWSER_RUNTIME: "auto-update" },
       disabled: false,
     })
     expect(config.plugins).toBeUndefined()
