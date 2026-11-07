@@ -143,7 +143,7 @@ describe('installSkills platform gating (real content/skills)', { timeout: 30000
 
   it('browser backlog + azure repo: browser userstory, NO ops skills', async () => {
     await installSkills('browser', 'azure')
-    expect(await installedSkill('pc-userstory')).toContain('browse')
+    expect(await installedSkill('pc-userstory')).toContain('page.goto')
     expect(await installedSkill('pc-ship')).toBeNull()
     expect(await installedSkill('pc-review')).toBeNull()
     expect(await installedSkill('pc-backlog')).toBeNull()

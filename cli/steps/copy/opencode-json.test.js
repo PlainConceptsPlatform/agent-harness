@@ -161,6 +161,49 @@ describe('patchOpencodeJson()', () => {
     expect(config.mcp.timeout).toEqual({ catalog: 120000, execution: 120000 })
   })
 
+  it('replaces stale agent-browser MCP server with browse and adds environment', async () => {
+    writeConfig({
+      mcp: {
+        servers: {
+          'agent-browser': { type: 'local', command: ['agent-browser', 'mcp', '--tools', 'core'], disabled: false },
+          playwright: { type: 'local', command: ['npx', '@playwright/mcp'], disabled: false },
+        },
+      },
+    })
+
+    await patchOpencodeJson()
+
+    const config = readConfig()
+    expect(config.mcp.servers['agent-browser']).toBeUndefined()
+    expect(config.mcp.servers.browse).toEqual({
+      type: 'local',
+      command: ['browse', 'mcp'],
+      environment: { OPENCODE_BROWSER_RUNTIME: 'auto-update' },
+      disabled: false,
+    })
+    expect(config.mcp.servers.playwright).toBeDefined()
+  })
+
+  it('adds OPENCODE_BROWSER_RUNTIME env to an existing browse server that lacks it', async () => {
+    writeConfig({
+      mcp: {
+        servers: {
+          'browse': { type: 'local', command: ['browse', 'mcp'], disabled: false },
+        },
+      },
+    })
+
+    await patchOpencodeJson()
+
+    const config = readConfig()
+    expect(config.mcp.servers.browse).toEqual({
+      type: 'local',
+      command: ['browse', 'mcp'],
+      environment: { OPENCODE_BROWSER_RUNTIME: 'auto-update' },
+      disabled: false,
+    })
+  })
+
   it('strips V1-only experimental fields', async () => {
     writeConfig({ experimental: { openTelemetry: true, mcp_timeout: 300000, keep_me: 1 } })
 
@@ -184,7 +227,7 @@ describe('patchOpencodeJson()', () => {
       skills: ['.agents/skills'],
       compaction: { auto: true, buffer: 10000 },
       mcp: {
-        servers: { 'browse': { type: 'local', command: ['browse', 'mcp'], disabled: false } },
+        servers: { 'browse': { type: 'local', command: ['browse', 'mcp'], environment: { OPENCODE_BROWSER_RUNTIME: 'auto-update' }, disabled: false } },
         timeout: { catalog: 300000, execution: 300000 },
       },
     })

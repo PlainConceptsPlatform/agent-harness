@@ -166,6 +166,40 @@ function migrateMcp(obj) {
   return true
 }
 
+// Stale MCP server entries that browse replaced. The V2 @different-ai/opencode-browser
+// plugin (and its Chrome extension) was replaced by agent-browser in v2.4, then by browse
+// in v3.10. Both old entries are stripped and the current browse entry is ensured.
+const BROWSE_MCP_SERVER = {
+  type: 'local',
+  command: ['browse', 'mcp'],
+  environment: { OPENCODE_BROWSER_RUNTIME: 'auto-update' },
+  disabled: false,
+}
+const STALE_MCP_SERVER_NAMES = ['agent-browser', 'opencode-browser', '@different-ai/opencode-browser']
+
+function migrateBrowserMcp(obj) {
+  if (!obj.mcp?.servers || typeof obj.mcp.servers !== 'object') return false
+  let changed = false
+  for (const name of STALE_MCP_SERVER_NAMES) {
+    if (name in obj.mcp.servers) {
+      delete obj.mcp.servers[name]
+      changed = true
+    }
+  }
+  const current = obj.mcp.servers['browse']
+  if (!current) {
+    obj.mcp.servers['browse'] = { ...BROWSE_MCP_SERVER }
+    changed = true
+  } else if (JSON.stringify(current.command) !== JSON.stringify(BROWSE_MCP_SERVER.command)) {
+    obj.mcp.servers['browse'] = { ...current, ...BROWSE_MCP_SERVER, environment: current.environment ?? BROWSE_MCP_SERVER.environment }
+    changed = true
+  } else if (!current.environment?.OPENCODE_BROWSER_RUNTIME) {
+    obj.mcp.servers['browse'] = { ...current, environment: { ...(current.environment ?? {}), OPENCODE_BROWSER_RUNTIME: 'auto-update' } }
+    changed = true
+  }
+  return changed
+}
+
 /** Mutate `obj` in place to the native V2 shape; returns true when it changed. */
 function migrateToV2(obj) {
   let changed = false
@@ -246,6 +280,7 @@ function migrateToV2(obj) {
 
   if (migrateAgents(obj)) changed = true
   if (migrateMcp(obj)) changed = true
+  if (migrateBrowserMcp(obj)) changed = true
   if (migratePluginArray(obj)) changed = true
 
   // A session starts read-only: fullstack-engineer is a subagent now, so a
