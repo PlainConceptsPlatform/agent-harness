@@ -1,0 +1,120 @@
+name: Npm Publish
+
+# Publishes @plainconceptsplatform/agent-harness to npm automatically when a version bump is
+# merged to main. Authentication uses npm Trusted Publishing (GitHub OIDC): no shared tokens,
+# no OTP, no secrets in the repo. The Trusted Publisher on npmjs.com must match this workflow's
+# filename (npm-publish.yml) and the npm-publish environment exactly.
+#
+# Triggers:
+#   - push to main that touches package.json: a version bump merged to main publishes with the
+#     `latest` dist-tag. Rerun-safe: if the version is already on npm (dependency bump that did
+#     not change the version, or a workflow rerun), the job skips the publish.
+#   - workflow_dispatch: manual. Publishes an alpha (auto-numbered) to validate OIDC end-to-end
+#     or to ship a prerelease. Alphas are tagged `alpha`, never `latest`.
+#
+# Requires Node >= 22.14.0 and npm >= 11.5.1 for Trusted Publishing. Node 24 satisfies both.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'package.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: npm-publish
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef54335278610c181273ba90b1 # v6.1.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+
+      # Same gate CI runs: eslint, markdownlint, vitest. Fails fast before OIDC is negotiated.
+      - run: pnpm lint
+      - run: pnpm lint:md
+      - run: pnpm test
+
+      - name: Read version
+        id: ver
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      # Rerun-safe: if this version is already on npm, nothing to do. Handles dependency bumps
+      # that touch package.json without changing the version, and workflow reruns.
+      - name: Skip if already published
+        id: skip
+        run: |
+          set -euo pipefail
+          if npm view "@plainconceptsplatform/agent-harness@${{ steps.ver.outputs.version }}" version >/dev/null 2>&1; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "${{ steps.ver.outputs.version }} is already on npm; nothing to publish."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "${{ steps.ver.outputs.version }} is not on npm yet; will publish."
+          fi
+
+      # Manual path: derive the next unused alpha number from npm and stamp it. The branch's own
+      # manifest version is the base. package.json is stamped for this run only, not committed.
+      - name: Prepare alpha version
+        if: ${{ github.event_name == 'workflow_dispatch' && steps.skip.outputs.skip == 'true' }}
+        run: |
+          set -euo pipefail
+          base="${{ steps.ver.outputs.version }}"
+          base="${base%%-*}"
+          next=1
+          for published in $(npm view "@plainconceptsplatform/agent-harness" versions --json | tr -d ' ",[]' | grep -E "^${base}-alpha\.[0-9]+$" || true); do
+            n="${published##*-alpha.}"
+            if [ "$n" -ge "$next" ]; then
+              next=$((n + 1))
+            fi
+          done
+          version="$base-alpha.$next"
+          if npm view "@plainconceptsplatform/agent-harness@$version" version >/dev/null 2>&1; then
+            echo "::error::$version is already on npm; alpha versions are never reused."
+            exit 1
+          fi
+          node -e "const fs = require('node:fs'); const pkg = JSON.parse(fs.readFileSync('package.json','utf8')); pkg.version = process.argv[1]; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');" "$version"
+          echo "alpha_version=$version" >> "$GITHUB_ENV"
+          echo "Publishing $version (alpha #$next, auto-numbered). package.json stamped for this run only, not committed."
+
+      - name: Publish stable
+        if: ${{ github.event_name == 'push' && steps.skip.outputs.skip != 'true' }}
+        run: |
+          set -euo pipefail
+          npm publish --access public --tag latest
+          echo "Published @plainconceptsplatform/agent-harness@${{ steps.ver.outputs.version }} with dist-tag latest."
+
+      - name: Publish alpha
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./package.json').version")"
+          npm publish --access public --tag alpha
+          # The registry can lag a few seconds behind a publish; retry before calling it wrong.
+          published=""
+          for attempt in 1 2 3 4 5; do
+            published=$(npm view "@plainconceptsplatform/agent-harness" dist-tags.alpha 2>/dev/null || true)
+            if [ "$published" = "$version" ]; then
+              break
+            fi
+            sleep 6
+          done
+          if [ "$published" != "$version" ]; then
+            echo "::error::npm dist-tag alpha points at '$published', expected '$version'. Check: npm view @plainconceptsplatform/agent-harness dist-tags"
+            exit 1
+          fi
+          echo "Published @plainconceptsplatform/agent-harness@$version with dist-tag alpha."
