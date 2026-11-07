@@ -89,7 +89,7 @@ Reach for individual steps when you want something narrower:
 
 > **Upgrading from `opencode-onboard` v1?** v2 renamed the config files and the skill prefix (`ob-` became `pc-`), and it does not migrate v1 projects. The CLI detects one and refuses to run rather than half-patching it. Re-onboard on a clean branch: remove `.opencode/` and `.agents/skills/ob-*`, then run the wizard again.
 
-> **Browser tooling changed in v2.4.** The `@different-ai/opencode-browser` plugin (and its Chrome extension) was replaced by [`agent-browser`](https://github.com/vercel-labs/agent-browser), wired in as an MCP server in `opencode.jsonc`. Running `update` strips the old plugin entry, adds the MCP block, and installs the new binary — no manual unloading of the extension is needed, though you can remove it from `chrome://extensions` yourself. Skills you wrote that call `browser_*` tools directly must switch to the `agent-browser` CLI or the `agent_browser_*` MCP tools. Backlog-browser users: agent-browser runs its own Chrome, so log in once per project using the `--session backlog --restore` flow described in `pc-userstory-browser`.
+> **Browser tooling changed in v2.5.** `agent-browser` (which launched its own isolated Chrome for Testing) was replaced by [`browse`](https://opencode.ai/product/browse), the OpenCode MCP server that drives the user's real Chrome-family browser with their logins, tabs, cookies, and extensions. Agent tabs open in the background in collapsed groups; when only a person can proceed (login, 2FA, captcha, payment), browse hands the tab back and continues once the user clicks Continue. Running `update` replaces the `agent-browser` MCP server entry with `browse`, installs the new CLI, and runs `browse install` which opens the Chrome Web Store for the extension and pairs it. Skills you wrote that call `agent-browser` CLI commands or `agent_browser_*` MCP tools must switch to the `browse` CLI or the `browse.execute` / `browse.session_*` MCP tools. Backlog-browser users: browse uses your real browser, so work-item pages behind your own login are already authenticated — no separate login session is needed.
 
 ---
 
@@ -107,7 +107,7 @@ The first run is a 10-step wizard. It keeps the current step visible, plus the l
 | **6. Initialize OpenSpec** | Runs `npx @fission-ai/openspec init` silently for structured change management |
 | **7. Choose models** | Fetches live model list from [models.dev](https://models.dev), lets you pick plan, build, and fast models with cost indicators and canonical pricing |
 | **8. Token optimization tools** | Optional and recommended. One checklist step for RTK check, opencode-quota setup, Simple English install, codegraph install, agentmemory install, humanizer install, and token-optimization rule injection into guardrails |
-| **9. Install browser tooling** | Installs `agent-browser` globally and downloads its Chrome for Testing binary |
+| **9. Install browser tooling** | Installs `@opencode/browse` globally and pairs it with the user's real browser via the browse extension |
 | **10. Write onboarding metadata** | Writes `.opencode/harness.json` with selected setup details |
 
 When it finishes, open OpenCode in your project and type:
@@ -202,7 +202,7 @@ Built-in skills (`pc-` prefix) shipped with agent-harness:
 | `pc-userstory-az` | Parse an Azure DevOps work item URL |
 | `pc-userstory-jira` | Parse a Jira issue URL via `acli` CLI |
 | `pc-userstory-browser` | Parse work item from any URL via browser automation (Linear, Trello, and so on) |
-| `browser-automation` | Browser control via `agent-browser` (localhost and browser backlog exception) |
+| `browser-automation` | Browser control via `browse` (user's real browser, localhost + external sites with handoffs) |
 | `pc-plan-explore` | Read-only exploration procedure behind `/plan-explore`; autonomous mode used by `/plan-goal` |
 | `pc-plan-propose` | Proposal + task-enrichment procedure behind `/plan-propose`; autonomous mode used by `/plan-goal` |
 | `pc-plan-apply` | Wave-implementation procedure behind `/plan-apply`; autonomous mode used by `/plan-goal` |
@@ -507,7 +507,7 @@ Data the CLI reads lives in two places, split by kind:
 - `models.json` controls model role prompts and agent assignments
 - `optimization.json` controls RTK, quota, Simple English, codegraph, agentmemory, and humanizer checklist defaults
 - `quota.json` controls opencode-quota defaults
-- `browser.json` controls the agent-browser installer (npm package + Chrome setup)
+- `browser.json` controls the browse installer (npm package + browser extension pairing)
 
 **`cli/fragments/`** holds Markdown injected into the installed harness, one directory per marker family: `archive/`, `guardrails/`, `ops-backlog/`, `ops-review/`, `ops-ship/`. Each file is the platform-specific body that replaces a `<!-- PC-PLATFORM-*-START -->` block.
 

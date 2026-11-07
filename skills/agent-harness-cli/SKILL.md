@@ -40,7 +40,7 @@ copy            Copy agents, skills, commands, docs into the repo
 openspec        Initialize the OpenSpec workspace
 models          Choose plan / build / fast models
 optimization    Configure RTK, quota, Simple English, codegraph, agentmemory, humanizer
-browser         Install agent-browser (npm package + its Chrome for Testing)
+browser         Install browse (npm package + browser extension pairing)
 metadata        Rewrite .opencode/harness.json
 ```
 

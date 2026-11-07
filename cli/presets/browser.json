@@ -1,10 +1,10 @@
 {
   "installer": {
     "command": "npm",
-    "args": ["install", "-g", "agent-browser@0.36.0"]
+    "args": ["install", "-g", "@opencode/browse@0.0.14"]
   },
-  "chromeSetup": {
-    "command": "agent-browser",
-    "args": ["install"]
+  "setup": {
+    "command": "browse",
+    "args": ["install", "--yes"]
   }
 }

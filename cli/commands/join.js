@@ -193,7 +193,7 @@ export async function runJoin() {
   await checkRtk({ skipHeader: true, skipPrompt: true })
 
   // Step 8: Browser automation
-  header('Step 8, Installing agent-browser')
+  header('Step 8, Installing browse')
   await installBrowser()
 
   // Step 9: Model tier guidance

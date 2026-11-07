@@ -28,7 +28,7 @@
     },
     "browser": {
       "workflow": "Any work item URL means run the pipeline, whichever tool it points at, unless the user asked for analysis or context only.\n\n- The URL: `pc-userstory` to open and read the page, `pc-plan-propose` for the plan, confirm, `pc-plan-apply` to build, then ship.\n- An existing OpenSpec change, plus any of `implement` / `start` / `go`: `pc-plan-apply`, then ship.\n\nBrowser is backlog-only: PR work runs on the repo platform in `platform.repo`.",
-      "skillsGuide": "### Backlog Platform: Others (Browser)\n- `pc-userstory` -> opens work item URLs via agent-browser, reads page content, creates OpenSpec changes. Load when a URL the user provides does not match GitHub/Azure/Jira CLI platforms.\n\n### Repo Platform\n- PR skills are loaded based on `platform.repo` (GitHub / Azure DevOps / GitLab)."
+      "skillsGuide": "### Backlog Platform: Others (Browser)\n- `pc-userstory` -> opens work item URLs via browse, reads page content, creates OpenSpec changes. Load when a URL the user provides does not match GitHub/Azure/Jira CLI platforms.\n\n### Repo Platform\n- PR skills are loaded based on `platform.repo` (GitHub / Azure DevOps / GitLab)."
     }
   }
 }

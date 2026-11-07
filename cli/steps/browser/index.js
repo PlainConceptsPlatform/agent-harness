@@ -10,7 +10,7 @@ const BROWSER_PRESET_PATH = path.resolve(__dirname, '../../presets/browser.json'
 const browserPreset = await fse.readJson(BROWSER_PRESET_PATH)
 
 export async function installBrowser() {
-  header('Step 9, Installing agent-browser')
+  header('Step 9, Installing browse')
 
   try {
     const install = await execa(browserPreset.installer.command, browserPreset.installer.args, {
@@ -19,30 +19,34 @@ export async function installBrowser() {
     })
 
     if (install.exitCode !== 0) {
-      warn('agent-browser npm install exited with non-zero code')
+      warn('browse npm install exited with non-zero code')
       if (install.stderr) info(install.stderr)
       return
     }
-    success('agent-browser installed')
+    success('browse installed')
   } catch (err) {
-    error(`Failed to install agent-browser: ${err.message}`)
+    error(`Failed to install browse: ${err.message}`)
     return
   }
 
   try {
-    const chrome = await execa(browserPreset.chromeSetup.command, browserPreset.chromeSetup.args, {
+    const setup = await execa(browserPreset.setup.command, browserPreset.setup.args, {
       cwd: os.homedir(),
       reject: false,
+      timeout: 180000,
     })
 
-    if (chrome.exitCode === 0) {
-      success('agent-browser Chrome ready')
-      if (chrome.stdout) info(chrome.stdout.trim())
+    if (setup.exitCode === 0) {
+      success('browse paired with your browser')
+      if (setup.stdout) info(setup.stdout.trim())
     } else {
-      warn('agent-browser install (Chrome setup) exited with non-zero code')
-      if (chrome.stderr) info(chrome.stderr)
+      // browse install opens the Chrome Web Store and waits for the extension to connect.
+      // A non-zero exit often just means the user didn't finish pairing in time; browse is
+      // still installed and usable once they add the extension and run `browse pair`.
+      warn('browse setup did not complete — install the extension and run `browse pair`')
+      if (setup.stderr) info(setup.stderr)
     }
   } catch (err) {
-    error(`Failed to set up Chrome for agent-browser: ${err.message}`)
+    error(`Failed to set up browse: ${err.message}`)
   }
 }
