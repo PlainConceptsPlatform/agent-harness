@@ -184,7 +184,7 @@ describe('patchOpencodeJson()', () => {
       skills: ['.agents/skills'],
       compaction: { auto: true, buffer: 10000 },
       mcp: {
-        servers: { 'agent-browser': { type: 'local', command: ['agent-browser', 'mcp', '--tools', 'core'], disabled: false } },
+        servers: { 'browse': { type: 'local', command: ['browse', 'mcp'], disabled: false } },
         timeout: { catalog: 300000, execution: 300000 },
       },
     })

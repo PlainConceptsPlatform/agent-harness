@@ -67,13 +67,13 @@ describe("OpenCode config template", () => {
     expect(fs.existsSync(path.join(CONTENT_DIR, ".opencode", "opencode.json"))).toBe(false)
   })
 
-  it("pins the OpenCode 2 plugin API and the agent-browser MCP server", () => {
+  it("pins the OpenCode 2 plugin API and the browse MCP server", () => {
     const config = parseJsonc(fs.readFileSync(path.join(CONTENT_DIR, "opencode.jsonc"), "utf-8"))
     const packageConfig = JSON.parse(fs.readFileSync(path.join(CONTENT_DIR, ".opencode", "package.json"), "utf-8"))
 
-    expect(config.mcp.servers["agent-browser"]).toEqual({
+    expect(config.mcp.servers["browse"]).toEqual({
       type: "local",
-      command: ["agent-browser", "mcp", "--tools", "core"],
+      command: ["browse", "mcp"],
       disabled: false,
     })
     expect(config.plugins).toBeUndefined()
