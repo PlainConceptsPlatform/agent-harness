@@ -532,7 +532,7 @@ describe("the guardrail generators state their bar", () => {
 describe("thinking commands", () => {
   // The model lives in each repository's harness.json, never here: a command names the agent,
   // and planner takes the plan tier. Execution commands keep the session's agent.
-  const THINKING = ["plan-propose", "plan-archive", "plan-explore", "plan-story", "plan-quick", "ops-review", "repo-audit"]
+  const THINKING = ["plan-propose", "plan-archive", "plan-explore", "plan-story", "plan-mockup", "plan-quick", "ops-review", "repo-audit"]
   const head = name => fs.readFileSync(path.join(CONTENT_DIR, ".opencode", "commands", `${name}.md`), "utf8").split(/\r?\n---/)[0]
 
   it.each(THINKING)("%s runs on planner in the current session", name => {

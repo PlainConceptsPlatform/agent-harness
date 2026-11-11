@@ -22,6 +22,8 @@ Display the following reference to the user exactly as written. Do not summarize
 
 **`/plan-story <feature or need>`**: Write a detailed, repo-aware user story from a feature idea. Loads the `@user-story` skill (Mike Cohn format + Gherkin acceptance criteria), analyzes your codebase for concrete context, and produces a development-ready story with specific personas, real outcomes, and testable criteria grounded in your actual file paths, component names, and data models. No files written — just the story.
 
+**`/plan-mockup <screen or flow>`**: Draw the UI change before building it: a self-contained HTML mockup built from this repository's own design tokens and components, with every region mapped to the real component the implementer should use. It states UX intent, not a spec. Writes to `.mockups/` and can publish to an issue, where the refine and implement workflows pick it up.
+
 **`/plan-propose <url or idea>`**: You have a work item URL, or a clear idea and you want to turn it into a structured plan (proposal, specs, tasks). Enriches each task with the best matching agent and model before showing you the plan. Nothing is implemented until you confirm.
 
 ---
@@ -69,6 +71,7 @@ Display the following reference to the user exactly as written. Do not summarize
 **Complex change:**
 ```
 /plan-explore   ← optional: think it through first
+/plan-mockup    ← optional: see the UI before planning it
 /plan-propose   ← create the plan
 /plan-apply     ← implement with the team
 /ops-ship        ← ship
