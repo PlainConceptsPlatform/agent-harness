@@ -39,9 +39,6 @@ What a mockup folder holds, so the people and the workflows that read it can rel
     { "section": "timeline", "element": "Timeline row", "component": "new:TimelineItem", "path": "new" }
   ],
   "states": ["empty", "loading", "mobile"],
-  "children": [
-    { "id": "aw_child1", "sections": ["timeline"] }
-  ],
   "notes": "The approver's comment is collapsed past three lines."
 }
 ```
@@ -55,9 +52,14 @@ What a mockup folder holds, so the people and the workflows that read it can rel
 | `sections` | One entry per `data-mockup-section` in the HTML, same ids, same order. |
 | `components` | One entry per distinct `data-component` reference. `component` is the name the code uses; `path` is the reference from the HTML, or `new`. |
 | `states` | The states the mockup draws, from `default`, `empty`, `loading`, `error`, `success`, `disabled`, `mobile`, or a domain state named in the issue. |
-| `children` | Only when the work is split into several issues: which sections each child covers. The refine workflow writes the child issue numbers in its place. |
 | `notes` | Optional. Behaviour the picture cannot show. |
+
+## When the work is split
+
+Each smaller issue covers some sections of the one mockup. Its body says which, on a line of its own: `Mockup sections: timeline, filters`, using the section ids. The refine workflow reads that line and links the issue to those sections.
 
 ## Where a published mockup lives
 
 On the repository's `mockups` branch, an orphan branch that never merges into anything, at `issue-<number>/`. Every publish replaces that folder. Nothing on that branch is source code, and nothing in the source tree may import or copy from it.
+
+The issue links it from a section the workflow writes between `<!-- agent-mockup:start -->` and `<!-- agent-mockup:end -->`, which opens with `<!-- agent-mockup: issue-<number> -->` naming the folder. A split child names its parent's folder there.
