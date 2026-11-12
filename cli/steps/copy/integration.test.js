@@ -8,6 +8,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { execa } from 'execa'
 
 vi.mock('execa', () => ({ execa: vi.fn().mockResolvedValue({ exitCode: 0 }) }))
 vi.mock('../../utils/exec.js')
@@ -371,6 +372,19 @@ describe('skills-lock.json on update (real harness lock)', { timeout: 30000 }, (
     expect(lock.skills.own).toEqual(own)
     expect(lock.skills['user-story'].computedHash).toBe('pinned-by-project')
     expect(lock.skills['html-prototype']).toEqual(shipped.skills['html-prototype'])
+  })
+
+  // experimental_install reinstalls every locked skill at upstream HEAD: Kitchen-Sink and
+  // Odyssey each got a hundred unrelated files, and one of them failed their SAST.
+  it('installs only the skills it added, never the whole lock', async () => {
+    execa.mockClear()
+    const { 'html-prototype': _added, ...rest } = shipped.skills
+    fs.writeFileSync(lockPath(), JSON.stringify({ version: 1, skills: rest }))
+
+    await installSkills('github', 'github', { updateMode: true })
+
+    const calls = execa.mock.calls.map(([, args]) => args)
+    expect(calls).toEqual([['skills', 'add', shipped.skills['html-prototype'].source, '--skill', 'html-prototype', '--yes']])
   })
 
   it('leaves a lock that already has every shipped skill untouched', async () => {

@@ -296,7 +296,7 @@ export async function installSkills(backlogPlatform = 'github', repoPlatform, op
     const destLock = path.join(process.cwd(), 'skills-lock.json')
     if (await fse.pathExists(destLock) && (opts.updateMode || !opts.forceOverwrite)) {
       const added = opts.updateMode ? await mergeShippedSkillsLock(destLock) : []
-      if (added.length > 0) await installLockedSkills(added)
+      if (added.length > 0) await installLockedSkills(added, shippedLock())
       else info('skills-lock.json already exists, skipping')
     } else {
       await fse.copy(CONTENT_SKILLS_LOCK, destLock, { overwrite: true })
@@ -331,16 +331,32 @@ export async function mergeShippedSkillsLock(destLock) {
   return added
 }
 
-async function installLockedSkills(added) {
-  const result = await execa('npx', ['skills', 'experimental_install', '--yes'], {
-    cwd: process.cwd(),
-    reject: false,
-    stdio: 'pipe',
-    timeout: 600000,
-  })
-  if (result.exitCode !== 0) {
-    warn(`${added.join(', ')} added to skills-lock.json but not installed. Run npx skills experimental_install --yes.`)
+// One `skills add` per new entry. `experimental_install` reinstalls every locked skill at its
+// latest upstream version, which turned a one-skill update into a hundred unrelated files in
+// each project and failed their SAST on a script nobody had reviewed.
+async function installLockedSkills(added, shipped) {
+  const failed = []
+  for (const name of added) {
+    const entry = shipped.skills?.[name]
+    if (!entry?.source) {
+      failed.push(name)
+      continue
+    }
+    const result = await execa('npx', ['skills', 'add', entry.source, '--skill', name, '--yes'], {
+      cwd: process.cwd(),
+      reject: false,
+      stdio: 'pipe',
+      timeout: 600000,
+    })
+    if (result.exitCode !== 0) failed.push(name)
   }
+  if (failed.length > 0) {
+    warn(`${failed.join(', ')} added to skills-lock.json but not installed. Run npx skills add <source> --skill <name> for each.`)
+  }
+}
+
+function shippedLock() {
+  return fse.readJsonSync(CONTENT_SKILLS_LOCK)
 }
 
 export async function removeRetiredFiles(cwd = process.cwd()) {
