@@ -335,6 +335,14 @@ export async function mergeShippedSkillsLock(destLock) {
 // latest upstream version, which turned a one-skill update into a hundred unrelated files in
 // each project and failed their SAST on a script nobody had reviewed.
 async function installLockedSkills(added, shipped) {
+  // `skills add` rewrites the whole lock (its own format version, every other hash) and links
+  // each skill into .claude/skills. The project's lock already holds the new entries, so it is
+  // put back as it was, and only links that did not exist before are removed.
+  const lockPath = path.join(process.cwd(), 'skills-lock.json')
+  const lockBefore = await fse.readFile(lockPath, 'utf-8')
+  const links = added.map(name => path.join(process.cwd(), '.claude', 'skills', name))
+  const linkedBefore = new Set()
+  for (const link of links) if (await fse.pathExists(link)) linkedBefore.add(link)
   const failed = []
   for (const name of added) {
     const entry = shipped.skills?.[name]
@@ -350,9 +358,17 @@ async function installLockedSkills(added, shipped) {
     })
     if (result.exitCode !== 0) failed.push(name)
   }
+  await fse.writeFile(lockPath, lockBefore)
+  for (const link of links) if (!linkedBefore.has(link)) await fse.remove(link)
+  await removeIfEmpty(path.join(process.cwd(), '.claude', 'skills'))
+  await removeIfEmpty(path.join(process.cwd(), '.claude'))
   if (failed.length > 0) {
     warn(`${failed.join(', ')} added to skills-lock.json but not installed. Run npx skills add <source> --skill <name> for each.`)
   }
+}
+
+async function removeIfEmpty(dir) {
+  if (await fse.pathExists(dir) && (await fse.readdir(dir)).length === 0) await fse.remove(dir)
 }
 
 function shippedLock() {

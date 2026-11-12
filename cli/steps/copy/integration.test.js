@@ -387,6 +387,25 @@ describe('skills-lock.json on update (real harness lock)', { timeout: 30000 }, (
     expect(calls).toEqual([['skills', 'add', shipped.skills['html-prototype'].source, '--skill', 'html-prototype', '--yes']])
   })
 
+  // `skills add` rewrites the lock in its own format and re-hashes every skill, and links the
+  // skill into .claude/skills: neither is the project's to receive from an update.
+  it('keeps the project lock byte for byte and leaves no .claude link behind', async () => {
+    const { 'html-prototype': _added, ...rest } = shipped.skills
+    fs.writeFileSync(lockPath(), JSON.stringify({ version: 1, skills: rest }))
+    execa.mockImplementationOnce(async () => {
+      fs.writeFileSync(lockPath(), JSON.stringify({ version: 2, skills: {} }))
+      fs.mkdirSync(path.join(tmpDir, '.claude', 'skills', 'html-prototype'), { recursive: true })
+      return { exitCode: 0 }
+    })
+
+    await installSkills('github', 'github', { updateMode: true })
+
+    const lock = JSON.parse(fs.readFileSync(lockPath(), 'utf-8'))
+    expect(lock.version).toBe(1)
+    expect(Object.keys(lock.skills).sort()).toEqual(Object.keys(shipped.skills).sort())
+    expect(fs.existsSync(path.join(tmpDir, '.claude'))).toBe(false)
+  })
+
   it('leaves a lock that already has every shipped skill untouched', async () => {
     const content = `${JSON.stringify(shipped, null, 2)}\n`
     fs.writeFileSync(lockPath(), content)
