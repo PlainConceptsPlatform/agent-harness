@@ -27,6 +27,8 @@ what makes pipelines like `/plan-goal` composable.
 | Command | Description |
 | --- | --- |
 | `/plan-explore` | Think through an idea or investigate a problem before committing to a plan. |
+| `/plan-mockup <screen or flow>` | Draw a self-contained HTML mockup of a UI change from this repository's own design tokens and components, with every region mapped to the real component to build it with. States UX intent, not a spec. Can publish it to an issue, where the refine and implement workflows pick it up. |
+| `/plan-story <feature or need>` | Write a repo-aware user story from a feature idea: Gherkin acceptance criteria and an implementation plan, wrapped in the repository's issue form. Writes no files. |
 | `/plan-propose <url or idea>` | Parse a GitHub Issue, Azure DevOps, Jira or browser URL, or a direct idea, into a structured plan (proposal, specs, tasks). Enriches each task with agent and model assignments. |
 | `/plan-quick <task>` | Quick plan for focused changes. Reads the codebase, creates a task checklist in the Todo pane, and stops. No OpenSpec, no proposals, no specs. |
 | `/plan-apply` | Implement tasks from the current plan. Detects format automatically: OpenSpec-annotated tasks run as parallel subagent waves, plain checkboxes run sequentially in-session. |

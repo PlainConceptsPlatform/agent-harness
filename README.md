@@ -133,6 +133,8 @@ Commands that other commands (or agents) need to execute are thin wrappers aroun
 | `/repo-audit` | Read-only audit of every configured source root against fullstack abilities and guardrails. Reports prioritized architecture, quality, dependency, lockfile, tooling, and CI findings. |
 | `/repo-initialize` | Initialize the project. Asks greenfield versus brownfield, then activates the agent team. |
 | `/plan-explore` | Think through an idea or investigate a problem before committing to a plan. |
+| `/plan-mockup <screen or flow>` | Draw a self-contained HTML mockup of a UI change from this repository's own design tokens and components, with every region mapped to the real component to build it with. States UX intent, not a spec. Can publish it to an issue, where the refine and implement workflows pick it up. |
+| `/plan-story <feature or need>` | Write a repo-aware user story from a feature idea: Gherkin acceptance criteria and an implementation plan, wrapped in the repository's issue form. Writes no files. |
 | `/plan-propose <url or idea>` | Parse a GitHub Issue, Azure DevOps, Jira, or browser URL, or a direct idea, into a structured plan (proposal, specs, tasks). Enriches each task with agent and model assignments. |
 | `/plan-quick <task>` | Quick plan for focused changes. Reads the codebase, creates a task checklist in the Todo pane, and stops. No OpenSpec, no proposals, no specs. |
 | `/plan-apply` | Implement tasks from the current plan. Detects format automatically: OpenSpec-annotated tasks run as parallel subagent waves; plain checkboxes run sequentially in-session. |
@@ -204,6 +206,8 @@ Built-in skills (`pc-` prefix) shipped with agent-harness:
 | `pc-userstory-browser` | Parse work item from any URL via browser automation (Linear, Trello, and so on) |
 | `browser-automation` | Browser control via `browse` (user's real browser, localhost + external sites with handoffs) |
 | `pc-plan-explore` | Read-only exploration procedure behind `/plan-explore`; autonomous mode used by `/plan-goal` |
+| `pc-plan-mockup` | HTML mockup procedure behind `/plan-mockup`; autonomous mode used by the refine workflow |
+| `pc-plan-story` | User story procedure behind `/plan-story`; used by the refine workflow |
 | `pc-plan-propose` | Proposal + task-enrichment procedure behind `/plan-propose`; autonomous mode used by `/plan-goal` |
 | `pc-plan-apply` | Wave-implementation procedure behind `/plan-apply`; autonomous mode used by `/plan-goal` |
 | `pc-plan-archive` | Archive procedure behind `/plan-archive` (platform flow injected at onboarding); autonomous mode used by `/plan-goal` |

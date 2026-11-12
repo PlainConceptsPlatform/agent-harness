@@ -7,11 +7,17 @@
       "skillPath": "skills/find-skills/SKILL.md",
       "computedHash": "781bd6d3f9b19f8c9af6b53d8d0e4876d0183841b565db34ca7092ffa412d111"
     },
+    "html-prototype": {
+      "source": "plannotator/effective-html",
+      "sourceType": "github",
+      "skillPath": "skills/html-prototype/SKILL.md",
+      "computedHash": "7f82fd83b81f853e3b3f973073be4e82f93875b190f4a3f4a35b9801ace825cd"
+    },
     "user-story": {
       "source": "deanpeters/product-manager-skills",
       "sourceType": "github",
       "skillPath": "skills/user-story/SKILL.md",
-      "computedHash": "user-story-placeholder"
+      "computedHash": "d2f39a6b17e9635da6c93003029c6ade7a20c17a44b0a17bf871bb0faabb33ed"
     }
   }
 }

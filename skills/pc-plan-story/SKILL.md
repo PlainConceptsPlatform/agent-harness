@@ -49,7 +49,9 @@ The caller may pass exploration findings from a prior `/plan-explore` session. T
 
    *Fill:* Draw every field's content from your exploration findings. Required fields always get real content; optional fields only when you genuinely have something for them. The story narrative lands in the field that asks for it — proposal, description, or what-happened, depending on the form. The Given/When/Then scenarios go into the form's acceptance-criteria field when it has one; otherwise they stay a section of their own. The Mermaid diagram goes where it reads best inside the filled form.
 
-9. **Plan section.** Using the codebase investigation from step 3, produce a structured implementation plan that goes after the story inside the issue form body. Format it as follows:
+9. **UX section.** When this conversation produced a mockup with `/plan-mockup` (its `.mockups/<slug>/mockup.json`), or the issue already links one, add a short UX section inside the filled form: the mockup's title, where it lives, its component table (section, element, component, path) and the line `UX mockup: intent, not a spec. Build with the components listed.` Acceptance scenarios describe behaviour, never pixels, so none of them may say "matches the mockup". When the story touches the UI and there is no mockup, offer `/plan-mockup` in step 11.
+
+10. **Plan section.** Using the codebase investigation from step 3, produce a structured implementation plan that goes after the story inside the issue form body. Format it as follows:
 
    Start with a one-line scope summary, then a context paragraph describing what areas the plan touches, how many changes it breaks into, and whether the changes are independent.
 
@@ -72,7 +74,7 @@ The caller may pass exploration findings from a prior `/plan-explore` session. T
 
    Do not write any files. The plan is part of the story output, read-only. It tells the implementer what to touch and why, so they can start without re-investigating.
 
-10. Show the story with the issue form wrapping, the plan, and the artefacts it is grounded in, then ask what is next. If the plan has an open clarification — a wording choice, a missing constraint, an unknown API — ask it before the contracts question.
+11. Show the story with the issue form wrapping, the plan, and the artefacts it is grounded in, then ask what is next. If the plan has an open clarification — a wording choice, a missing constraint, an unknown API — ask it before the contracts question.
 
 ## Contracts
 
@@ -85,6 +87,7 @@ The caller may pass exploration findings from a prior `/plan-explore` session. T
       "options": [
         { "label": "/plan-propose", "description": "Turn this user story into a full OpenSpec proposal with design, specs, and tasks." },
         { "label": "/plan-quick", "description": "Create a lightweight task checklist from this story." },
+        { "label": "/plan-mockup", "description": "Draw the UI this story describes before planning it. Offered when the story touches the UI and has no mockup yet." },
         { "label": "Refine the story", "description": "Iterate on the story with feedback." }
       ]
     }

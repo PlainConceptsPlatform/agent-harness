@@ -1,7 +1,8 @@
+import { execa } from 'execa'
 import fse from 'fs-extra'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { info, success } from '../../utils/exec.js'
+import { info, success, warn } from '../../utils/exec.js'
 import { canUpdateManagedFile, readUpdateManifest, recordManagedFile, writeUpdateManifest } from '../../utils/update-manifest.js'
 import { RETIRED_PATHS } from '../../utils/paths.js'
 
@@ -294,7 +295,9 @@ export async function installSkills(backlogPlatform = 'github', repoPlatform, op
   if (await fse.pathExists(CONTENT_SKILLS_LOCK)) {
     const destLock = path.join(process.cwd(), 'skills-lock.json')
     if (await fse.pathExists(destLock) && (opts.updateMode || !opts.forceOverwrite)) {
-      info('skills-lock.json already exists, skipping')
+      const added = opts.updateMode ? await mergeShippedSkillsLock(destLock) : []
+      if (added.length > 0) await installLockedSkills(added)
+      else info('skills-lock.json already exists, skipping')
     } else {
       await fse.copy(CONTENT_SKILLS_LOCK, destLock, { overwrite: true })
       success(`${opts.forceOverwrite ? 'Updated' : 'Installed'} skills-lock.json`)
@@ -304,6 +307,40 @@ export async function installSkills(backlogPlatform = 'github', repoPlatform, op
   // npx skills experimental_install is now called once at the end of the
   // optimization step, after the user has selected which tools to enable.
   // This avoids multiple npx skills add calls during onboarding.
+}
+
+// A project's skills-lock.json is its own: it holds the skills the wizard and
+// /make-engineer added. Replacing it on update would drop those, and skipping it
+// meant a third-party skill the harness starts shipping never reached a project
+// installed before that release. So update adds only the entries it lacks.
+export async function mergeShippedSkillsLock(destLock) {
+  const shipped = await fse.readJson(CONTENT_SKILLS_LOCK)
+  let lock
+  try {
+    lock = await fse.readJson(destLock)
+  } catch {
+    warn('Could not parse skills-lock.json, leaving it as it is')
+    return []
+  }
+  lock.skills ??= {}
+  const added = Object.keys(shipped.skills ?? {}).filter(name => !lock.skills[name])
+  if (added.length === 0) return []
+  for (const name of added) lock.skills[name] = shipped.skills[name]
+  await fse.writeJson(destLock, lock, { spaces: 2 })
+  success(`Added to skills-lock.json: ${added.join(', ')}`)
+  return added
+}
+
+async function installLockedSkills(added) {
+  const result = await execa('npx', ['skills', 'experimental_install', '--yes'], {
+    cwd: process.cwd(),
+    reject: false,
+    stdio: 'pipe',
+    timeout: 600000,
+  })
+  if (result.exitCode !== 0) {
+    warn(`${added.join(', ')} added to skills-lock.json but not installed. Run npx skills experimental_install --yes.`)
+  }
 }
 
 export async function removeRetiredFiles(cwd = process.cwd()) {

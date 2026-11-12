@@ -357,6 +357,40 @@ describe('update refreshes marker skills but keeps project-owned content', { tim
 
 })
 
+describe('skills-lock.json on update (real harness lock)', { timeout: 30000 }, () => {
+  const lockPath = () => path.join(tmpDir, 'skills-lock.json')
+  const shipped = JSON.parse(fs.readFileSync(path.join(CONTENT_DIR, 'skills-lock.json'), 'utf-8'))
+
+  it('adds the shipped skills a project lacks and keeps its own', async () => {
+    const own = { source: 'acme/skills', sourceType: 'github', skillPath: 'skills/own/SKILL.md', computedHash: 'own' }
+    fs.writeFileSync(lockPath(), JSON.stringify({ version: 1, skills: { own, 'user-story': { ...shipped.skills['user-story'], computedHash: 'pinned-by-project' } } }))
+
+    await installSkills('github', 'github', { updateMode: true })
+
+    const lock = JSON.parse(fs.readFileSync(lockPath(), 'utf-8'))
+    expect(lock.skills.own).toEqual(own)
+    expect(lock.skills['user-story'].computedHash).toBe('pinned-by-project')
+    expect(lock.skills['html-prototype']).toEqual(shipped.skills['html-prototype'])
+  })
+
+  it('leaves a lock that already has every shipped skill untouched', async () => {
+    const content = `${JSON.stringify(shipped, null, 2)}\n`
+    fs.writeFileSync(lockPath(), content)
+
+    await installSkills('github', 'github', { updateMode: true })
+
+    expect(fs.readFileSync(lockPath(), 'utf-8')).toBe(content)
+  })
+
+  it('does not merge outside update mode', async () => {
+    fs.writeFileSync(lockPath(), JSON.stringify({ version: 1, skills: {} }))
+
+    await installSkills('github', 'github')
+
+    expect(JSON.parse(fs.readFileSync(lockPath(), 'utf-8')).skills).toEqual({})
+  })
+})
+
 describe('resolvePlatform accepts every platforms.json value', { timeout: 30000 }, () => {
   it.each(['github', 'azure', 'jira', 'gitlab', 'browser', 'none'])('keeps %s', value => {
     expect(resolvePlatform(value)).toBe(value)

@@ -10,6 +10,7 @@ Explore, then hand back what you learned. `@openspec-explore` supplies the stanc
 
 - Never write, edit, or create a file while this skill is loaded, OpenSpec artifacts included. This overrides `@openspec-explore`, which says creating them is "fine". Reading, searching, and discussing are the whole job.
 - If the conversation turns toward implementation, say explore mode is active and point at `/plan-apply`.
+- When the idea changes what someone sees on screen, point at `/plan-mockup` once the direction is settled: a picture settles layout questions faster than prose.
 
 Load `@openspec-explore` for the approach.
 

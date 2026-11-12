@@ -19,7 +19,7 @@ A guided tour of this repository and the harness installed in it, for somebody w
 
    | Group | Commands |
    |---|---|
-   | Planning | `/plan-explore`, `/plan-story`, `/plan-propose`, `/plan-quick`, `/plan-goal` |
+   | Planning | `/plan-explore`, `/plan-mockup`, `/plan-story`, `/plan-propose`, `/plan-quick`, `/plan-goal` |
    | Implementation | `/plan-apply`, `/plan-archive` |
    | Maintenance | `/make-architecture`, `/make-design`, `/make-engineer`, `/make-guardrails` |
    | Shipping | `/ops-ship`, `/ops-review`, `/ops-backlog` |
