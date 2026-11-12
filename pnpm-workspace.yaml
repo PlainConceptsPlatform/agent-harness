@@ -5,3 +5,4 @@ allowBuilds:
   sharp: true
 minimumReleaseAgeExclude:
   - '@plainconceptsplatform/ui-theme@0.1.0'
+  - '@plainconceptsplatform/ui-components@1.11.0'

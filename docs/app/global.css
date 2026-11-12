@@ -10,6 +10,7 @@
 
 /* Let Tailwind scan Fumadocs UI so its classes are generated. */
 @source "../node_modules/fumadocs-ui/dist/**/*.js";
+@source "../node_modules/@plainconceptsplatform/ui-components/dist/**/*.js";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
