@@ -179,6 +179,25 @@ describe("check-diff on platform files", { timeout: 30000 }, () => {
     expect(repo.run().status).toBe(0)
   })
 
+  it("leaves a template sync's owned files out of the budgets, but not the template's own", () => {
+    const comments = Array.from({ length: 40 }, (_, i) => `// note ${i}`).join("\n")
+    const helper = `${comments}\nexport const helper = 1\n`
+
+    const app = fixture()
+    app.write("apps/api/src/Platform/helper.ts", helper)
+    app.write(".template-answers.yml", "version: v1.1.0\n")
+    const synced = app.run()
+    expect(synced.status).toBe(0)
+    expect(synced.output).toContain("1 platform file left out of the budgets (owned by the template)")
+
+    const template = fixture()
+    template.git("remote", "add", "origin", "git@github.com:Acme/App-Template.git")
+    template.write("apps/api/src/Platform/helper.ts", helper)
+    const authored = template.run()
+    expect(authored.status).toBe(1)
+    expect(authored.output).toContain("comment-budget")
+  })
+
   it("fails with one clear error on an invalid contract", () => {
     const { status, output } = fixture({ contract: "version: 2\n" }).run()
 

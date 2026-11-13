@@ -238,6 +238,21 @@ export function reuseWarnings(root, base, paths, contract) {
   })
 }
 
+// In an app, an owned file changes only through a template sync or an exception: its lines were
+// written and budgeted in the template, so they stay out of this repository's budgets.
+export function budgetedFiles(root, files) {
+  let contract
+  try {
+    contract = loadContract(root)
+  } catch (error) {
+    if (!(error instanceof ContractError)) throw error
+    return { files, platform: 0 }
+  }
+  if (!contract || isTemplateSource(root, contract)) return { files, platform: 0 }
+  const kept = files.filter(file => !isOwned(contract, file.path))
+  return { files: kept, platform: files.length - kept.length }
+}
+
 function platformFindings(root, base, paths) {
   try {
     const contract = loadContract(root)
@@ -264,6 +279,7 @@ function report(result, base) {
     `check-diff against ${base.ref} (${base.base.slice(0, 7)}): ${violations.length === 0 ? 'clean' : `${violations.length} problem${violations.length === 1 ? '' : 's'}`}`,
     `  code lines added ${totals.sourceCode}, comment lines ${totals.comments}/${budgets.comments}, test lines ${totals.testLines}/${budgets.testLines}, test cases ${totals.cases}/${budgets.cases}`,
   ]
+  if (result.platformFiles) lines.push(`  ${result.platformFiles} platform file${result.platformFiles === 1 ? '' : 's'} left out of the budgets (owned by the template)`)
   const byRule = new Map()
   for (const v of [...violations, ...(result.warnings ?? [])]) byRule.set(v.rule, [...(byRule.get(v.rule) ?? []), v])
   for (const [rule, list] of byRule) {
@@ -294,7 +310,9 @@ function main(argv) {
   }
   const limits = readLimits(root)
   const paths = option('paths')?.split(',').map(p => p.trim()).filter(Boolean)
-  const result = evaluate(scope(collect(root, base.base), paths), limits, trackedFiles(root, limits.complexityBaseline))
+  const budgeted = budgetedFiles(root, scope(collect(root, base.base), paths))
+  const result = evaluate(budgeted.files, limits, trackedFiles(root, limits.complexityBaseline))
+  if (budgeted.platform) result.platformFiles = budgeted.platform
   const platform = platformFindings(root, base.base, paths)
   result.violations.push(...platform.violations)
   if (platform.warnings.length) result.warnings = platform.warnings

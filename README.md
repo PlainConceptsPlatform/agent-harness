@@ -331,6 +331,8 @@ It also warns, without failing, on a new file named like something the contract 
 
 A tool directive (`nosemgrep`, `biome-ignore`, `eslint-disable`, `@ts-expect-error`, coverage ignores) is not a comment and costs nothing. Code added to a file that has methods in the complexity baseline (`scripts/complexity-baseline.json`, keys `path::method`) counts twice toward the test budget: that gate fails a method whose coverage drops, so its new branches need tests.
 
+In an app, the files the platform contract says a template owns stay out of the budgets: they change only through a template sync or an exception, and their lines were budgeted in the template's own repository, where they still count. The report says how many it left out.
+
 `pc-plan-apply` runs it with the other checks, and the workflows run it before a bot pull request can merge. A project changes the limits in `.opencode/harness.json`:
 
 ```json
