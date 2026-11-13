@@ -1,6 +1,7 @@
 import fse from 'fs-extra'
 import path from 'path'
 import { canUpdateManagedFile, hashComparableFile, readUpdateManifest, recordManagedFile, writeUpdateManifest } from './update-manifest.js'
+import { warn } from './exec.js'
 
 // Folders never copied (skills handled separately by installSkills, .bootstrap is internal tooling)
 const ALWAYS_EXCLUDE = ['.bootstrap', 'skills', 'node_modules']
@@ -82,7 +83,13 @@ export async function copyContent(contentDir, destDir, platform, ctx = {}) {
       if (!isManagedContentPath(rel)) {
         return !(await fse.pathExists(path.join(destDir, rel)))
       }
-      return canUpdateManagedFile(rel, destDir, manifest)
+      if (await canUpdateManagedFile(rel, destDir, manifest)) return true
+      // Kept because the project changed it, or because it predates the manifest. Said out loud: a
+      // script kept in silence stayed several versions behind in two projects, its fixes never arriving.
+      if (await hashComparableFile(src) !== await hashComparableFile(path.join(destDir, rel))) {
+        warn(`Kept ${rel}: it differs from this version's, and the update does not overwrite a file the project changed. Compare it with the package's and take the new one where the change is not the project's own.`)
+      }
+      return false
     },
   })
 
