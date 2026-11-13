@@ -240,10 +240,33 @@ describe('copy utils', () => {
       await fse.ensureDir(path.dirname(destinationPath))
       await fse.writeFile(destinationPath, 'user customization')
       await writeUpdateManifest({ files: { '.opencode/plugins/monitor.js': 'hash-of-v1' } }, dest)
+      const warning = vi.spyOn(console, 'log').mockImplementation(() => {})
 
-      await copyContent(src, dest, 'github', { updateMode: true })
+      try {
+        await copyContent(src, dest, 'github', { updateMode: true })
 
-      expect(await fse.readFile(destinationPath, 'utf-8')).toBe('user customization')
+        expect(await fse.readFile(destinationPath, 'utf-8')).toBe('user customization')
+        expect(warning).toHaveBeenCalledWith(expect.stringContaining('Kept .opencode/plugins/monitor.js'))
+      } finally {
+        warning.mockRestore()
+      }
+    })
+
+    it('keeps a file that predates the manifest without a word when it already matches the source', async () => {
+      const sourcePath = path.join(src, '.opencode', 'plugins', 'monitor.js')
+      const destinationPath = path.join(dest, '.opencode', 'plugins', 'monitor.js')
+      await fse.outputFile(sourcePath, 'v2')
+      await fse.outputFile(destinationPath, 'v2')
+      await writeUpdateManifest({ files: {} }, dest)
+      const warning = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+      try {
+        await copyContent(src, dest, 'github', { updateMode: true })
+
+        expect(warning).not.toHaveBeenCalled()
+      } finally {
+        warning.mockRestore()
+      }
     })
 
     it('does not overwrite existing unmanaged files during update', async () => {
