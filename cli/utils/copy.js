@@ -57,7 +57,7 @@ export function isManagedContentPath(relativePath) {
  * @param {string} contentDir - absolute path to content/
  * @param {string} destDir - absolute path to destination (project root)
  * @param {'azure'|'github'} platform
- * @param {{ hasDesign?: boolean, hasArchitecture?: boolean, updateMode?: boolean }} ctx
+ * @param {{ hasDesign?: boolean, hasArchitecture?: boolean, updateMode?: boolean, forceOverwrite?: boolean }} ctx
  */
 export async function copyContent(contentDir, destDir, platform, ctx = {}) {
   const manifest = ctx.updateMode ? await readUpdateManifest(destDir) : null
@@ -85,6 +85,30 @@ export async function copyContent(contentDir, destDir, platform, ctx = {}) {
       return canUpdateManagedFile(rel, destDir, manifest)
     },
   })
+
+  if (ctx.updateMode) {
+    const retiredHelper = '.opencode/plugins/pc-subagent-tiers-core.js'
+    const retiredPath = path.join(destDir, retiredHelper)
+    if (await fse.pathExists(retiredPath)) {
+      const consumers = ['.opencode/plugins/pc-subagent-tiers.js', '.opencode/scripts/sync-agents.mjs']
+      const consumersUpdated = (await Promise.all(consumers.map(async relativePath => {
+        const sourcePath = path.join(contentDir, relativePath)
+        const destinationPath = path.join(destDir, relativePath)
+        return await fse.pathExists(sourcePath) && await fse.pathExists(destinationPath)
+          && await hashComparableFile(sourcePath) === await hashComparableFile(destinationPath)
+      }))).every(Boolean)
+
+      if (consumersUpdated && await canUpdateManagedFile(retiredHelper, destDir, manifest)) {
+        await fse.remove(retiredPath)
+        delete manifest.files[retiredHelper]
+        await writeUpdateManifest(manifest, destDir)
+      } else {
+        console.warn(
+          `Preserved ${retiredHelper}: customized or unmanaged files need manual migration to .opencode/scripts/pc-subagent-tiers-core.js.`,
+        )
+      }
+    }
+  }
 }
 
 export async function recordManagedContent(contentDir, destDir, { updateMode = false } = {}) {

@@ -1,11 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import path from 'path'
 import os from 'os'
 import fse from 'fs-extra'
 
 // Use real fs-extra for file system tests (temp dirs)
 import { copyContent, findAiFiles } from './copy.js'
-import { hashFile, writeUpdateManifest } from './update-manifest.js'
+import { hashFile, readUpdateManifest, writeUpdateManifest } from './update-manifest.js'
 
 const tmpDir = () => fse.mkdtempSync(path.join(os.tmpdir(), 'pc-test-'))
 const aiFiles = [
@@ -196,6 +196,42 @@ describe('copy utils', () => {
       expect(await fse.readFile(destinationPath, 'utf-8')).toBe('v2')
     })
 
+    it.each(['unchanged', 'modified', 'unmanaged', 'customized consumer'])('migrates the tiers helper safely for an %s installation', async state => {
+      const oldHelper = '.opencode/plugins/pc-subagent-tiers-core.js'
+      const newHelper = '.opencode/scripts/pc-subagent-tiers-core.js'
+      const consumers = ['.opencode/plugins/pc-subagent-tiers.js', '.opencode/scripts/sync-agents.mjs']
+      await fse.outputFile(path.join(src, newHelper), 'export const generateAgents = () => {}')
+      await fse.outputFile(path.join(dest, oldHelper), 'original helper')
+      const files = { [oldHelper]: await hashFile(path.join(dest, oldHelper)) }
+      for (const relativePath of consumers) {
+        await fse.outputFile(path.join(src, relativePath), 'new helper import')
+        await fse.outputFile(path.join(dest, relativePath), 'old helper import')
+        files[relativePath] = await hashFile(path.join(dest, relativePath))
+      }
+      if (state === 'modified') await fse.writeFile(path.join(dest, oldHelper), 'custom helper')
+      if (state === 'unmanaged') delete files[oldHelper]
+      if (state === 'customized consumer') await fse.writeFile(path.join(dest, consumers[0]), 'custom plugin')
+      await writeUpdateManifest({ files }, dest)
+      const warning = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      try {
+        await copyContent(src, dest, 'github', { updateMode: true })
+
+        expect(await fse.readFile(path.join(dest, newHelper), 'utf-8')).toBe('export const generateAgents = () => {}')
+        expect(await fse.pathExists(path.join(dest, oldHelper))).toBe(state !== 'unchanged')
+        if (state === 'unchanged') {
+          expect((await readUpdateManifest(dest)).files[oldHelper]).toBeUndefined()
+          expect(warning).not.toHaveBeenCalled()
+          await copyContent(src, dest, 'github', { updateMode: true })
+          expect(await fse.pathExists(path.join(dest, oldHelper))).toBe(false)
+        } else {
+          expect(await fse.readFile(path.join(dest, oldHelper), 'utf-8')).toBe(state === 'modified' ? 'custom helper' : 'original helper')
+          expect(warning).toHaveBeenCalledWith(expect.stringContaining('manual migration'))
+        }
+      } finally {
+        warning.mockRestore()
+      }
+    })
     it('preserves a modified managed file during update', async () => {
       const sourcePath = path.join(src, '.opencode', 'plugins', 'monitor.js')
       const destinationPath = path.join(dest, '.opencode', 'plugins', 'monitor.js')

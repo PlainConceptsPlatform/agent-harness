@@ -4,7 +4,7 @@
 // enum includes them from the first turn. Local users can run it too.
 
 import path from "node:path";
-import { generateAgents } from "../plugins/pc-subagent-tiers-core.js";
+import { generateAgents } from "./pc-subagent-tiers-core.js";
 
 const args = process.argv.slice(2);
 const rootIndex = args.indexOf("--root");

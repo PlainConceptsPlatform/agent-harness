@@ -5,7 +5,7 @@
 // before OpenCode builds its task enum.
 
 import { Plugin, Model } from "@opencode/plugin";
-import { PRIMARIES, generateAgents } from "./pc-subagent-tiers-core.js";
+import { PRIMARIES, generateAgents } from "../scripts/pc-subagent-tiers-core.js";
 
 export default Plugin.define({
   id: "pc.subagent-tiers",
