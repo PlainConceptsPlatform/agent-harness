@@ -62,6 +62,10 @@ function walkMd(dir) {
 }
 
 describe("OpenCode config template", () => {
+  it("keeps the shared tiers helper outside plugin discovery", () => {
+    expect(fs.existsSync(path.join(CONTENT_DIR, ".opencode", "scripts", "pc-subagent-tiers-core.js"))).toBe(false)
+    expect(fs.existsSync(path.join(CONTENT_DIR, ".opencode", "scripts", "pc-subagent-tiers-core.js"))).toBe(true)
+  })
   it("ships the project config as root JSONC", () => {
     expect(fs.existsSync(path.join(CONTENT_DIR, "opencode.jsonc"))).toBe(true)
     expect(fs.existsSync(path.join(CONTENT_DIR, ".opencode", "opencode.json"))).toBe(false)
