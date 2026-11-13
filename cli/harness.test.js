@@ -63,9 +63,10 @@ function walkMd(dir) {
 
 describe("OpenCode config template", () => {
   it("keeps the shared tiers helper outside plugin discovery", () => {
-    expect(fs.existsSync(path.join(CONTENT_DIR, ".opencode", "scripts", "pc-subagent-tiers-core.js"))).toBe(false)
+    expect(fs.existsSync(path.join(CONTENT_DIR, ".opencode", "plugins", "pc-subagent-tiers-core.js"))).toBe(false)
     expect(fs.existsSync(path.join(CONTENT_DIR, ".opencode", "scripts", "pc-subagent-tiers-core.js"))).toBe(true)
   })
+
   it("ships the project config as root JSONC", () => {
     expect(fs.existsSync(path.join(CONTENT_DIR, "opencode.jsonc"))).toBe(true)
     expect(fs.existsSync(path.join(CONTENT_DIR, ".opencode", "opencode.json"))).toBe(false)
@@ -124,7 +125,7 @@ describe("OpenCode config template", () => {
   })
 
   it("denies edit and subagent for the plan primary", () => {
-    const tiers = fs.readFileSync(path.join(CONTENT_DIR, ".opencode", "plugins", "pc-subagent-tiers-core.js"), "utf-8")
+    const tiers = fs.readFileSync(path.join(CONTENT_DIR, ".opencode", "scripts", "pc-subagent-tiers-core.js"), "utf-8")
     const config = parseJsonc(fs.readFileSync(path.join(CONTENT_DIR, "opencode.jsonc"), "utf-8"))
 
     // Read-only has to include spawning: a plan session that can launch a build
