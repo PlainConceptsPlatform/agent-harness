@@ -91,11 +91,11 @@ describe("PcSubagentTiers primaries", () => {
     expect(frontmatter("build.md")).not.toContain("effect: deny")
   })
 
-  it("gives build and plan their reserved theme colours", async () => {
+  it("emits valid hex colours for primary agents", async () => {
     await run()
 
-    expect(frontmatter("build.md")).toContain("color: primary")
-    expect(frontmatter("plan.md")).toContain("color: warning")
+    expect(frontmatter("build.md")).toMatch(/color: "#[0-9A-F]{6}"/)
+    expect(frontmatter("plan.md")).toMatch(/color: "#[0-9A-F]{6}"/)
   })
 
   it("generates planner on the plan tier, selectable and spawnable, able to edit but not spawn", async () => {
@@ -131,6 +131,16 @@ describe("PcSubagentTiers primaries", () => {
       for (const line of resources) expect(line, `${name}: ${line}`).toMatch(/^\s+resource:\s+"[^"]+"\s*$/)
     }
     expect(frontmatter("planner-sub.md").split(/\r?\n/).filter((l) => /^\s+resource:/.test(l))).toHaveLength(1)
+  })
+
+  it("generates quoted descriptions and six-digit hex colors in every agent header", async () => {
+    await run()
+
+    for (const name of ["build.md", "plan.md", "planner.md", "planner-sub.md", "fullstack-engineer.md"]) {
+      const fm = frontmatter(name)
+      expect(fm, name).toMatch(/^description: "[^\n]*"$/m)
+      expect(fm, name).toMatch(/^color: "#[0-9A-F]{6}"$/m)
+    }
   })
 
   it("skips the primaries when fullstack-engineer.md is absent", async () => {
