@@ -23,14 +23,12 @@ export const FULLSTACK_TEMPLATE = `${FULLSTACK_NAME}.md`;
 export const PRIMARIES = {
   build: {
     tier: "build",
-    color: "primary",
     description:
       "Implement changes in this repository. Full write access, spawns specialist engineers for parallel work.",
     permissions: null,
   },
   plan: {
     tier: "plan",
-    color: "warning",
     description:
       "Explore and plan without touching the tree. Read-only: proposes work for build to carry out.",
     permissions: [
@@ -41,14 +39,11 @@ export const PRIMARIES = {
   planner: {
     tier: "plan",
     mode: "all",
-    color: "info",
     description:
       "Write plans, proposals, stories, reviews and archives on the plan model. Edits the tree, never spawns workers.",
     permissions: [{ action: "subagent", resource: "*", effect: "deny" }],
   },
 };
-
-const THEME_COLORS = new Set(["primary", "secondary", "accent", "success", "warning", "error", "info"]);
 
 const LEGACY_FIELDS = [
   "model",
@@ -90,13 +85,12 @@ function agentColor(name) {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
 }
 
-function shouldDeriveColor(current) {
-  if (!current) return true;
-  return THEME_COLORS.has(current.trim().toLowerCase());
+function yamlColor(value) {
+  return JSON.stringify(value);
 }
 
-function yamlColor(value) {
-  return value.startsWith("#") ? `"${value}"` : value;
+function yamlString(value) {
+  return JSON.stringify(value);
 }
 
 function unquoteColor(raw) {
@@ -134,6 +128,12 @@ function setScalar(frontmatter, key, value) {
   return lines.join("\n");
 }
 
+function quoteDescription(frontmatter) {
+  const raw = frontmatter.match(/^description:\s*(.*)$/m)?.[1]?.trim();
+  if (!raw || /^(".*"|'.*')$/.test(raw)) return frontmatter;
+  return setScalar(frontmatter, "description", yamlString(raw));
+}
+
 function permissionsYaml(permissions) {
   return [
     "permissions:",
@@ -149,7 +149,7 @@ function permissionsYaml(permissions) {
 
 function colorLineFor(name, rawCurrent) {
   const current = unquoteColor(rawCurrent);
-  const target = shouldDeriveColor(current) ? agentColor(name) : current;
+  const target = /^#[0-9A-F]{6}$/i.test(current) ? current.toUpperCase() : agentColor(name);
   const rendered = yamlColor(target);
   return (rawCurrent ?? "").trim() === rendered ? null : `color: ${rendered}`;
 }
@@ -160,6 +160,7 @@ function normalizeTemplate(content, name) {
     return `---\nmode: subagent\ncolor: ${yamlColor(agentColor(name))}\n---\n\n${content}`;
   }
   let fm = stripLegacyFields(frontmatter);
+  fm = quoteDescription(fm);
   fm = setScalar(fm, "mode", "subagent");
   const colorLine = colorLineFor(name, fm.match(/^color:\s*(.+)$/m)?.[1]);
   if (colorLine) fm = setScalar(fm, "color", colorLine.slice("color: ".length));
@@ -178,11 +179,11 @@ function buildVariant(templateContent, model) {
   return `---\n${fm}\n---\n${body}`;
 }
 
-function buildPrimary(spec, fullstackContent, model) {
+function buildPrimary(name, spec, fullstackContent, model) {
   const { body } = splitFrontmatter(fullstackContent);
-  const lines = ["---", `description: ${spec.description}`, `mode: ${spec.mode ?? "primary"}`];
+  const lines = ["---", `description: ${yamlString(spec.description)}`, `mode: ${spec.mode ?? "primary"}`];
   if (model) lines.push(`model: ${model}`);
-  lines.push(`color: ${yamlColor(spec.color)}`);
+  lines.push(`color: ${yamlColor(agentColor(name))}`);
   if (spec.permissions) lines.push(permissionsYaml(spec.permissions));
   lines.push("---");
   return `${lines.join("\n")}\n\n${body.trim()}\n`;
@@ -192,7 +193,7 @@ function buildPlannerSub(fullstackContent, model) {
   const { body } = splitFrontmatter(fullstackContent);
   const lines = [
     "---",
-    "description: Spawnable planner alias for the task tool. Uses the plan model and cannot spawn workers.",
+    `description: ${yamlString("Spawnable planner alias for the task tool. Uses the plan model and cannot spawn workers.")}`,
     "mode: subagent",
   ];
   if (model) lines.push(`model: ${model}`);
@@ -282,7 +283,7 @@ export async function generateAgents({ root, writeManifest = true } = {}) {
     if (fullstack !== rawFullstack) await writeIfChanged(fullstackPath, fullstack);
 
     for (const [name, spec] of Object.entries(PRIMARIES)) {
-      await writeIfChanged(path.join(agentsDir, `${name}.md`), buildPrimary(spec, fullstack, models[spec.tier]));
+      await writeIfChanged(path.join(agentsDir, `${name}.md`), buildPrimary(name, spec, fullstack, models[spec.tier]));
       manifest.agents[name] = {
         file: `${name}.md`,
         mode: spec.mode ?? "primary",
