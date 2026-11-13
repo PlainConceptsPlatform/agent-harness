@@ -139,7 +139,9 @@ function permissionsYaml(permissions) {
     "permissions:",
     ...permissions.flatMap((p) => [
       `  - action: ${p.action}`,
-      `    resource: ${p.resource}`,
+      // Quoted on purpose: a bare `*` is a YAML alias, so `resource: *` fails to parse and opencode then drops
+      // the whole frontmatter, including `mode`, and refuses to spawn the agent ("cannot run as a subagent").
+      `    resource: ${JSON.stringify(p.resource)}`,
       `    effect: ${p.effect}`,
     ]),
   ].join("\n");

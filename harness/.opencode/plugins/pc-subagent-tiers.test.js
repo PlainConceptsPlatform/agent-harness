@@ -105,7 +105,7 @@ describe("PcSubagentTiers primaries", () => {
     expect(agent("planner.md")).toContain("You are the default engineer.")
     expect(fm).toContain("mode: all")
     expect(fm).toContain("model: p/plan")
-    expect(fm).toMatch(/- action: subagent\s+resource: \*\s+effect: deny/)
+    expect(fm).toMatch(/- action: subagent\s+resource: "\*"\s+effect: deny/)
     expect(fm).not.toContain("action: edit")
   })
 
@@ -117,8 +117,20 @@ describe("PcSubagentTiers primaries", () => {
     expect(fm).toContain("mode: subagent")
     expect(fm).toContain("model: p/plan")
     expect(fm).toContain("hidden: true")
-    expect(fm).toMatch(/- action: subagent\s+resource: \*\s+effect: deny/)
+    expect(fm).toMatch(/- action: subagent\s+resource: "\*"\s+effect: deny/)
     expect(fm).not.toContain("action: edit")
+  })
+
+  it("quotes every permission resource, so the frontmatter parses and opencode keeps the agent's mode", async () => {
+    await run()
+
+    // `resource: *` is a YAML alias, not a string: the frontmatter fails to parse, opencode loses `mode`, and
+    // treats the agent as primary, which the task tool refuses to spawn ("cannot run as a subagent").
+    for (const name of ["plan.md", "build.md", "planner.md", "planner-sub.md"]) {
+      const resources = frontmatter(name).split(/\r?\n/).filter((line) => /^\s+resource:/.test(line))
+      for (const line of resources) expect(line, `${name}: ${line}`).toMatch(/^\s+resource:\s+"[^"]+"\s*$/)
+    }
+    expect(frontmatter("planner-sub.md").split(/\r?\n/).filter((l) => /^\s+resource:/.test(l))).toHaveLength(1)
   })
 
   it("skips the primaries when fullstack-engineer.md is absent", async () => {
