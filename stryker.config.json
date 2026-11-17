@@ -1,9 +1,9 @@
 {
   "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
-  "_comment": "Weekly mutation run (.github/workflows/quality-mutation.yml), never on an ordinary pull request. Mutates the modules that have a colocated unit test. thresholds.break is the gate: the run fails below it. It sits just under the score measured when the gate was added and only moves up.",
+  "_comment": "Weekly mutation run (.github/workflows/quality-mutation.yml), never on an ordinary pull request. Mutates the modules that have a colocated unit test, except the OpenCode plugins (the template tests read their source as text, which instrumentation changes) and cli/commands/shared.js (its suite calls process.chdir(), which Stryker's threads pool does not support; see vitest.stryker.config.js). thresholds.break is the gate: the run fails below it. It sits just under the score measured when the gate was added and only moves up.",
   "testRunner": "vitest",
   "vitest": {
-    "configFile": "vitest.config.js"
+    "configFile": "vitest.stryker.config.js"
   },
   "plugins": [
     "@stryker-mutator/vitest-runner"
@@ -11,7 +11,6 @@
   "coverageAnalysis": "perTest",
   "mutate": [
     "cli/commands/migrate.js",
-    "cli/commands/shared.js",
     "cli/commands/update.js",
     "cli/steps/copy/agents.js",
     "cli/steps/copy/commands.js",
@@ -30,10 +29,6 @@
     "cli/utils/legacy-check.js",
     "cli/utils/models-pricing.js",
     "cli/utils/update-manifest.js",
-    "harness/.opencode/plugins/pc-commit-coauthor.js",
-    "harness/.opencode/plugins/pc-subagent-monitor.js",
-    "harness/.opencode/plugins/pc-subagent-tiers.js",
-    "harness/.opencode/plugins/pc-system-reminders.js",
     "harness/.opencode/scripts/harness-doctor.mjs"
   ],
   "ignoreStatic": true,
