@@ -64,10 +64,14 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
+    "@stryker-mutator/core": "9.6.1",
+    "@stryker-mutator/vitest-runner": "9.6.1",
+    "@vitest/coverage-v8": "4.1.12",
     "eslint": "^9.0.0",
     "globals": "^15.0.0",
+    "jscpd": "4.3.0",
     "markdownlint-cli2": "0.23.2",
-    "vitest": "^4.1.5"
+    "vitest": "^4.1.12"
   },
   "vitest": {
     "environment": "node"

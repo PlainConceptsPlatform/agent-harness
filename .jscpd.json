@@ -1,0 +1,12 @@
+{
+  "path": ["cli", "harness", "skills"],
+  "format": ["javascript"],
+  "minLines": 10,
+  "minTokens": 70,
+  "mode": "mild",
+  "reporters": ["console"],
+  "gitignore": true,
+  "noTips": true,
+  "ignore": ["**/node_modules/**", "**/*.test.js", "**/*.test.mjs"],
+  "threshold": 0.3
+}

@@ -1,0 +1,56 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "_comment": "Weekly mutation run (.github/workflows/quality-mutation.yml), never on an ordinary pull request. Mutates the modules that have a colocated unit test. thresholds.break is the gate: the run fails below it. It sits just under the score measured when the gate was added and only moves up.",
+  "testRunner": "vitest",
+  "vitest": {
+    "configFile": "vitest.config.js"
+  },
+  "plugins": [
+    "@stryker-mutator/vitest-runner"
+  ],
+  "coverageAnalysis": "perTest",
+  "mutate": [
+    "cli/commands/migrate.js",
+    "cli/commands/shared.js",
+    "cli/commands/update.js",
+    "cli/steps/copy/agents.js",
+    "cli/steps/copy/commands.js",
+    "cli/steps/copy/fullstack-engineer.js",
+    "cli/steps/copy/opencode-json.js",
+    "cli/steps/models/format.js",
+    "cli/steps/models/write.js",
+    "cli/steps/openspec/index.js",
+    "cli/steps/optimization/codegraph.js",
+    "cli/steps/optimization/detect.js",
+    "cli/steps/optimization/memory.js",
+    "cli/steps/optimization/patch-guardrails.js",
+    "cli/utils/agent-color.js",
+    "cli/utils/copy.js",
+    "cli/utils/exec.js",
+    "cli/utils/legacy-check.js",
+    "cli/utils/models-pricing.js",
+    "cli/utils/update-manifest.js",
+    "harness/.opencode/plugins/pc-commit-coauthor.js",
+    "harness/.opencode/plugins/pc-subagent-monitor.js",
+    "harness/.opencode/plugins/pc-subagent-tiers.js",
+    "harness/.opencode/plugins/pc-system-reminders.js",
+    "harness/.opencode/scripts/harness-doctor.mjs"
+  ],
+  "ignoreStatic": true,
+  "concurrency": 4,
+  "timeoutMS": 60000,
+  "tempDirName": ".stryker-tmp",
+  "reporters": [
+    "clear-text",
+    "progress",
+    "json"
+  ],
+  "jsonReporter": {
+    "fileName": "reports/mutation/mutation-report.json"
+  },
+  "thresholds": {
+    "high": 80,
+    "low": 60,
+    "break": null
+  }
+}

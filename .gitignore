@@ -4,3 +4,7 @@
 /harness/node_modules
 /harness/.opencode/node_modules
 /openspec
+/coverage
+/reports
+/.stryker-tmp
+/jscpd-report
