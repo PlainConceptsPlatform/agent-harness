@@ -69,8 +69,8 @@ async function created(parentID = LEAD, id = `ses_child_${Math.random().toString
   return id
 }
 
-async function idle(id) {
-  stream.push({ type: "session.idle", data: { info: { id, parentID: LEAD } } })
+async function idle(id, type = "session.idle") {
+  stream.push({ type, data: { sessionID: id } })
   await flush()
 }
 
@@ -126,6 +126,50 @@ describe("the wave cap", () => {
 
     await idle(child)
     expect((await spawn()).effect).toBe("allow")
+  })
+
+  it("frees the slot of a worker that never reports idle", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] })
+    try {
+      await load(1)
+
+      await spawn()
+      await created()
+      expect((await spawn()).effect).toBe("deny")
+
+      vi.setSystemTime(Date.now() + 46 * 60_000)
+      expect((await spawn()).effect).toBe("allow")
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it("frees a slot on session.execution.succeeded", async () => {
+    await load(1)
+
+    await spawn()
+    const child = await created()
+    await idle(child, "session.execution.succeeded")
+    expect((await spawn()).effect).toBe("allow")
+  })
+
+  it("still frees a slot on a legacy completed event", async () => {
+    await load(1)
+
+    await spawn()
+    const child = await created()
+    await idle(child, "task.completed")
+    expect((await spawn()).effect).toBe("allow")
+  })
+
+  it("keeps the slot on a step or tool failure", async () => {
+    await load(1)
+
+    await spawn()
+    const child = await created()
+    await idle(child, "session.step.failed")
+    await idle(child, "session.tool.failed")
+    expect((await spawn()).effect).toBe("deny")
   })
 
   it("counts each lead's own children", async () => {
