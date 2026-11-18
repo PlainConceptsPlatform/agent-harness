@@ -17,6 +17,7 @@ import fs from "node:fs/promises"
 import path from "node:path"
 
 const PENDING_TTL_MS = 15_000
+const RUNNING_TTL_MS = 30 * 60_000
 
 export default Plugin.define({
   id: "pc.subagent-monitor",
@@ -59,9 +60,18 @@ export default Plugin.define({
     }
 
     function pruneStale() {
+      const now = Date.now()
+      let expired = false
       for (const [id, entry] of Object.entries(state.agents)) {
-        if (entry?.stale) delete state.agents[id]
+        if (entry?.stale) {
+          delete state.agents[id]
+        } else if (entry?.status === "running" && now - Date.parse(entry.startedAt) > RUNNING_TTL_MS) {
+          entry.status = "done"
+          entry.endedAt = new Date(now).toISOString()
+          expired = true
+        }
       }
+      if (expired) persist()
     }
 
     async function maxConcurrent() {

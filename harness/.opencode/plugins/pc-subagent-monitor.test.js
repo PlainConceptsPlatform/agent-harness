@@ -128,6 +128,22 @@ describe("the wave cap", () => {
     expect((await spawn()).effect).toBe("allow")
   })
 
+  it("frees the slot of a worker that never reports idle", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] })
+    try {
+      await load(1)
+
+      await spawn()
+      await created()
+      expect((await spawn()).effect).toBe("deny")
+
+      vi.setSystemTime(Date.now() + 31 * 60_000)
+      expect((await spawn()).effect).toBe("allow")
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it("counts each lead's own children", async () => {
     await load(1)
 
