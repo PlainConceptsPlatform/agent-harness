@@ -17,7 +17,7 @@ import fs from "node:fs/promises"
 import path from "node:path"
 
 const PENDING_TTL_MS = 15_000
-const RUNNING_TTL_MS = 30 * 60_000
+const RUNNING_TTL_MS = 60 * 60_000
 
 export default Plugin.define({
   id: "pc.subagent-monitor",
