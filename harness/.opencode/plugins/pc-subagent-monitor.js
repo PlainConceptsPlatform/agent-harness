@@ -5,12 +5,9 @@
 // hook, so the cap is a `subagent` permission rule: an `evaluate` hook counts
 // the children of the asking session and denies the launch over the limit.
 //
-// Child sessions are observed from the event stream. V2 does not document the
-// event type strings (the payload schema is an opaque `string`), so the handler
-// is deliberately tolerant and, with PC_HARNESS_DEBUG set, prints every event
-// type once so the names can be pinned from a real run. Counting via the event
-// stream is the iteration-one mechanism; `ctx.session` in the plugin context is
-// not documented to expose `list`, so it is not used here.
+// Child sessions are observed from the event stream. A child is registered on
+// session.created (which carries parentID) and released on session.idle or
+// session.execution.*, which carry only the session id.
 
 import { Plugin } from "@opencode/plugin"
 import fs from "node:fs/promises"
@@ -18,6 +15,12 @@ import path from "node:path"
 
 const PENDING_TTL_MS = 15_000
 const RUNNING_TTL_MS = 45 * 60_000
+const COMPLETION_EVENTS = new Set([
+  "session.idle",
+  "session.execution.succeeded",
+  "session.execution.failed",
+  "session.execution.interrupted",
+])
 
 export default Plugin.define({
   id: "pc.subagent-monitor",
@@ -156,6 +159,15 @@ export default Plugin.define({
               console.error(`[pc-subagent-monitor] event: ${type}`)
             }
             const { id, parentID, agent, title, status } = extractSession(event)
+            if (id && COMPLETION_EVENTS.has(type)) {
+              const finished = state.agents[id]
+              if (finished?.status === "running") {
+                finished.status = "done"
+                finished.endedAt = new Date().toISOString()
+                await persist()
+              }
+              continue
+            }
             if (!id || !parentID) continue
 
             if (status === "running" || /created|started/.test(type)) {
@@ -171,14 +183,6 @@ export default Plugin.define({
               }
               await persist()
               continue
-            }
-
-            const entry = state.agents[id]
-            if (!entry) continue
-            if (status === "idle" || /idle|completed|succeeded|failed/.test(type)) {
-              entry.status = "done"
-              entry.endedAt = new Date().toISOString()
-              await persist()
             }
           } catch {
             // monitoring must never disrupt the run

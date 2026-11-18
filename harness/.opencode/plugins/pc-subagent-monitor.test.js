@@ -69,8 +69,8 @@ async function created(parentID = LEAD, id = `ses_child_${Math.random().toString
   return id
 }
 
-async function idle(id) {
-  stream.push({ type: "session.idle", data: { info: { id, parentID: LEAD } } })
+async function idle(id, type = "session.idle") {
+  stream.push({ type, data: { sessionID: id } })
   await flush()
 }
 
@@ -142,6 +142,25 @@ describe("the wave cap", () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  it("frees a slot on session.execution.succeeded", async () => {
+    await load(1)
+
+    await spawn()
+    const child = await created()
+    await idle(child, "session.execution.succeeded")
+    expect((await spawn()).effect).toBe("allow")
+  })
+
+  it("keeps the slot on a step or tool failure", async () => {
+    await load(1)
+
+    await spawn()
+    const child = await created()
+    await idle(child, "session.step.failed")
+    await idle(child, "session.tool.failed")
+    expect((await spawn()).effect).toBe("deny")
   })
 
   it("counts each lead's own children", async () => {
