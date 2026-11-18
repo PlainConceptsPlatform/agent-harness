@@ -21,6 +21,11 @@ const COMPLETION_EVENTS = new Set([
   "session.execution.failed",
   "session.execution.interrupted",
 ])
+const LEGACY_COMPLETION = /(^|\.)(idle|completed|succeeded)$/
+
+function isCompletion(type, status) {
+  return COMPLETION_EVENTS.has(type) || LEGACY_COMPLETION.test(type) || status === "idle"
+}
 
 export default Plugin.define({
   id: "pc.subagent-monitor",
@@ -159,7 +164,7 @@ export default Plugin.define({
               console.error(`[pc-subagent-monitor] event: ${type}`)
             }
             const { id, parentID, agent, title, status } = extractSession(event)
-            if (id && COMPLETION_EVENTS.has(type)) {
+            if (id && isCompletion(type, status)) {
               const finished = state.agents[id]
               if (finished?.status === "running") {
                 finished.status = "done"

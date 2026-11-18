@@ -153,6 +153,15 @@ describe("the wave cap", () => {
     expect((await spawn()).effect).toBe("allow")
   })
 
+  it("still frees a slot on a legacy completed event", async () => {
+    await load(1)
+
+    await spawn()
+    const child = await created()
+    await idle(child, "task.completed")
+    expect((await spawn()).effect).toBe("allow")
+  })
+
   it("keeps the slot on a step or tool failure", async () => {
     await load(1)
 
