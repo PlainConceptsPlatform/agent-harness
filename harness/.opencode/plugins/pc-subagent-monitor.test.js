@@ -137,7 +137,7 @@ describe("the wave cap", () => {
       await created()
       expect((await spawn()).effect).toBe("deny")
 
-      vi.setSystemTime(Date.now() + 61 * 60_000)
+      vi.setSystemTime(Date.now() + 46 * 60_000)
       expect((await spawn()).effect).toBe("allow")
     } finally {
       vi.useRealTimers()
