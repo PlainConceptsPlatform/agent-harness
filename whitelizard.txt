@@ -3,7 +3,7 @@
 # block; any other function that crosses it does. The list only shrinks: when one of these is
 # simplified below the limit, delete its line. Never add a line to turn the job green.
 #
-# (anonymous) in pc-system-reminders.js is the permission `evaluate` hook. lizard cannot name it,
+# (anonymous) in pc-system-reminders/index.js is the permission `evaluate` hook. lizard cannot name it,
 # so the entry exempts every anonymous function in that file; name the hook to narrow it.
 cli/commands/join.js:runJoin
 cli/commands/migrate.js:planMigration
@@ -13,7 +13,7 @@ cli/steps/copy/opencode-json.js:migrateToV2
 cli/steps/copy/skills.js:installObSkills
 cli/steps/metadata/index.js:writeHarnessConfig
 cli/steps/optimization/codegraph.js:fixCodegraphConfig
-harness/.opencode/plugins/pc-system-reminders.js:(anonymous)
+harness/.opencode/plugins/pc-system-reminders/index.js:(anonymous)
 harness/.opencode/scripts/check-diff.mjs:evaluate
 harness/.opencode/scripts/check-diff.mjs:git
 harness/.opencode/scripts/code-rules.mjs:commentBlocks

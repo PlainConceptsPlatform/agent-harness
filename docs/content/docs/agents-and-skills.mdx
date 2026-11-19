@@ -113,7 +113,7 @@ stall.
 | Browser navigation off `localhost` unless the backlog is browser-based | `pc-system-reminders` |
 | Anything but inspection commands in a `plan` session | `pc-system-reminders` |
 | Editing a path the [platform contract](/docs/platform-contracts) lists under `owned`, unless the exceptions file holds an unexpired exception for it | `pc-system-reminders` |
-| A spawn past `agents.maxConcurrent` | `pc-subagent-monitor` |
+| A spawn past `agents.maxConcurrent` | `pc-subagents` |
 
 One rule is applied rather than denied: every `git commit` an agent runs gets
 `--trailer "Co-Authored-By: opencode <noreply@opencode.ai>"` before it executes

@@ -33,6 +33,24 @@ implementation only. This is what the [plan / build / fast tiers](/docs/the-wiza
 
 <Step>
 
+### Install the quota plugin
+
+[`@slkiser/opencode-quota`](https://www.npmjs.com/package/@slkiser/opencode-quota) adds `/quota` and
+`/quota_status`, which surface real-time token usage inside OpenCode sessions.
+
+</Step>
+
+<Step>
+
+### Use /quota checkpoints
+
+Run `/quota` before starting any `/plan-apply` session and after each agent wave. Pause at 75
+percent consumed; stop at 90 percent.
+
+</Step>
+
+<Step>
+
 ### Confirm before large runs
 
 The onboarded `/plan-apply` workflow asks for confirmation before spawning agents for Medium (4 to 7

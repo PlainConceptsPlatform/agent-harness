@@ -97,7 +97,7 @@ export async function copyContent(contentDir, destDir, platform, ctx = {}) {
     const retiredHelper = '.opencode/plugins/pc-subagent-tiers-core.js'
     const retiredPath = path.join(destDir, retiredHelper)
     if (await fse.pathExists(retiredPath)) {
-      const consumers = ['.opencode/plugins/pc-subagent-tiers.js', '.opencode/scripts/sync-agents.mjs']
+      const consumers = ['.opencode/plugins/pc-subagent-tiers/index.js', '.opencode/scripts/sync-agents.mjs']
       const consumersUpdated = (await Promise.all(consumers.map(async relativePath => {
         const sourcePath = path.join(contentDir, relativePath)
         const destinationPath = path.join(destDir, relativePath)
