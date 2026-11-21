@@ -130,7 +130,7 @@ Commands that other commands (or agents) need to execute are thin wrappers aroun
 | ------- | ----------- |
 | `/repo-help` | Show all commands and when to use each one. Start here if you are unsure. |
 | `/repo-onboard` | Guided tour of the project and its agentic infrastructure. Explains agents, commands, skills, OpenSpec workflow, and configuration. Read-only. |
-| `/repo-audit` | Read-only audit of every configured source root against fullstack abilities and guardrails. Reports prioritized architecture, quality, dependency, lockfile, tooling, and CI findings. |
+| `/repo-audit` | Exploratory, read-only audit for a repository with no engineering health data, or on demand: boundaries, authorization, N+1 queries, tests that assert nothing and documentation drift, each with file, method and line. When an audit selection exists, it follows that instead of exploring. |
 | `/repo-initialize` | Initialize the project. Asks greenfield versus brownfield, then activates the agent team. |
 | `/plan-explore` | Think through an idea or investigate a problem before committing to a plan. |
 | `/plan-mockup <screen or flow>` | Draw a self-contained HTML mockup of a UI change from this repository's own design tokens and components, with every region mapped to the real component to build it with. States UX intent, not a spec. Can publish it to an issue, where the refine and implement workflows pick it up. |
@@ -219,7 +219,7 @@ Built-in skills (`pc-` prefix) shipped with agent-harness:
 | `pc-make-user-model` | Tier model configuration behind `/make-user-model` |
 | `pc-plan-goal` | Autonomous full-lifecycle pipeline behind `/plan-goal` |
 | `pc-plan-quick` | Quick task checklist behind `/plan-quick` |
-| `pc-repo-audit` | Read-only health audit across configured source roots and fullstack abilities |
+| `pc-repo-audit` | Exploratory read-only audit for repositories with no health data, or on demand; follows an audit selection when one exists |
 | `pc-repo-verify` | Writes the verification plan (`verification-plan.md`): a journey as a fenced YAML block, replayed in headless Chromium by the evidence workflow when the pull request merges. Its `PC-PROJECT-ENVIRONMENT` slot records how the project starts and signs in. Used by `/repo-verify` and `/plan-goal` |
 | `pc-repo-initialize` | Project initialization behind `/repo-initialize` |
 | `pc-repo-onboard` | Guided project tour behind `/repo-onboard` |
