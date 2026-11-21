@@ -24,6 +24,7 @@ The caller may pass exploration findings from a prior `/plan-explore` session. T
 - Never read outside this repository root. The entire inventory and plan must come from files inside this repo.
 - Adhere to `${{ env.REPO_RULES }}` and repository documentation (AGENTS.md, ARCHITECTURE.md, DESIGN.md, existing patterns) before finalizing the story.
 - Reserve the very top of the body — above the form's first heading — for machine-readable lines that later workflow steps add (split markers, estimate lines). Never place story or plan content there; the workflow reads those lines regardless of the form's shape.
+- When the input ends with a hidden HTML comment line (an `<!-- audit-item: … -->` marker, for example), keep that line verbatim as the last line of the body, after the plan. Never reword, move or drop it: a later workflow step finds the story by it.
 
 ## Flow
 
